@@ -280,12 +280,11 @@ hold / expired shown in red or amber), dates, potency, lab and how many of that 
 you can drag to a second monitor (or a tab on the same tablet); it follows the till through the browser with no
 set-up. For a screen on another device (a tablet facing the customer), tick **Send to a separate screen** and open the
 link/QR it shows on that device: the display polls the till's snapshot every 2 seconds through the server (kept in
-memory for 3 minutes, keyed by the paired till and a pairing key; "New link" revokes the old one). The display shows
+D1 for 3 minutes, keyed by the paired till and a pairing key; "New link" revokes the old one). The display shows
 the lines, total, deals applied, the member's first name and points, "tap to pay", change and points earned, then
 cycles brand messages (today's deals, never on medicines; the next event). It never shows phone numbers, member
 numbers, or the names of licensed medicines ("Dispensed medicine"). Tap the display for full screen. Runs on any
-browser. Note for HA deployments: the separate-screen feed is held in the app instance's memory, so run one instance
-per store front or use sticky sessions; the same-device window needs no server at all.
+browser. The same-device window needs no server at all.
 
 **Training mode.** A manager starts it under **Shift → This till → Training mode** (a cashier's tap asks for a
 manager's PIN). The till shows an orange outline and the banner **TRAINING: nothing is real**; a five-step tour

@@ -2411,3 +2411,12 @@ model EarlyAccessContact {
   signedUpAt DateTime
   createdAt  DateTime @default(now())
 }
+
+/// The customer-display feed: a till's current sale snapshot for a screen on another device, polled with the pairing
+/// key. Rows live three minutes (src/server/pos/display.ts); nothing else reads them.
+model DisplayFeed {
+  deviceId String   @id
+  key      String
+  snapshot Json
+  at       DateTime
+}

@@ -1587,6 +1587,14 @@ CREATE TABLE "EarlyAccessContact" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- CreateTable
+CREATE TABLE "DisplayFeed" (
+    "deviceId" TEXT NOT NULL PRIMARY KEY,
+    "key" TEXT NOT NULL,
+    "snapshot" JSONB NOT NULL,
+    "at" DATETIME NOT NULL
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Region_code_key" ON "Region"("code");
 
