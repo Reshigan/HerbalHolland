@@ -22,3 +22,10 @@ sites/.tmp-*/
 sites/tmp-*/
 public/brand/shelf/
 __pycache__/
+
+.wrangler/
+.open-next/
+.spike/
+*.sqlite
+*.sqlite-journal
+worker-configuration.d.ts

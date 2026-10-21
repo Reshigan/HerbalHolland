@@ -1,0 +1,23 @@
+{
+  // shop.herbalholland.com on Cloudflare Workers: the Next.js app (OpenNext), D1 (the database), R2 (files),
+  // Browser Rendering (PDFs and Studio cards), Cron Triggers (the scheduled jobs). docs/CLOUDFLARE.md explains the set-up.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "herbal-holland-shop",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  "limits": { "cpu_ms": 300000 },
+  "d1_databases": [
+    // database_id: the id `wrangler d1 create herbal-holland` prints (RUNBOOK → First deploy). Local dev needs none.
+    { "binding": "DB", "database_name": "herbal-holland", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "herbal-holland-files" }],
+  "browser": { "binding": "BROWSER" },
+  "triggers": {
+    // The four jobs of src/server/jobs.ts (JOB_WINDOWS in src/lib/jobs.ts), in UTC: SAST is UTC+2 all year.
+    "crons": ["*/15 * * * *", "*/5 * * * *", "0 0 * * *", "30 3 * * *"]
+  },
+  "vars": { "DEMO_MODE": "false" }
+}

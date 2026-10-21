@@ -1,21 +1,50 @@
+// The database client. On Cloudflare the app talks to D1 through the request's binding (`DB`, wrangler.jsonc); Node-side
+// tools (the seed, scripts, vitest) open the SQLite file DATABASE_URL names, which is the local D1 under .wrangler/state
+// when they run next to `next dev`. The client is built lazily per binding because bindings only exist inside a request.
+// D1 has no transactions: Prisma runs the statements of `tx()` one by one (see docs/CLOUDFLARE.md for what that means).
+import { createRequire } from "node:module";
+import type { D1Database } from "@cloudflare/workers-types";
 import { PrismaClient, Prisma } from "@/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaD1 } from "@prisma/adapter-d1";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-const g = globalThis as unknown as { db?: PrismaClient; dbClass?: typeof PrismaClient };
+const errorFormat = process.env.NODE_ENV === "production" ? ("minimal" as const) : undefined; // no query arguments in logs
 
-// One client across dev hot reloads, unless `prisma generate` produced a new client class (schema change).
-if (g.db && g.dbClass !== PrismaClient) void g.db.$disconnect();
-export const db =
-  g.db && g.dbClass === PrismaClient ? g.db : new PrismaClient({
-        adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: Number(process.env.DATABASE_POOL_MAX) || 10 }),
-        // Production errors without the query's arguments: they can carry members' details into logs and alert emails.
-        errorFormat: process.env.NODE_ENV === "production" ? "minimal" : undefined,
-      });
+const perBinding = new WeakMap<object, PrismaClient>();
+let local: PrismaClient | undefined;
 
-if (process.env.NODE_ENV !== "production") (g.db = db), (g.dbClass = PrismaClient);
+function client(): PrismaClient {
+  let d1: D1Database | undefined;
+  try {
+    d1 = (getCloudflareContext().env as { DB?: D1Database }).DB;
+  } catch {
+    d1 = undefined; // not inside a Cloudflare request (a script, a test)
+  }
+  if (d1) {
+    let c = perBinding.get(d1);
+    if (!c) perBinding.set(d1, (c = new PrismaClient({ adapter: new PrismaD1(d1), errorFormat })));
+    return c;
+  }
+  if (!local) {
+    const url = process.env.DATABASE_URL;
+    if (!url?.startsWith("file:")) throw new Error("Outside Cloudflare, DATABASE_URL must name a SQLite file (file:…)");
+    // Resolved at run time only: the Worker bundle never carries the native SQLite driver.
+    const { PrismaBetterSqlite3 } = createRequire(`${process.cwd()}/package.json`)("@prisma/adapter-better-sqlite3");
+    local = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }), errorFormat });
+  }
+  return local;
+}
+
+export const db: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_, key) {
+    const c = client();
+    const v = (c as unknown as Record<PropertyKey, unknown>)[key];
+    return typeof v === "function" ? (v as (...a: unknown[]) => unknown).bind(c) : v;
+  },
+});
 
 export type Tx = Prisma.TransactionClient;
 export { Prisma };
 
-/** Interactive transaction with a timeout suited to multi-line stock postings. */
+/** A unit of work. On D1 the statements run one after another (no rollback): keep each step idempotent. */
 export const tx = <T>(fn: (t: Tx) => Promise<T>) => db.$transaction(fn, { timeout: 30_000, maxWait: 10_000 });
