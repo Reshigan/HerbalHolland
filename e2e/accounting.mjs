@@ -82,9 +82,15 @@ async function act(page, label, trigger, done) {
   console.log(`    ⏱ ${label}: ${ms} ms`);
 }
 async function runQueue() {
-  const r = await fetch(`${BASE}/api/cron/frequent`, { method: "POST", headers: { authorization: `Bearer ${CRON}` } });
-  if (!r.ok) throw new Error(`the frequent job answered ${r.status}`);
-  return (await r.json()).ledger;
+  // On a deployed Worker the Cron Trigger runs this job too: when it holds the lock, the route says so and we wait.
+  for (let i = 0; ; i++) {
+    const r = await fetch(`${BASE}/api/cron/frequent`, { method: "POST", headers: { authorization: `Bearer ${CRON}` } });
+    if (!r.ok) throw new Error(`the frequent job answered ${r.status}`);
+    const body = await r.json();
+    if (!body.skipped) return body.ledger;
+    if (i >= 40) throw new Error(`the frequent job stayed busy: ${body.skipped}`);
+    await new Promise((res) => setTimeout(res, 3000));
+  }
 }
 
 const company = await one(`select c.id, c.name from "Company" c join "User" u on u."companyId" = c.id where u.email = $1`, [OWNER]);
