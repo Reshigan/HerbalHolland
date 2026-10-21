@@ -300,10 +300,13 @@ export async function setBooksLock(companyId: string, through: string | null, ac
   await audit(db, actor, through && (!before || through > before) ? "ledger.close" : "ledger.reopen", { entity: "Company", entityId: companyId, data: { from: before, to: through } });
 }
 
-/** Nightly: every rule set's sources for the day just ended (and month ends), queued, then posted. */
+/**
+ * Nightly: every rule set's sources for the day just ended (and month ends), queued, then posted. Eight minutes of
+ * posting: a Cron Trigger's run must end within fifteen, and the frequent job finishes whatever is left in the queue.
+ */
 export async function ledgerNightly(now = new Date()) {
   const { NIGHTLY } = await import("./sources");
-  return queueAndPost(NIGHTLY.map((nightly) => nightly(now)), 20);
+  return queueAndPost(NIGHTLY.map((nightly) => nightly(now)), 8);
 }
 
 /** Every source with activity between two SAST days, queued, then posted: history (the demo seed) or a period re-posted. */

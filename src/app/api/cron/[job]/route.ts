@@ -13,9 +13,10 @@ import { sha256 } from "@/server/crypto";
 import { JOBS, runJob } from "@/server/jobs";
 import { db } from "@/server/db";
 
-// The lease is held for the whole run, so it must outlast the longest job: daily, whose books step alone may take 20
-// minutes on a catch-up night (ledgerNightly). A run that dies without finishing leaves its lease to lapse after this.
-const LOCK_TIMEOUT = 45 * 60_000;
+// The lease is held for the whole run, so it must outlast the longest job: daily, whose books step may post for eight
+// minutes on a catch-up night (ledgerNightly; a Cron Trigger's run ends within fifteen). A run that dies without
+// finishing leaves its lease to lapse after this.
+const LOCK_TIMEOUT = 20 * 60_000;
 
 export async function POST(req: Request, { params }: { params: Promise<{ job: string }> }) {
   const secret = process.env.CRON_SECRET;

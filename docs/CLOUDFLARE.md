@@ -62,7 +62,7 @@ payment keys…) are Worker secrets (`wrangler secret put`), read as `process.en
 - Files: R2 through the binding. No `UPLOAD_DIR`, no S3 keys.
 - PDFs and the Studio's card pictures: Browser Rendering (`env.BROWSER`), not Playwright or sharp.
 - Email: Microsoft Graph only (`MS_*`). No SMTP.
-- Apple Wallet passes: signed with WebCrypto, no `openssl`.
+- Apple Wallet passes: signed with WebCrypto (PKCS#7), no `openssl`; the Google pass JWT uses node:crypto, which workerd provides.
 - Jobs: Cron Triggers call the four `/api/cron/<job>` routes with `CRON_SECRET` (`worker.ts`); nothing to install.
 - Start-up checks (`instrumentation.ts`) run on the first request instead of at boot.
 - CPU time per request is capped at 5 minutes; long reports stream, month end and exports run as jobs.
