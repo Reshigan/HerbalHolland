@@ -12,6 +12,7 @@ jobs:
     env:
       SESSION_SECRET: ci-only-secret-ci-only-secret-ci-only
       DEMO_MODE: "false"
+      DATABASE_URL: file:.data/ci.sqlite # prisma.config.ts needs one to load; the integration tests make their own file
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +45,7 @@ jobs:
       APP_URL: http://127.0.0.1:3000
       DEMO_MODE: "true" # demo logins and on-screen sign-in codes for the scripted journeys
       CRON_SECRET: ci-only-cron-secret # the books journey runs the posting queue through /api/cron/frequent
+      DATABASE_URL: file:.data/ci.sqlite # for prisma.config.ts; the seed is told the local D1 file
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +65,7 @@ jobs:
           SEED_DAYS: "21"
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - name: Start the Worker (wrangler dev: local D1, R2; secrets from .dev.vars)
+      - name: Start the Worker (wrangler dev with the local D1 and R2, secrets from .dev.vars)
         run: |
           printf 'SESSION_SECRET=%s\nDEMO_MODE=%s\nAPP_URL=%s\nCRON_SECRET=%s\n' "$SESSION_SECRET" "$DEMO_MODE" "$APP_URL" "$CRON_SECRET" > .dev.vars
           (npx wrangler dev --port 3000 --ip 127.0.0.1 > server.log 2>&1 &)

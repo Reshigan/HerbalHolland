@@ -28,6 +28,7 @@ env:
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   SESSION_SECRET: staging-only-secret-staging-only-secret
   CRON_SECRET: staging-only-cron-secret-staging-only
+  DATABASE_URL: file:.data/ci.sqlite # for prisma.config.ts; the seed is told the local D1 file
   NEXT_TELEMETRY_DISABLED: "1"
 
 jobs:
