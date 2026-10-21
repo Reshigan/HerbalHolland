@@ -189,13 +189,15 @@ try {
     assert(acct, "bank account added: it carries the books' Bank account");
   } else ok(`bank account ${acct.name} already there`);
   // Two postings on the bank that no statement line has matched yet, each the only one of its amount near its day (so
-  // each fits exactly one). The demo's statements match nearly everything; if two aren't left, two seeded lines are
+  // each fits exactly one, and alone in its posting: an earlier run's payment and its reversal net to nothing). The demo's
+  // statements match nearly everything; if two aren't left, two seeded lines are
   // set aside (ignored) so their postings are free again.
   const candidates = () =>
     q(
       `with p as (
          select j.id, j.number, j.date, sum(l."amountCents")::bigint as cents from "Journal" j join "JournalLine" l on l."journalId" = j.id
          where j."companyId" = $1 and l."accountId" = $2 and j.status = 'POSTED' and j.source in ('deposit', 'store-day', 'expense', 'statement-payment')
+           and not exists (select 1 from "Journal" o where o."companyId" = j."companyId" and o.source = j.source and o."sourceId" = j."sourceId" and o.id <> j.id)
          group by j.id having sum(l."amountCents") <> 0)
        select p.id, p.number, to_char(p.date, 'YYYY-MM-DD') as day, p.cents from p
        where not exists (select 1 from "BankLine" b where b."journalId" = p.id and b.status in ('MATCHED', 'ALLOCATED'))

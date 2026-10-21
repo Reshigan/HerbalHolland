@@ -32,8 +32,27 @@ function d1Client(): PrismaClient | null {
   }
   if (!d1 || !key) return null;
   let c = perRequest.get(key);
-  if (!c) perRequest.set(key, (c = sequentialTx(new PrismaClient({ adapter: new PrismaD1(d1), errorFormat }))));
+  if (!c) perRequest.set(key, (c = sequentialTx(retrying(new PrismaClient({ adapter: new PrismaD1(d1), errorFormat })))));
   return c;
+}
+
+// D1 fails a statement outright when its session cannot commit (locally, when another process wrote the SQLite file
+// between two of its statements: the journeys do). Nothing was written, so the statement simply runs again.
+const TRANSIENT = /commit token|SQLITE_BUSY/;
+function retrying(c: PrismaClient): PrismaClient {
+  return c.$extends({
+    query: {
+      async $allOperations({ args, query }) {
+        for (let attempt = 0; ; attempt++) {
+          try {
+            return await query(args);
+          } catch (e) {
+            if (attempt >= 2 || !TRANSIENT.test(String((e as Error)?.message ?? e))) throw e;
+          }
+        }
+      },
+    },
+  }) as unknown as PrismaClient;
 }
 
 // Prisma refuses `$transaction(fn)` on D1 outright. The platform's unit of work (`tx`) runs its statements one after
