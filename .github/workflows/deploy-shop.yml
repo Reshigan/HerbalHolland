@@ -61,14 +61,15 @@ jobs:
           set -e
           ACCOUNT_ID=$(curl -sf https://api.cloudflare.com/client/v4/accounts -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id')
           echo "::add-mask::$ACCOUNT_ID"
-          if ! npx wrangler d1 list --json | jq -e --arg n "$DB_NAME" '.[] | select(.name == $n)' > /dev/null; then
+          # With wrangler.jsonc in view, wrangler matches the name to its binding and uses the placeholder id, so the
+          # D1 lookups and the create run against an empty config.
+          echo '{}' > .no-config.jsonc
+          if ! npx wrangler d1 list --json --config .no-config.jsonc | jq -e --arg n "$DB_NAME" '.[] | select(.name == $n)' > /dev/null; then
             echo "Creating D1 database $DB_NAME (primary location Western Europe)"
-            # With wrangler.jsonc in view, `d1 create` looks the placeholder id up first and fails: an empty config for this one call.
-            echo '{}' > .d1-create.jsonc
-            npx wrangler d1 create "$DB_NAME" --location weur --config .d1-create.jsonc > /dev/null
-            rm -f .d1-create.jsonc
+            npx wrangler d1 create "$DB_NAME" --location weur --config .no-config.jsonc > /dev/null
           fi
-          DB_ID=$(npx wrangler d1 info "$DB_NAME" --json | jq -r '.uuid')
+          DB_ID=$(npx wrangler d1 info "$DB_NAME" --json --config .no-config.jsonc | jq -r '.uuid')
+          rm -f .no-config.jsonc
           test -n "$DB_ID" -a "$DB_ID" != null
           echo "database_id=$DB_ID" >> "$GITHUB_OUTPUT"
           # The placeholder (or an older id) in git becomes the real one for this deploy only; the file isn't committed.
