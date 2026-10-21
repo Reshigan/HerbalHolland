@@ -6,6 +6,9 @@ name: Test on Cloudflare
 # repository secret CLOUDFLARE_API_TOKEN (Workers Scripts, D1 and R2 edit on the account; the one deploy-site uses,
 # plus R2). The staging Worker stays up afterwards for a look around (demo logins, password holland) unless keep=false.
 on:
+  # Until the file is on main, GitHub won't dispatch it by hand: a push that touches this file runs it too.
+  push:
+    paths: [.github/workflows/test-cloudflare.yml]
   workflow_dispatch:
     inputs:
       keep:
@@ -133,7 +136,7 @@ jobs:
         run: echo "Staging Worker ${{ steps.deploy.outputs.url }} (demo logins at /login, password holland)"
 
       - name: Take the staging Worker and its database down
-        if: always() && inputs.keep == false
+        if: always() && inputs.keep == false && github.event_name == 'workflow_dispatch'
         run: |
           npx wrangler delete "$NAME" --force --config wrangler.staging.jsonc || true
           npx wrangler d1 delete "$NAME" -y || true
