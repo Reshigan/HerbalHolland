@@ -28,14 +28,14 @@ let rows = 0;
 for (const { name } of tables) {
   const cols = db.prepare(`pragma table_info("${name}")`).all().map((c) => `"${c.name}"`);
   const head = `INSERT INTO "${name}" (${cols.join(", ")}) VALUES\n`;
-  // A statement stays under D1's limit on its length (SQLITE_TOOBIG at 1 MB): rows go in by size, not by count.
+  // A statement stays under D1's limit on its length (100 KB; SQLITE_TOOBIG beyond it): rows go in by size, not by count.
   let batch = [], bytes = 0;
   for (const r of db.prepare(`select * from "${name}"`).iterate()) {
     const row = `(${Object.values(r).map(lit).join(", ")})`;
     batch.push(row);
     bytes += row.length + 2;
     rows++;
-    if (bytes > 400_000 || batch.length === 500) {
+    if (bytes > 60_000 || batch.length === 500) {
       await write(head + batch.join(",\n") + ";\n");
       batch = [];
       bytes = 0;
