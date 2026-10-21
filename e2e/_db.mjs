@@ -100,8 +100,8 @@ function typed(columns, row) {
 /**
  * The same shape over Cloudflare's D1 HTTP API, for journeys against a deployed Worker (the staging run in
  * .github/workflows/test-cloudflare.yml): set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_DATABASE_ID and CLOUDFLARE_D1_TOKEN.
- * The API gives no column types, so rows are typed by column name from the schema (a name whose type differs between
- * tables is left as the API returns it).
+ * The API gives no column types, so rows are typed by column name from the schema, and only where the value has the
+ * type's shape (an ISO timestamp, 0/1, JSON text).
  */
 export function createRemoteDb({ accountId, databaseId, token } = { accountId: process.env.CLOUDFLARE_ACCOUNT_ID, databaseId: process.env.CLOUDFLARE_DATABASE_ID, token: process.env.CLOUDFLARE_D1_TOKEN }) {
   const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`;
@@ -120,7 +120,8 @@ export function createRemoteDb({ accountId, databaseId, token } = { accountId: p
         const prev = seen.get(m[1]);
         seen.set(m[1], prev && prev !== m[2] ? "?" : m[2]);
       }
-    return [...seen].filter(([, t]) => t !== "?").map(([name, type]) => ({ name, type }));
+    // A name whose type differs between tables (`value`: TEXT here, JSONB there) is still read as JSON when its text is JSON.
+    return [...seen].map(([name, type]) => ({ name, type: type === "?" ? "JSON" : type }));
   }
   return {
     file: `d1:${databaseId}`,
