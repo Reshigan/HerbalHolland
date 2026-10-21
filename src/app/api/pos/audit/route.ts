@@ -25,7 +25,7 @@ export const POST = withStaff(async (req, pos) => {
   const storeId = pos.device.storeId;
   let written = 0;
   for (const e of b.entries) {
-    const dup = await db.auditLog.findFirst({ where: { entity: "Device", entityId: pos.device.id, action: ACTIONS[e.action], data: { path: ["clientId"], equals: e.id } }, select: { id: true } });
+    const dup = await db.auditLog.findFirst({ where: { entity: "Device", entityId: pos.device.id, action: ACTIONS[e.action], data: { path: "$.clientId", equals: e.id } }, select: { id: true } });
     if (dup) continue;
     let actor = actorOf(pos);
     if (e.staffId && e.staffId !== pos.user.id) {

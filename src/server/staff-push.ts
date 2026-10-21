@@ -107,7 +107,7 @@ export const peopleFor = (store: StoreRef, people: Person[], wide = false) =>
 export async function claimEvents(keys: string[]) {
   if (!keys.length) return new Set<string>();
   const before = new Set((await db.staffPushEvent.findMany({ where: { key: { in: keys } }, select: { key: true } })).map((e) => e.key));
-  const fresh = keys.filter((k) => !before.has(k));
+  const fresh = [...new Set(keys)].filter((k) => !before.has(k));
   if (fresh.length) await db.staffPushEvent.createMany({ data: fresh.map((key) => ({ key })) });
   return new Set(fresh);
 }

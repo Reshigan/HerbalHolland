@@ -22,3 +22,10 @@ vi.mock("@/server/storage", () => {
     },
   };
 });
+
+// Studio cards are screenshots from Browser Rendering, which only exists inside a Cloudflare request: a stand-in JPEG.
+vi.mock("@/server/studio-cards", async (orig) => {
+  const real = await orig<typeof import("@/server/studio-cards")>();
+  const jpeg = Buffer.from("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==", "base64");
+  return { ...real, cardJpeg: async () => jpeg, renderCard: async () => new Response(jpeg, { headers: { "content-type": "image/png" } }) };
+});

@@ -5,6 +5,7 @@
 // tender like any other (sales.postPosSale; refunds go back onto the voucher first). A voucher is money, not an
 // incentive (no bonus value, allowed on everything); CPA s63(2) makes it valid for three years from issue.
 import { cache } from "react";
+import { asList } from "@/lib/json-list";
 import { db, tx, type Tx } from "@/server/db";
 import { audit, SYSTEM, type Actor } from "@/server/audit";
 import { pinCode, shortCode } from "@/server/counters";
@@ -201,7 +202,7 @@ export async function redeemVoucherTx(t: Tx, a: { voucher: GiftVoucher; cents: n
   if (!a.orderId && !a.saleId) throw new VoucherError("A redemption belongs to an order or a sale");
   const { count } = await t.giftVoucher.updateMany({
     where: { id: a.voucher.id, status: "ACTIVE", balanceCents: { gte: a.cents } },
-    data: { balanceCents: { decrement: a.cents }, ...(a.orderId && { redeemedOrderIds: { push: a.orderId } }) },
+    data: { balanceCents: { decrement: a.cents }, ...(a.orderId && { redeemedOrderIds: [...asList<string>(a.voucher.redeemedOrderIds), a.orderId] }) },
   });
   if (!count) throw new VoucherError(`Gift voucher ${a.voucher.code} was just used somewhere else. Check its balance and try again`);
   await t.giftVoucher.updateMany({ where: { id: a.voucher.id, balanceCents: { lte: 0 } }, data: { status: "REDEEMED" } });

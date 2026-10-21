@@ -29,8 +29,10 @@ payment keys…) are Worker secrets (`wrangler secret put`), read as `process.en
   Read with `asList(row.field)` (`@/lib/json-list`), write plain arrays. Filters `has`, `hasSome`, `hasEvery`, `isEmpty`
   no longer exist: filter in code after a bounded query, or in raw SQL with `EXISTS (SELECT 1 FROM json_each(col) WHERE
   value = ?)`.
-- **Timestamps** are ISO-8601 UTC text (`2026-10-21T07:01:26.322Z`); `@db.Date` columns are now plain `DateTime` at
-  midnight UTC. In raw SQL use the helpers in `@/server/sql`: `sast(col)` (SAST wall clock, `datetime(col,'+2 hours')`),
+- **Timestamps** are ISO-8601 UTC text as Prisma writes it (`2026-10-21T07:01:26.322+00:00`; bind `Date` objects in raw
+  SQL, never a `Z` string, which sorts differently); `@db.Date` columns are now plain `DateTime` at midnight UTC. Raw
+  rows differ by driver: D1 gives numbers and parses ISO-looking text into Dates, the local driver gives BigInt for
+  integer expressions (the local client converts them to numbers) and text for date expressions, so readers accept both. In raw SQL use the helpers in `@/server/sql`: `sast(col)` (SAST wall clock, `datetime(col,'+2 hours')`),
   `sastDay(col)`, `sastHour(col)`. SAST is UTC+2 all year.
 - **Raw SQL is SQLite**: `strftime`/`date` instead of `date_trunc`/`extract`, `||` for concatenation, `json_each` instead
   of `unnest`/`= ANY`, `INSERT … ON CONFLICT DO UPDATE` works, `FOR UPDATE`/`SKIP LOCKED`/advisory locks do not exist
@@ -40,7 +42,8 @@ payment keys…) are Worker secrets (`wrangler secret put`), read as `process.en
   indexed name columns (a LIKE pattern is at most 50 bytes).
 - Migrations are plain SQL in `migrations/` (`NNNN_name.sql`), applied with `npm run db:migrate` (local) and
   `npm run db:migrate:prod`. After a schema change: `npx prisma generate`, then `npm run db:diff > migrations/NNNN_x.sql`
-  and review it.
+  and review it (the script quotes the `'[]'` defaults of the JSON list columns, which Prisma writes unquoted; a raw
+  INSERT that leaves such a column out would otherwise store an empty value).
 - Node-side tools (the seed, `scripts/*.ts`, vitest) open the SQLite file `DATABASE_URL` names (`file:…`) through
   `@prisma/adapter-better-sqlite3`; for a running `next dev` that is the local D1 file under
   `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/`. Against the live D1 from a laptop, scripts use

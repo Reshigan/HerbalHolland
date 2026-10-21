@@ -27,7 +27,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "deploy": "opennextjs-cloudflare deploy",
     "db:migrate:prod": "wrangler d1 migrations apply DB --remote",
-    "db:diff": "prisma migrate diff --from-config-datasource --to-schema=prisma/schema.prisma --script"
+    "db:diff": "prisma migrate diff --from-config-datasource --to-schema=prisma/schema.prisma --script | sed \"s/DEFAULT \\\\[\\\\]/DEFAULT '[]'/g\""
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.3.0",

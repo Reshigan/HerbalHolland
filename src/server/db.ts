@@ -30,9 +30,27 @@ function client(): PrismaClient {
     if (!url?.startsWith("file:")) throw new Error("Outside Cloudflare, DATABASE_URL must name a SQLite file (file:…)");
     // Resolved at run time only: the Worker bundle never carries the native SQLite driver.
     const { PrismaBetterSqlite3 } = createRequire(`${process.cwd()}/package.json`)("@prisma/adapter-better-sqlite3");
-    local = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }), errorFormat });
+    local = numbersFromRaw(new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }), errorFormat }));
   }
   return local;
+}
+
+// D1 answers raw queries with numbers; the local SQLite driver answers with BigInt for every integer expression. The
+// local client converts them so scripts and tests see what production sees.
+const plain = (v: unknown): unknown =>
+  typeof v === "bigint" ? Number(v) : Array.isArray(v) ? v.map(plain) : v && typeof v === "object" && !(v instanceof Date) && !(v instanceof Uint8Array) ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, plain(x)])) : v;
+function numbersFromRaw<C extends object>(c: C): C {
+  return new Proxy(c, {
+    get(target, key) {
+      const v = (target as Record<PropertyKey, unknown>)[key];
+      if (typeof v !== "function") return v;
+      if (key === "$queryRaw" || key === "$queryRawUnsafe") return async (...a: unknown[]) => plain(await (v as (...x: unknown[]) => Promise<unknown>).apply(target, a));
+      if (key === "$transaction")
+        return (arg: unknown, ...rest: unknown[]) =>
+          (v as (...x: unknown[]) => unknown).apply(target, [typeof arg === "function" ? (t: object) => (arg as (t: object) => unknown)(numbersFromRaw(t)) : arg, ...rest]);
+      return (v as (...x: unknown[]) => unknown).bind(target);
+    },
+  });
 }
 
 export const db: PrismaClient = new Proxy({} as PrismaClient, {

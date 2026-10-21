@@ -176,7 +176,7 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     // The audit trail keeps what happened, not who: their name comes off what they did, and their mobile off the
     // "already linked to another member" checks made while they joined.
     await t.auditLog.updateMany({ where: { actorType: "CUSTOMER", actorId: customerId }, data: { actorName: ANONYMISED } });
-    const probes = await t.auditLog.findMany({ where: { action: "member.collision", data: { path: ["by"], equals: `phone:${c.phone}` } }, select: { id: true, data: true } });
+    const probes = await t.auditLog.findMany({ where: { action: "member.collision", data: { path: "$.by", equals: `phone:${c.phone}` } }, select: { id: true, data: true } });
     for (const p of probes) await t.auditLog.update({ where: { id: p.id }, data: { actorName: ANONYMISED, data: { ...(p.data as Prisma.JsonObject), by: "phone:[erased]" } } });
 
     // Their photos (reviews, returns, support): the rows here, the stored files once this commits.

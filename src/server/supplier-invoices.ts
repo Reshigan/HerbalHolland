@@ -99,7 +99,8 @@ export async function captureSupplierInvoice(a: CaptureInput, actor: Actor & { i
   if (a.dueDate < a.invoiceDate) throw new SupplierInvoiceError("The due date can't be before the invoice date", "dueDate");
   if (!Number.isInteger(a.totalCents) || a.totalCents <= 0 || a.totalCents > 100_000_000) throw new SupplierInvoiceError("Enter the invoice total including VAT", "total");
   if (!Number.isInteger(a.vatCents) || a.vatCents < 0 || a.vatCents > a.totalCents) throw new SupplierInvoiceError("VAT can't be more than the total", "vat");
-  if (await db.supplierInvoice.count({ where: { storeId: a.storeId, supplierName: { equals: supplierName }, number: { equals: number } } }))
+  const same = await db.supplierInvoice.findMany({ where: { storeId: a.storeId, supplierName: { contains: supplierName }, number: { contains: number } }, select: { supplierName: true, number: true }, take: 50 });
+  if (same.some((s) => s.supplierName.toLowerCase() === supplierName.toLowerCase() && s.number.toLowerCase() === number.toLowerCase()))
     throw new SupplierInvoiceError(`Invoice ${number} from ${supplierName} is already captured`, "number");
   const accountId = await chargedTo(a.storeId, a.accountId);
 
