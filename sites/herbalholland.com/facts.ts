@@ -64,15 +64,15 @@ export const FACTS = {
   officer: "Reshigan Govender",
 
   /**
-   * Every store, in the order the site lists them. Pietermaritzburg and Umhlanga are open (we have no opening dates,
+   * Every store, in the order the site lists them. Pietermaritzburg and the Bluff (Durban) are open (we have no opening dates,
    * addresses or hours for them, so none are shown); Hillcrest and Hilton, two new stores in the KwaZulu-Natal hills,
-   * open on the same day. The open stores' points are their towns' own (OpenStreetMap: Pietermaritzburg, and Umhlanga
-   * Rocks), as is Hilton's, which gives the published 9,438 km from Amsterdam and 51 km from Hillcrest. Adding a store
+   * open on the same day. The open stores' points are their towns' own (OpenStreetMap: Pietermaritzburg, and the
+   * Bluff, Durban), as is Hilton's, which gives the published 9,438 km from Amsterdam and 51 km from Hillcrest. Adding a store
    * is one line here; its address, phone, hours and photo appear on the site as soon as they're filled in.
    */
   stores: [
     { key: "pietermaritzburg", name: "Pietermaritzburg", city: "Pietermaritzburg", province: "KZN", lat: -29.6, lon: 30.3789, status: "open" },
-    { key: "umhlanga", name: "Umhlanga", city: "Umhlanga", province: "KZN", lat: -29.73, lon: 31.0828, status: "open" },
+    { key: "bluff", name: "Bluff", city: "Durban", province: "KZN", lat: -29.9303, lon: 31.0145, status: "open" },
     { key: "hillcrest", name: "Hillcrest", city: "Hillcrest", province: "KZN", lat: -29.781, lon: 30.7596, opens: "2026-12-01", status: "opening" },
     { key: "hilton", name: "Hilton", city: "Hilton", province: "KZN", lat: -29.5522, lon: 30.3017, opens: "2026-12-01", status: "opening" },
   ] as Store[],

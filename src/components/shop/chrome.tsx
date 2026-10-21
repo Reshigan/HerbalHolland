@@ -200,7 +200,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 Dutch heritage. <span className="font-semibold text-white">African soil.</span>
               </p>
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-400">
-                Lab-tested, batch-traceable CBD wellness, accessories and gear{footprint.trading ? `, in ${plural(footprint.trading, "store")} across ${plural(footprint.provinces.length, "province")} and online.` : ", online."}
+                Lab-tested, batch-traceable CBD wellness, accessories and gear{footprint.trading ? `, in ${plural(footprint.trading, "store")} across ${plural(footprint.provinces.length, "province")}${canBuyOnline(phase) ? " and online" : ""}.` : canBuyOnline(phase) ? ", online." : "."}
               </p>
               <Link href="/club/join" className={buttonClass("outline-dark", "md", "mt-6")}>
                 Join Herbal Holland Rewards

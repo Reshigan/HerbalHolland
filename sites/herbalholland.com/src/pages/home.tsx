@@ -16,13 +16,13 @@ import { Head, Icon, Index, Keep, Reel, ShopNow, Words } from "../ui";
 const dms = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}° ${v >= 0 ? pos : neg}`;
 export const coords = (p: { lat: number; lon: number }) => `${dms(p.lat, "N", "S")} · ${dms(p.lon, "E", "W")}`;
 
-/** Towns in running text: by name, up to four ("Pietermaritzburg and Umhlanga"), then counted by province. */
+/** Towns in running text: by name, up to four ("Pietermaritzburg and Durban"), then counted by province. */
 export const towns = (stores: readonly Store[]) =>
   stores.length <= 4 ? listOf(stores.map((s) => s.city)) : fill(HOME.towns, { n: num(stores.length), provinces: provinceNames(storeProvinces(stores)) });
 
 type Line = { soon: string; both: string; open: string };
 /**
- * Where we are, from the stores list: "Open now in Pietermaritzburg and Umhlanga, and opening in Hillcrest and Hilton on
+ * Where we are, from the stores list: "Open now in Pietermaritzburg and Durban, and opening in Hillcrest and Hilton on
  * Tuesday 1 December 2026…", or only what's opening (before any store is open), or only what's open (once all are).
  */
 export function openingLine(t: Line, { weekday = true } = {}) {

@@ -30,7 +30,7 @@ describe("Today: consolidated (owner) list", () => {
       { code: "PTA01", name: "Hatfield", ...none, lowStock: 5 },
       { code: "JHB02", name: "Brooklyn", ...none, alerts: 1 },
       { code: "CPT01", name: "Sea Point", ...none, overdueCash: 2 },
-      { code: "DBN01", name: "Umhlanga", ...none },
+      { code: "DBN01", name: "Bluff", ...none },
     ]);
     expect(items.map((i) => i.title)).toEqual(["Sea Point · 2 cash-ups overdue", "Brooklyn · 1 loss-prevention alert open", "Hatfield · 5 SKUs at or below reorder point"]);
     expect(items[1].href).toBe("/store/JHB02/loss-prevention");

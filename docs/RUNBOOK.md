@@ -74,7 +74,9 @@ reports) and Postgres can't live on Cloudflare.
    store it owns: create the distribution centre (step 7), then HQ → Stores → the DC → Owner. Tax invoices, the
    legal pages and emails print them.
 6. HQ → Compliance: confirm `thcMode`, channel matrix and store licences with counsel.
-7. HQ → Stores: onboard DCs and stores (ranging template, fees, licences); Catalogue: products, variants, batches with COAs
+7. HQ → Stores: onboard DCs and stores (ranging template, fees, licences). The launch network (KwaZulu-Natal, the Durban DC,
+   Pietermaritzburg and the Bluff trading, Hillcrest and Hilton opening 1 December) is one command, `npx tsx scripts/launch-network.ts`
+   (idempotent; stores it created still need their address, phone, hours, licences and owner in HQ → Stores); Catalogue: products, variants, batches with COAs
    (HQ → Catalogue → Import loads the range from a spreadsheet, with the warehouse's opening stock, after a dry run).
    After any bulk import (catalogue, members, opening stock) run `ANALYZE;`. Autovacuum is slow to gather statistics
    on small tables, and without them the planner scans the whole network for single-store queries.

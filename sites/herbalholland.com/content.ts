@@ -108,7 +108,7 @@ export const HOME = {
     eyebrow: "Herbal Holland · South Africa",
     title: ["Holland,", "meet", "South Africa."],
     // Where we are, from the stores list: before any store is open, with stores open and more opening, and once every
-    // store is open. {open} and {next} are towns ("Pietermaritzburg and Umhlanga"), {opening} the next opening day.
+    // store is open. {open} and {next} are towns ("Pietermaritzburg and Durban"), {opening} the next opening day.
     line: {
       soon: "Opening in {next} on {opening}. More stores to be announced.",
       both: "Open now in {open}, and opening in {next} on {opening}. More stores to be announced.",
@@ -424,11 +424,11 @@ export const PRESS = {
         pageTitle: "Online shop opens for adults 18+",
         description: "Herbal Holland's online shop opens nationwide for adults 18+, with its Founding Members list; two new stores open in Hillcrest and Hilton on 1 December 2026.",
         summary:
-          "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first {cap} people on the list get a numbered Founding Member card. Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining its stores already open in Pietermaritzburg and Umhlanga.",
+          "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first {cap} people on the list get a numbered Founding Member card. Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining its stores already open in Pietermaritzburg and on the Bluff in Durban.",
         body: [
           "Herbal Holland's online shop opens across South Africa today, delivering nationwide to members aged 18 and over, with ID checked at every delivery.",
           "Joining Herbal Holland Rewards is free. The first {cap} members become Founding Members, with a numbered card and the {tier} tier for {months} months.",
-          "Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining the stores already open in Pietermaritzburg and Umhlanga. Every Herbal Holland store is owned and run by a local franchisee.",
+          "Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining the stores already open in Pietermaritzburg and on the Bluff in Durban. Every Herbal Holland store is owned and run by a local franchisee.",
           "Every batch is tested by an independent laboratory before it's sold, and the code on each pack opens that batch's result. Licensed medicines are supplied only to registered patients with a SAHPRA authorisation, through a pharmacist, and are never advertised.",
         ],
       },

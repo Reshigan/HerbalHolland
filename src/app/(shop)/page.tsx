@@ -132,7 +132,7 @@ export default async function Home() {
                 {[
                   [num(listSize), "members on the list"],
                   [num(launch.foundingCap), "Founding spots"],
-                  [num(footprint.total), `${footprint.total === 1 ? "store" : "stores"}${trading < footprint.total ? " opening" : ""}`],
+                  opening ? [num(footprint.total), `${footprint.total === 1 ? "store" : "stores"} opening soon`] : [num(trading), `${trading === 1 ? "store" : "stores"} open`],
                 ].map(([v, l]) => (
                   <div key={l}>
                     <dt className="sr-only">{l}</dt>
@@ -199,7 +199,7 @@ export default async function Home() {
           {[
             [<FlaskConical key="a" className="h-5 w-5" />, "Lab-tested, every batch", "Independent COA for potency and safety"],
             [<QrCode key="b" className="h-5 w-5" />, "Batch-traceable", "Scan the pack to see its lab result"],
-            [<Store key="c" className="h-5 w-5" />, "Click & collect", opening ? `Soon, at ${plural(footprint.total, "store")}` : `At ${plural(trading, "store")}${provinces.length ? ` in ${where}` : ""}`],
+            [<Store key="c" className="h-5 w-5" />, open ? "Click & collect" : "In store", opening ? `Soon, at ${plural(footprint.total, "store")}` : `${open ? "At " : ""}${plural(trading, "store")}${provinces.length ? ` in ${where}` : ""}${footprint.total > trading ? `, ${footprint.total - trading} opening soon` : ""}`],
             [<Truck key="d" className="h-5 w-5" />, open ? "Nationwide delivery" : "Online shopping", open ? `Free over ${zarWhole(settings.ecommerce.freeDeliveryOverCents)} · ID checked` : "Opens soon. Join Rewards to hear first"],
           ].map(([icon, title, sub]) => (
             <div key={String(title)} className="flex items-start gap-3">

@@ -32,6 +32,8 @@ function sastNow(at: Date) {
 
 export type OpenState = {
   open: boolean;
+  /** No hours published yet (a new store before HQ fills them in). */
+  unknown?: boolean;
   /** Short status for badges, e.g. "Open until 20:00" or "Opens tomorrow 09:00". */
   label: string;
   today: [string, string] | null;
@@ -51,6 +53,7 @@ export function openState(hours: Hours, at = new Date()): OpenState {
     const h = hours[k];
     if (h) return { open: false, label: `Opens ${i === 1 ? "tomorrow" : DAY_NAME[k]} ${h[0]}`, today };
   }
+  if (!Object.values(hours).some(Boolean)) return { open: false, unknown: true, label: "Hours to be confirmed", today };
   return { open: false, label: "Temporarily closed", today };
 }
 
