@@ -129,7 +129,7 @@ export function createRemoteDb({ accountId, databaseId, token } = { accountId: p
     async query(sql, params = []) {
       types ??= await columnTypes();
       const bound = Object.values(bind(params));
-      const r = await run(toSqlite(sql).replace(/\$(\d+)/g, "?$1"), bound);
+      const r = await run(longLikes(toSqlite(sql).replace(/\$(\d+)/g, "?$1"), bound), bound);
       // By name only, so an alias that merely shares a column's name (`to_char(dob, …) as dob`) keeps the shape the
       // query gave it: a DATETIME is only parsed from ISO text, a BOOLEAN only from 0/1, JSON only from text that is JSON.
       const rows = (r.results ?? []).map((row) =>
@@ -145,6 +145,37 @@ export function createRemoteDb({ accountId, databaseId, token } = { accountId: p
     },
     async end() {},
   };
+}
+
+/**
+ * D1 refuses a LIKE pattern over 50 bytes. A bound pattern longer than that becomes a chain of instr() checks on the
+ * lower-cased column: each `%`-separated piece must follow the one before (the first and last anchored when the pattern
+ * doesn't start or end with `%`). The pieces are appended to `bound` as new parameters. Exported for its test.
+ */
+export function longLikes(sql, bound) {
+  return sql.replace(/(\S+)\s+(not\s+)?like\s+\?(\d+)/gi, (m, left, not, n) => {
+    const pat = bound[n - 1];
+    if (typeof pat !== "string" || pat.length <= 50) return m;
+    const pieces = pat.split("%").filter(Boolean).map((x) => x.toLowerCase());
+    const fromStart = !pat.startsWith("%"), toEnd = !pat.endsWith("%");
+    const conds = [];
+    let e = `lower(${left})`;
+    pieces.forEach((piece, i) => {
+      bound.push(piece);
+      const p = `?${bound.length}`;
+      if (i === 0 && fromStart) {
+        conds.push(`substr(${e}, 1, length(${p})) = ${p}`);
+        e = `substr(${e}, length(${p}) + 1)`;
+      } else if (i === pieces.length - 1 && toEnd) {
+        conds.push(`length(${e}) >= length(${p}) and substr(${e}, length(${e}) - length(${p}) + 1) = ${p}`);
+      } else {
+        conds.push(`instr(${e}, ${p}) > 0`);
+        e = `substr(${e}, instr(${e}, ${p}) + length(${p}))`;
+      }
+    });
+    const all = `(${conds.join(" and ")})`;
+    return not ? `not ${all}` : all;
+  });
 }
 
 /** Opens the file; the object quacks like the `pg.Client` the journeys were written for. A live D1 when CLOUDFLARE_DATABASE_ID is set. */
