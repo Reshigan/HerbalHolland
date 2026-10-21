@@ -28,7 +28,7 @@ export async function findCampaignStores(q: string, region: string) {
         storeWhere(g.scope),
         { kind: "RETAIL", status: { not: "CLOSED" } },
         region ? { region: { code: region } } : {},
-        term ? { OR: [{ name: { contains: term, mode: "insensitive" } }, { code: { contains: term, mode: "insensitive" } }, { city: { contains: term, mode: "insensitive" } }] } : {},
+        term ? { OR: [{ name: { contains: term } }, { code: { contains: term } }, { city: { contains: term } }] } : {},
       ],
     },
     select: { id: true, name: true, code: true, city: true },
@@ -163,7 +163,10 @@ export async function importSuppressions(_: ActionState, fd: FormData): Promise<
   if (values.length > 50_000) return fail("Import at most 50,000 values at a time.");
   let added = 0;
   for (let i = 0; i < values.length; i += 5_000) {
-    added += (await db.suppression.createMany({ data: values.slice(i, i + 5_000).map((value) => ({ value, channel, source })), skipDuplicates: true })).count;
+    const slice = values.slice(i, i + 5_000);
+    const known = new Set((await db.suppression.findMany({ where: { source, value: { in: slice } }, select: { value: true } })).map((s) => s.value));
+    const fresh = slice.filter((value) => !known.has(value));
+    if (fresh.length) added += (await db.suppression.createMany({ data: fresh.map((value) => ({ value, channel, source })) })).count;
   }
   const members = await db.customer.count({ where: { OR: [{ phone: { in: values.slice(0, 10_000) } }, { email: { in: values.slice(0, 10_000) } }] } });
   await audit(db, g.actor, "marketing.suppression_import", { entity: "Suppression", data: { source, channel, submitted: values.length, added, rejected: rejected.length, members } });

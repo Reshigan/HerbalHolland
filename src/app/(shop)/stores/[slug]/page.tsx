@@ -39,6 +39,7 @@ import {
   TITLE_MAX,
 } from "@/lib/seo";
 import { cn } from "@/lib/cn";
+import { asList } from "@/lib/json-list";
 
 // generateMetadata and the page share one lookup per request.
 const load = cache(async (slug: string) =>
@@ -350,7 +351,7 @@ export default async function StorePage({
                 </p>
               </div>
             </div>
-            {s.licences.length > 0 && (
+            {asList(s.licences).length > 0 && (
               <Callout
                 tone="info"
                 icon={<ShieldCheck className="h-5 w-5" />}

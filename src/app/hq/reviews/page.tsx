@@ -17,6 +17,7 @@ import { ViewOnly } from "@/components/hq/ui";
 import { ProductArt } from "@/components/product/art";
 import { fmtDateTime, num } from "@/lib/format";
 import { hideReview, showReview } from "./actions";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Reviews" };
 
@@ -76,9 +77,9 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
                   </div>
                   {r.title && <p className="mt-1 font-medium text-ink-850">{r.title}</p>}
                   {r.body && <p className="mt-0.5 text-sm text-ink-700">{r.body}</p>}
-                  {r.photoUploadIds.length > 0 && (
+                  {asList(r.photoUploadIds).length > 0 && (
                     <ul className="mt-2 flex flex-wrap gap-2">
-                      {r.photoUploadIds.map((id) => (
+                      {asList(r.photoUploadIds).map((id) => (
                         <li key={id}>
                           <a href={`/media/${id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg ring-1 ring-ink-200">
                             {/* eslint-disable-next-line @next/next/no-img-element */}

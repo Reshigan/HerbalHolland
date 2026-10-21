@@ -12,6 +12,7 @@ import { pageParam } from "@/components/ui/pagination";
 import { plural } from "@/lib/plural";
 import { distanceKm } from "@/lib/routing";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
+import { asList } from "@/lib/json-list";
 
 export const metadata: Metadata = {
   title: "Store finder",
@@ -39,7 +40,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
   // What the stores offer, from each store's own settings: what every store offers, then what only some do.
   const offers: [string, number][] = [
     ["click & collect", online ? trading.filter((s) => s.clickCollect).length : 0],
-    ["an authorised dispenser for registered patients", trading.filter((s) => s.licences.length > 0).length],
+    ["an authorised dispenser for registered patients", trading.filter((s) => asList(s.licences).length > 0).length],
     ["same-day delivery", online ? trading.filter((s) => s.sameDay).length : 0],
   ];
   const one = trading.length === 1;

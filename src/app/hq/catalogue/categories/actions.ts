@@ -26,7 +26,7 @@ export async function saveCategory(categoryId: string | null, _: ActionState, fd
   const fields: Record<string, string> = {};
   const name = str(fd, "name");
   if (name.length < 2 || name.length > 40) fields.name = "A short name, 2–40 characters";
-  else if (await db.category.count({ where: { name: { equals: name, mode: "insensitive" }, ...(categoryId && { id: { not: categoryId } }) } })) fields.name = "Another category is already called that";
+  else if ((await db.category.findMany({ where: { name: { contains: name }, ...(categoryId && { id: { not: categoryId } }) }, select: { name: true }, take: 50 })).some((c) => c.name.toLowerCase() === name.toLowerCase())) fields.name = "Another category is already called that";
   const slug = slugify(str(fd, "slug") || name);
   if (!slug) fields.slug = "Letters or numbers, e.g. coffee-and-drinks";
   else if (await db.category.count({ where: { slug, ...(categoryId && { id: { not: categoryId } }) } })) fields.slug = "Another category already uses this URL";

@@ -17,6 +17,7 @@ import { requireBuyer } from "../_lib/context";
 import { licenceOverview } from "@/server/trade/licences";
 import { LicenceUploadForm } from "@/components/trade/licence-form";
 import { TRADE_LICENCE_KINDS, type LicenceLine } from "@/lib/trade-licences";
+import { asList } from "@/lib/json-list";
 
 export const metadata: Metadata = { title: "Account", robots: { index: false, follow: false } };
 
@@ -35,7 +36,7 @@ export default async function TradeAccountPage() {
     deliveryLine: a.deliveryLine ?? "", deliverySuburb: a.deliverySuburb ?? "", deliveryCity: a.deliveryCity ?? "", deliveryProvince: a.deliveryProvince ?? "", deliveryPostalCode: a.deliveryPostalCode ?? "",
   };
   const ageing: [string, number][] = [["Current", s.ageing.current], ["30 days", s.ageing.d30], ["60 days", s.ageing.d60], ["90+ days", s.ageing.d90plus]];
-  const { standing: licences, others } = await licenceOverview(a);
+  const { standing: licences, others } = await licenceOverview({ ...a, classes: asList(a.classes) });
   const asks = licences.lines.filter((l) => l.problem && l.state !== "pending").map((l) => l.problem!); // what only the applicant can fix
   const firstProblem = licences.lines.find((l) => l.problem)?.kind ?? licences.lines.find((l) => l.state === "expiring")?.kind ?? licences.lines[0]?.kind ?? TRADE_LICENCE_KINDS[0];
   // Any licence can be sent: the ones the account needs first, then the rest (ahead of asking for a new range).
@@ -150,7 +151,7 @@ export default async function TradeAccountPage() {
           </p>
           <h2 className="mt-10 font-display text-xl font-semibold text-white">Ranges you may buy</h2>
           <ul className="mt-3 flex flex-wrap gap-2" aria-label="Ranges">
-            {a.classes.length ? a.classes.map((c) => (
+            {asList(a.classes).length ? asList(a.classes).map((c) => (
               <li key={c}>
                 <Tag tone="orange">{classLabel(c)}</Tag>
               </li>

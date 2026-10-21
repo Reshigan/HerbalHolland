@@ -4,6 +4,7 @@ import { clock, toLocalInput } from "@/server/hq/form";
 import { centsToInput } from "@/lib/money";
 import type { Promotion } from "@/generated/prisma/client";
 import type { PromoValues } from "./promotion-form";
+import { asList } from "@/lib/json-list";
 
 export async function promoOptions() {
   const [categories, products, stores] = await Promise.all([
@@ -32,8 +33,8 @@ export function promoValues(p: Promotion | null): PromoValues {
     percent: p.kind === "PERCENT" ? String(p.value) : "", amount: p.kind === "FIXED" ? centsToInput(p.value) : "",
     multiplier: p.kind === "MULTIPLIER" ? String(p.value / 100) : "2", bundlePrice: p.kind === "MULTIBUY" ? centsToInput(p.value) : "",
     buyQty: p.buyQty?.toString() ?? "", getQty: p.getQty?.toString() ?? "1", rewardPercent: p.rewardPercent?.toString() ?? "100",
-    minSpend: p.minSpendCents ? centsToInput(p.minSpendCents) : "", categoryIds: p.categoryIds, productIds: p.productIds,
-    rewardCategoryIds: p.rewardCategoryIds, rewardProductIds: p.rewardProductIds, channels: p.channels, storeIds: p.storeIds, days: p.days,
+    minSpend: p.minSpendCents ? centsToInput(p.minSpendCents) : "", categoryIds: asList(p.categoryIds), productIds: asList(p.productIds),
+    rewardCategoryIds: asList(p.rewardCategoryIds), rewardProductIds: asList(p.rewardProductIds), channels: asList(p.channels), storeIds: asList(p.storeIds), days: asList<number>(p.days),
     startTime: clock(p.startMinute), endTime: clock(p.endMinute), startsAt: toLocalInput(p.startsAt), endsAt: toLocalInput(p.endsAt),
     code: p.code ?? "", maxUses: p.maxUses?.toString() ?? "", active: p.active, firstPurchaseOnly: p.firstPurchaseOnly,
   };

@@ -7,6 +7,7 @@ import { getStaff } from "@/server/auth";
 import { canRun, getReport } from "@/server/reports";
 import { mayReceive, scheduleIdOf, scheduleReach, verifyExportToken } from "@/server/exports";
 import { getObject } from "@/server/storage";
+import { asList } from "@/lib/json-list";
 
 const gone = (status: number, text: string) => new Response(text, { status, headers: { "cache-control": "private, no-store" } });
 
@@ -22,7 +23,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const sid = scheduleIdOf(file.key);
   const s = sid ? await db.scheduledExport.findUnique({ where: { id: sid }, select: { userId: true, recipients: true, reportKey: true, params: true } }) : null;
   const def = s ? getReport(s.reportKey) : null;
-  const theirs = !!s && (s.userId === user.id || s.recipients.includes((user.email ?? "").toLowerCase()));
+  const theirs = !!s && (s.userId === user.id || asList(s.recipients).includes((user.email ?? "").toLowerCase()));
   // What the file covers is what its owner's scope and filters cover; the person downloading must see all of it.
   const owner = s && theirs ? await db.user.findUnique({ where: { id: s.userId }, select: { role: true, regionId: true, companyId: true, storeId: true } }) : null;
   const covered = !!owner && (await mayReceive(user, await scheduleReach(owner, (s!.params ?? {}) as Record<string, string>)));

@@ -48,7 +48,7 @@ export default async function JournalsPage({ params, searchParams }: { params: P
     AND: [
       // Automatic journals carry their store; a manual one is found by its lines.
       storeCode ? { OR: [{ storeId: store?.id ?? "__none__" }, { source: { in: [...MANUAL_SOURCES] }, lines: { some: { storeId: store?.id ?? "__none__" } } }] } : {},
-      q ? { OR: [...(/^\d{1,9}$/.test(q) ? [{ number: Number(q) }] : []), { memo: { contains: q, mode: "insensitive" as const } }] } : {},
+      q ? { OR: [...(/^\d{1,9}$/.test(q) ? [{ number: Number(q) }] : []), { memo: { contains: q } }] } : {},
     ],
   };
   const where = { ...filters, ...(status && { status }) };

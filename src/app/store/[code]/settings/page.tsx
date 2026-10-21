@@ -19,6 +19,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Line, ReadOnlyNote } from "@/components/store/ui";
 import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Store settings" };
 
@@ -115,7 +116,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                   <ShieldCheck className="h-4 w-4 text-leaf-600" aria-hidden /> Licensed to sell
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {store.licences.length ? store.licences.map((l) => <Badge key={l} tone="green">{REG_CLASS_LABEL[l as RegClass]}</Badge>) : <span className="text-sm text-ink-500">No licensed classes</span>}
+                  {asList(store.licences).length ? asList(store.licences).map((l) => <Badge key={l} tone="green">{REG_CLASS_LABEL[l as RegClass]}</Badge>) : <span className="text-sm text-ink-500">No licensed classes</span>}
                 </div>
                 {store.licenceRef && <p className="mt-2 font-mono text-xs text-ink-500">{store.licenceRef}</p>}
               </div>

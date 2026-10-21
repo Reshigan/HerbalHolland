@@ -5,11 +5,13 @@
 import { z } from "zod";
 import { db } from "@/server/db";
 import { evaluateBasket } from "@/server/compliance";
+import type { RegClass } from "@/lib/compliance";
 import { dropBlocks } from "@/server/drops";
 import { json, readBody, withStaff } from "@/server/pos/http";
 import { AgeCheck, Items } from "@/server/pos/schemas";
 import { classifyBlock } from "@/components/pos/lib/rules";
 import type { ComplianceDTO } from "@/server/pos/types";
+import { asList } from "@/lib/json-list";
 
 const Body = z.object({ items: Items, customerId: z.string().nullish(), ageCheck: AgeCheck.nullish() });
 
@@ -31,7 +33,7 @@ export const POST = withStaff(async (req, pos) => {
       items,
       channel: "POS",
       customerId: b.customerId,
-      storeLicences: pos.device.store.licences,
+      storeLicences: asList<RegClass>(pos.device.store.licences),
       ageCheckedAtCounter: b.ageCheck === "ID_SIGHTED" || b.ageCheck === "ID_NUMBER",
       staffCanDispense: pos.user.canDispense,
     }),

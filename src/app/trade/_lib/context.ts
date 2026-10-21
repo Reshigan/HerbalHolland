@@ -10,6 +10,7 @@ import { defaultDc } from "@/server/trade/orders";
 import { quote } from "@/server/pricing";
 import { ACCOUNT_STATUS_PROBLEM } from "@/lib/trade";
 import { getTradeCart } from "./cart";
+import { asList } from "@/lib/json-list";
 
 export type TradeAccount = TradeBuyerSession["account"];
 
@@ -44,7 +45,7 @@ export async function cartQuote(account: Pick<TradeAccount, "id" | "dcId">) {
 
 /** Why this account can't order right now (its status, or a required licence missing, waiting or lapsed), or null. */
 export async function orderingProblem(a: Pick<TradeAccount, "id" | "kind" | "classes" | "regNumber" | "status" | "holdReason">) {
-  const licence = a.status === "APPROVED" || a.status === "ON_HOLD" ? await licenceProblem(a) : null;
+  const licence = a.status === "APPROVED" || a.status === "ON_HOLD" ? await licenceProblem({ ...a, classes: asList(a.classes) }) : null;
   if (licence) return `Ordering is paused: ${licence}. Upload it under Account › Licences.`;
   if (a.status === "APPROVED") return null;
   const base = ACCOUNT_STATUS_PROBLEM[a.status as keyof typeof ACCOUNT_STATUS_PROBLEM] ?? "This trade account can't order right now";

@@ -20,6 +20,7 @@ import { TRADE_CLASSES, previousMonth } from "@/lib/trade";
 import { zar, zarWhole } from "@/lib/money";
 import type { RegClass } from "@/lib/compliance";
 import type { TradeTerms } from "@/generated/prisma/client";
+import { asList } from "@/lib/json-list";
 
 const EXPECTED = [TradeAccountError, TradeLedgerError, TradeOrderError, TradeLicenceError, StockError];
 
@@ -255,7 +256,7 @@ export async function searchRange(accountId: string, q: string): Promise<{ rows:
   if (!account) return { error: "Unknown trade account" };
   try {
     const dc = (account.dcId ? await db.store.findFirst({ where: { id: account.dcId, kind: "WAREHOUSE", status: { not: "CLOSED" } } }) : null) ?? (await defaultDc());
-    const r = await tradeRange(dc.id, account, { q: q.slice(0, 60), pageSize: 24 });
+    const r = await tradeRange(dc.id, { ...account, classes: asList(account.classes) }, { q: q.slice(0, 60), pageSize: 24 });
     return {
       dc: dc.name,
       total: r.total,

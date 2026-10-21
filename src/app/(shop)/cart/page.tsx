@@ -32,6 +32,7 @@ import { opensFor } from "@/lib/drops";
 import { fmtPoints, pointsFor, type TierKey } from "@/lib/loyalty-rules";
 import { zar } from "@/lib/money";
 import { cn } from "@/lib/cn";
+import { asList } from "@/lib/json-list";
 
 export const metadata: Metadata = { title: "Your bag", robots: { index: false } };
 
@@ -77,7 +78,7 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
     const opens = d ? opensFor(d, (customer?.tier ?? null) as TierKey | null) : null;
     return { slug: d?.slug, ...readableDropBlock(m, d && { name: d.name, perMemberLimit: d.perMemberLimit, opensLabel: opens ? `on ${fmtWhen(opens)}` : undefined }) };
   });
-  const dropOf = (variantId: string) => drops.find((d) => d.variantIds.includes(variantId));
+  const dropOf = (variantId: string) => drops.find((d) => asList(d.variantIds).includes(variantId));
   // Welcome gifts get their own hint (with an add button) instead of the generic deal nudge.
   const giftIds = new Set(gifts.map((g) => g.id));
   const inBagProducts = new Set(variants.map((v) => v.product.slug));

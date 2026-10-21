@@ -17,9 +17,11 @@ import { AddToTradeCart } from "@/components/trade/add-to-cart";
 import { CartBar } from "@/components/trade/cart-bar";
 import { className as classLabel, STOCK_LABEL, STOCK_TONE, stockState } from "@/components/trade/format";
 import { TRADE_CLASSES } from "@/lib/trade";
+import type { RegClass } from "@/lib/compliance";
 import { zar } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import { cartQuote, orderingProblem, requireBuyer } from "../_lib/context";
+import { asList } from "@/lib/json-list";
 
 export const metadata: Metadata = { title: "Range", robots: { index: false, follow: false } };
 
@@ -33,7 +35,7 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
   const q = (sp.q ?? "").trim().slice(0, 60);
   const category = (sp.category ?? "").trim().slice(0, 60) || undefined;
   const page = pageParam(sp.page);
-  const classes = account.classes.filter((c) => (TRADE_CLASSES as string[]).includes(c));
+  const classes = asList<RegClass>(account.classes).filter((c) => (TRADE_CLASSES as string[]).includes(c));
   const tradeProduct = { status: "ACTIVE" as const, regClass: { in: classes }, variants: { some: { active: true, podSku: null, wholesaleCents: { gt: 0 } } } };
   const [settings, cart, categories] = await Promise.all([
     getSettings(),
@@ -41,14 +43,14 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
     classes.length ? db.category.findMany({ where: { products: { some: tradeProduct } }, orderBy: { sortOrder: "asc" }, select: { id: true, slug: true, name: true } }) : [],
   ]);
   const store = cart.store;
-  const res = store && classes.length ? await tradeRange(store.id, account, { q: q || null, category, page, pageSize: PAGE_SIZE }) : { rows: [], total: 0, page, pageSize: PAGE_SIZE, didYouMean: null };
+  const res = store && classes.length ? await tradeRange(store.id, { ...account, classes: asList(account.classes) }, { q: q || null, category, page, pageSize: PAGE_SIZE }) : { rows: [], total: 0, page, pageSize: PAGE_SIZE, didYouMean: null };
   const arts = res.rows.length ? await db.product.findMany({ where: { id: { in: [...new Set(res.rows.map((r) => r.productId))] } }, select: { id: true, slug: true, strain: true } }) : [];
   const artOf = new Map(arts.map((a) => [a.id, a]));
   const inCart = new Map(cart.items.map((l) => [l.variantId, l.qty]));
   const cat = category ? categories.find((c) => c.slug === category || c.id === category) : undefined;
   const pending = account.status === "PENDING";
   const problem = await orderingProblem(account);
-  const asks = pending ? (await standingOf(account)).lines.filter((l) => l.problem && l.state !== "pending").map((l) => l.problem!) : [];
+  const asks = pending ? (await standingOf({ ...account, classes: asList(account.classes) })).lines.filter((l) => l.problem && l.state !== "pending").map((l) => l.problem!) : [];
   const href = (o: Partial<SP>) => {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries({ q: q || undefined, category, ...o })) if (v) p.set(k, String(v));

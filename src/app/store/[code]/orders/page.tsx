@@ -53,7 +53,7 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
   // Oldest first while there's work to do; newest first in the history tabs. Column headers override that.
   const { sort, dir } = sortParams(SORTS, sp.sort, sp.dir, "age", tab === "todo" ? "asc" : "desc");
 
-  const search: Prisma.OrderWhereInput = q ? { OR: [{ code: { contains: q, mode: "insensitive" } }, { customer: customerSearch(q) }] } : {};
+  const search: Prisma.OrderWhereInput = q ? { OR: [{ code: { contains: q } }, { customer: customerSearch(q) }] } : {};
   const where: Prisma.OrderWhereInput = { storeId: store.id, status: { in: TABS[tab].statuses }, ...search };
   const [counts, total, orders, tradeOpen] = await Promise.all([
     db.order.groupBy({ by: ["status"], where: { storeId: store.id, ...search }, _count: true }),

@@ -13,6 +13,7 @@ import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { listStatus } from "@/components/hq/tones";
 import { deletePriceList, savePriceList } from "../actions";
 import { PriceListForm, type PriceListValues } from "../price-list-form";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Price list" };
 
@@ -33,7 +34,7 @@ export default async function PriceListPage({ params, searchParams }: { params: 
   if (isNew && !edit) redirect("/hq/pricing");
   const values: PriceListValues = list
     ? {
-        name: list.name, kind: list.kind, channel: list.channel ?? "", tiers: list.tiers, storeIds: list.storeIds, regionIds: list.regionIds,
+        name: list.name, kind: list.kind, channel: list.channel ?? "", tiers: asList(list.tiers), storeIds: asList(list.storeIds), regionIds: asList(list.regionIds),
         adjustPct: list.adjustPct?.toString() ?? "", startsAt: toLocalInput(list.startsAt), endsAt: toLocalInput(list.endsAt), priority: String(list.priority), active: list.active,
         items: list.items.map((i) => ({ variantId: i.variantId, price: (i.priceCents / 100).toFixed(2), minQty: String(i.minQty) })),
       }

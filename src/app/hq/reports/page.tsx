@@ -11,6 +11,7 @@ import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { ActionButton } from "@/components/ui/action-form";
 import { unscheduleExport } from "./[key]/actions";
 import { ReportCatalogue, type CatalogueReport } from "@/components/reports/catalogue";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Reports" };
 
@@ -75,8 +76,8 @@ export default async function HqReports() {
                     </Link>
                   </Td>
                   <Td className="whitespace-nowrap">{scheduleLabel(s)}</Td>
-                  <Td className="max-w-64 truncate text-ink-600" title={s.recipients.join(", ")}>
-                    {s.recipients.join(", ")}
+                  <Td className="max-w-64 truncate text-ink-600" title={asList(s.recipients).join(", ")}>
+                    {asList(s.recipients).join(", ")}
                   </Td>
                   <Td className="whitespace-nowrap text-ink-600">{fmtRun(s.lastRunAt)}</Td>
                   <Td align="right">

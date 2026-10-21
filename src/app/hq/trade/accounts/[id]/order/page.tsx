@@ -12,6 +12,7 @@ import { TradeAccountBadge, termsLabel } from "@/components/admin/trade-ui";
 import { tradeScope } from "../../../scope";
 import { placeOrderForAccount, searchCollectStores, searchRange } from "../../actions";
 import { OrderBuilder } from "./order-builder";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Place a trade order" };
 
@@ -21,7 +22,8 @@ export default async function PlaceTradeOrderPage({ params }: { params: Promise<
   if (!s.canEdit) redirect(`/hq/trade/accounts/${id}`);
   const summary = await tradeAccountSummary(id);
   if (!summary) notFound();
-  const { account: a, availableCents } = summary;
+  const { availableCents } = summary;
+  const a = { ...summary.account, classes: asList(summary.account.classes) };
   const settings = await getSettings();
   const dc = (a.dcId ? await db.store.findFirst({ where: { id: a.dcId, kind: "WAREHOUSE", status: { not: "CLOSED" } } }) : null) ?? (await defaultDc().catch(() => null));
   const initial = dc && a.status === "APPROVED" ? await tradeRange(dc.id, a, { pageSize: 24 }) : null;

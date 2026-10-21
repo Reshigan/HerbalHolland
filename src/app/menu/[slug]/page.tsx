@@ -23,6 +23,8 @@ import { Mark, Wordmark } from "@/components/brand/logo";
 import { ProductArt } from "@/components/product/art";
 import { fmtDay, weekdaySA } from "@/lib/format";
 import { zar } from "@/lib/money";
+import { asList } from "@/lib/json-list";
+import type { RegClass } from "@/lib/compliance";
 
 export const metadata: Metadata = { title: "Menu", robots: { index: false, follow: false } };
 
@@ -67,7 +69,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
     for (let p = 0; p < pages; p++) panels.push({ kind: "items", title: c.name, blurb: c.blurb, items: c.items.slice(p * PER_PANEL, (p + 1) * PER_PANEL), page: p + 1, pages });
   }
   // The dispensary panel only where this store is licensed to dispense (medical mode keeps medicines off the board).
-  if (!showLicensed && store.licences.some((c) => classes.licensed.includes(c))) panels.splice(Math.min(2, panels.length), 0, { kind: "dispensary" });
+  if (!showLicensed && asList<RegClass>(store.licences).some((c) => classes.licensed.includes(c))) panels.splice(Math.min(2, panels.length), 0, { kind: "dispensary" });
   // Launch programme: the live/next drop early in the loop, this store's events after the dispensary panel.
   if (drop && drop.products.length && !(drop.phase === "live" && drop.left <= 0)) panels.splice(Math.min(1, panels.length), 0, { kind: "drop", drop });
   panels.splice(Math.min(4, panels.length), 0, ...events.map((event) => ({ kind: "event" as const, event })));

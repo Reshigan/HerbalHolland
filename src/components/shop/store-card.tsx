@@ -14,6 +14,7 @@ import type { ShopStore } from "@/server/shop/context";
 import { SetStoreButton } from "./set-store-button";
 import { Panel, Tag } from "./ui";
 import { cn } from "@/lib/cn";
+import { asList } from "@/lib/json-list";
 
 export const directionsUrl = (
   s: Pick<ShopStore, "lat" | "lng" | "addressLine" | "suburb" | "city">,
@@ -47,7 +48,7 @@ export async function StoreServices({
           <Tag icon={<Truck className="h-3 w-3" />}>Same-day delivery</Tag>
         </li>
       )}
-      {s.licences.length > 0 && (
+      {asList(s.licences).length > 0 && (
         <li>
           <Tag icon={<Pill className="h-3 w-3" />}>Dispensary</Tag>
         </li>

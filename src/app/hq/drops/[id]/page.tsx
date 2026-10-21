@@ -20,6 +20,7 @@ import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { deleteDrop, saveDrop } from "../actions";
 import { DropForm } from "../drop-form";
 import { PHASE, dropPhase, dropStats, dropValues, earlyLabel, firstOpen, variantOptions } from "../load";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Drop" };
 
@@ -33,8 +34,8 @@ export default async function DropPage({ params, searchParams }: { params: Promi
   const now = new Date();
   const [stats, options, variants] = await Promise.all([
     dropStats([d], ids, now).then((m) => m.get(d.id)!),
-    variantOptions(d.variantIds),
-    db.variant.findMany({ where: { id: { in: d.variantIds } }, select: { id: true, name: true, sku: true, priceCents: true, product: { select: { name: true } } } }),
+    variantOptions(asList(d.variantIds)),
+    db.variant.findMany({ where: { id: { in: asList(d.variantIds) } }, select: { id: true, name: true, sku: true, priceCents: true, product: { select: { name: true } } } }),
   ]);
   const edit = can(user, "network");
   const phase = dropPhase(d, now);

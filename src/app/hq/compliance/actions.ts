@@ -6,6 +6,7 @@ import { getSettings, saveSetting } from "@/server/settings";
 import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
 import { str, list, bool, opt, parseInt10, parseNum } from "@/server/hq/form";
 import { REG_CLASSES as CLASSES, type ComplianceSettings, type RegClass, type SellChannel, type ThcMode } from "@/lib/compliance";
+import { asList } from "@/lib/json-list";
 
 const CHANNELS: SellChannel[] = ["POS", "COLLECT", "SAME_DAY", "COURIER"];
 const classes = (fd: FormData, name: string) => list(fd, name).filter((c): c is RegClass => CLASSES.includes(c as RegClass));
@@ -79,8 +80,9 @@ export async function saveLicences(storeId: string, _: ActionState, fd: FormData
   const licences = classes(fd, "licences");
   const licenceRef = opt(fd, "licenceRef");
   if (licences.length && !licenceRef) return fail("Record the licence or permit number: it prints on receipts and invoices.", { licenceRef: "Required when a licence is held" });
-  const added = licences.filter((l) => !store.licences.includes(l));
-  const removed = store.licences.filter((l) => !licences.includes(l));
+  const held = asList<RegClass>(store.licences);
+  const added = licences.filter((l) => !held.includes(l));
+  const removed = held.filter((l) => !licences.includes(l));
   if (!added.length && !removed.length && licenceRef === store.licenceRef) return done("No changes to save.");
   await db.store.update({ where: { id: storeId }, data: { licences, licenceRef } });
   await audit(db, g.actor, "compliance.licence", { storeId, entity: "Store", entityId: storeId, data: { added, removed, licenceRef } });

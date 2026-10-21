@@ -34,7 +34,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
     AND: [
       STATUSES.includes(sp.status as BatchStatus) ? { status: sp.status as BatchStatus } : {},
       days ? { expiresAt: { gt: now, lte: addDays(now, days) } } : {},
-      q ? { OR: [{ code: { contains: q, mode: "insensitive" } }, { variant: { product: { name: { contains: q, mode: "insensitive" } } } }, { variant: { sku: { contains: q, mode: "insensitive" } } }, { supplier: { contains: q, mode: "insensitive" } }] } : {},
+      q ? { OR: [{ code: { contains: q } }, { variant: { product: { name: { contains: q } } } }, { variant: { sku: { contains: q } } }, { supplier: { contains: q } }] } : {},
     ],
   };
   const [total, batches, counts, expiringSoon] = await Promise.all([
