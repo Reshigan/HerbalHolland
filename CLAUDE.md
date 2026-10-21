@@ -11,7 +11,7 @@ Single Next.js 16 app (App Router) + Prisma 7 + Cloudflare D1 on Workers (OpenNe
 ```bash
 npm install
 npm run db:migrate     # migrations/*.sql → the local D1 under .wrangler/state
-DATABASE_URL=file:$(ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite) npm run db:seed   # demo network: 24 stores, ~18k members, 60 days of trading (truncates all tables!)
+DATABASE_URL=file:$(ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite | grep -v metadata) npm run db:seed   # demo network: 24 stores, ~18k members, 60 days of trading (truncates all tables!)
 npm run dev            # http://localhost:3000 (local D1, R2 and browser through wrangler's platform proxy)
 npm test               # vitest (pure domain rules)
 npm run typecheck

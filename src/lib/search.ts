@@ -1,7 +1,7 @@
 // Shop search that understands typos and units. The query is parsed into words, measures ("600", "600mg", "30ml",
-// "3.5g") and product-class words (oil, cream, coffee, gummies…); the database supplies trigram similarity
-// (pg_trgm) for the typo side; ranking puts exact names first, then prefixes, then similar names, then taglines.
-// Pure: safe on the server, in the browser and in tests (tests/search.test.ts).
+// "3.5g") and product-class words (oil, cream, coffee, gummies…); trigram similarity (the pg_trgm rules, computed
+// here over the candidates the database prefilters) covers the typo side; ranking puts exact names first, then
+// prefixes, then similar names, then taglines. Pure: safe on the server, in the browser and in tests (tests/search.test.ts).
 
 export type Unit = "mg" | "g" | "ml";
 export type Measure = { value: number; unit: Unit | null; raw: string };
@@ -134,6 +134,60 @@ export function parseQuery(raw: string): ParsedQuery {
   return { raw, norm, terms, measures, classes, moods, ...(required.length && { required }) };
 }
 
+// ── Trigram similarity (pg_trgm's rules, in code) ───────────────────────────
+// Postgres's pg_trgm measured typos for us; SQLite has nothing like it, so the same measure runs here over a bounded
+// set of candidate names the database prefilters (src/server/shop/search.ts, src/server/hq/catalogue.ts, crm.ts).
+
+/** The words of a text as pg_trgm sees them: lower case, runs of letters and digits; everything else separates. */
+const trigramWords = (s: string) => s.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+
+/** The trigrams of a text in order, repeats kept: each word padded with two spaces before and one after. */
+export function trigramsOf(s: string): string[] {
+  const out: string[] = [];
+  for (const w of trigramWords(s)) {
+    const padded = `  ${w} `;
+    for (let i = 0; i + 3 <= padded.length; i++) out.push(padded.slice(i, i + 3));
+  }
+  return out;
+}
+
+/** pg_trgm `similarity(a, b)`: shared trigrams over all distinct trigrams of both (0–1). */
+export function trigramSimilarity(a: string, b: string): number {
+  const ta = new Set(trigramsOf(a));
+  const tb = new Set(trigramsOf(b));
+  let common = 0;
+  for (const t of ta) if (tb.has(t)) common++;
+  const union = ta.size + tb.size - common;
+  return union ? common / union : 0;
+}
+
+/**
+ * pg_trgm `word_similarity(a, b)`: the greatest similarity between a's trigrams and any continuous run of b's
+ * trigrams, so a word typed close to one word of a longer name scores as if against that word ("durbn" against
+ * "Durban Poison"). Runs only start and end on trigrams a has: others can only lower the score.
+ */
+export function wordSimilarity(a: string, b: string): number {
+  const ta = new Set(trigramsOf(a));
+  const tb = trigramsOf(b);
+  if (!ta.size || !tb.length) return 0;
+  let best = 0;
+  for (let i = 0; i < tb.length; i++) {
+    if (!ta.has(tb[i])) continue;
+    const seen = new Set<string>();
+    let found = 0;
+    for (let j = i; j < tb.length; j++) {
+      const t = tb[j];
+      const hit = ta.has(t);
+      if (!seen.has(t)) {
+        seen.add(t);
+        if (hit) found++;
+      }
+      if (hit) best = Math.max(best, found / (ta.size + seen.size - found));
+    }
+  }
+  return best;
+}
+
 // ── Ranking ─────────────────────────────────────────────────────────────────
 
 export type SearchVariant = { name: string; grams?: number | null };
@@ -150,13 +204,13 @@ export type SearchDoc = {
   netUnit?: string | null; // "g" | "ml"
   cbdMgPerPack?: number | null;
   variants: SearchVariant[];
-  /** Trigram similarity from the database (0–1), when it was computed for this product. */
+  /** Trigram similarity to the query (0–1), when it was computed for this product (`similarProducts`). */
   sim?: number | null;
 };
 export type MatchKind = "exact" | "prefix" | "word" | "mood" | "measure" | "fuzzy" | "text";
 export type Ranked = { id: string; score: number; kind: MatchKind };
 
-/** Similarity below this is noise: the database ignores it and so does the ranking. */
+/** Similarity below this is noise: the similarity search ignores it and so does the ranking. */
 export const SIMILARITY_THRESHOLD = 0.25;
 /** A whole query word inside a name (word_similarity) counts from here. */
 export const WORD_SIMILARITY_THRESHOLD = 0.5;

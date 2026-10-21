@@ -24,7 +24,7 @@ jobs:
       - name: The migrations apply to a local D1 and build exactly the schema (no drift)
         run: |
           npx wrangler d1 migrations apply DB --local
-          DATABASE_URL="file:$(ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite)" npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+          DATABASE_URL="file:$(ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite | grep -v metadata)" npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - run: npm run typecheck
       - run: npm test
       - name: Integration tests (a fresh SQLite file per run)
@@ -56,7 +56,7 @@ jobs:
       - name: Local D1 with the schema, then the demo seed (into that file, and its files into the local R2)
         run: |
           npx wrangler d1 migrations apply DB --local
-          D1_FILE=$(ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite)
+          D1_FILE=$(ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite | grep -v metadata)
           echo "D1_FILE=$D1_FILE" >> "$GITHUB_ENV"
           DATABASE_URL="file:$D1_FILE" npx tsx prisma/seed.ts
         env:

@@ -3,7 +3,7 @@
 //
 //   DATABASE_FILE=path/to/file.sqlite   the file; default: the local D1 of `wrangler dev` / `next dev`, found at
 //                                       .wrangler/state/v3/d1/miniflare-D1DatabaseObject/<hash>.sqlite
-//                                       (`ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite`)
+//                                       (`ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite | grep -v metadata`)
 //
 // The journeys were written against Postgres through `pg`, and this keeps that shape so they read the same:
 // `db.query(sql, params)` → `{ rows }`, `$1, $2…` placeholders, `connect()` and `end()`. What Postgres did for them is
