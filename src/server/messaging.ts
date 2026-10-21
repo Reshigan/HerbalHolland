@@ -1,7 +1,7 @@
 // Messaging adapter. Every message lands in the message log (HQ → Messages) with its delivery status.
 //   SMS    MESSAGING_PROVIDER=smsportal (SMSPORTAL_CLIENT_ID, SMSPORTAL_API_SECRET, optional SMS_SENDER_ID).
 //          The default, "log", only records messages (development and demos).
-//   Email  SMTP_URL (email.ts). Campaign emails carry a signed one-click unsubscribe link (RFC 8058).
+//   Email  Microsoft 365 through Graph, MS_* (email.ts). Campaign emails carry a signed one-click unsubscribe link (RFC 8058).
 //   Push   Web Push to the Rewards app (push.ts; VAPID keys).
 //   WhatsApp has no provider (its commerce policy bans drug and medical products): with a live SMS provider, WhatsApp
 //   messages are logged as FAILED rather than silently dropped.

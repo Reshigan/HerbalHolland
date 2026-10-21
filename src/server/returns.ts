@@ -327,7 +327,7 @@ export async function returnWhere(scope: ReturnScope, f: { view?: string; q?: st
             ? {}
             : { status: view.toUpperCase() as ReturnStatusKey },
       RETURN_REASONS.includes(f.reason as ReturnReasonKey) ? { reason: f.reason as ReturnReasonKey } : {},
-      !q ? {} : num ? { number: returnNumber(Number(num[1])) } : { OR: [{ number: { contains: q.toUpperCase() } }, { waybill: { contains: q, mode: "insensitive" } }, { orderId: { in: await ordersByCode(q) } }] },
+      !q ? {} : num ? { number: returnNumber(Number(num[1])) } : { OR: [{ number: { contains: q.toUpperCase() } }, { waybill: { contains: q } }, { orderId: { in: await ordersByCode(q) } }] },
     ],
   };
 }
@@ -398,6 +398,6 @@ async function sendLogged(r: ReturnRequest, customerId: string, e: Email) {
     console.error("[returns] email failed", r.number, reason);
   }
   await db.messageLog.create({
-    data: { id: `return-${r.id}-${r.status.toLowerCase()}-${Date.now().toString(36)}`, channel: "EMAIL", to: e.to, kind: "TRANSACTIONAL", status: reason ? "FAILED" : "SENT", customerId, body: `${e.subject}\n\n${e.text}`, reason: reason ?? (delivered ? null : "logged (SMTP_URL not set)") },
+    data: { id: `return-${r.id}-${r.status.toLowerCase()}-${Date.now().toString(36)}`, channel: "EMAIL", to: e.to, kind: "TRANSACTIONAL", status: reason ? "FAILED" : "SENT", customerId, body: `${e.subject}\n\n${e.text}`, reason: reason ?? (delivered ? null : "logged (MS_* not set)") },
   });
 }

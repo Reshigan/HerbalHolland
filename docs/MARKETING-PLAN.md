@@ -695,7 +695,7 @@ never pay for it.
 | Contingency | 10% | Contingency | 5% |
 
 Known running costs: Postiz is free software on a small server; SMS is charged per message at the provider's bulk
-rate; email goes through the SMTP provider; team merch is bought at the partner's price. **Every campaign records its
+rate; email goes through Microsoft Graph; team merch is bought at the partner's price. **Every campaign records its
 cost in HQ → Campaigns**, so return on spend shows up in the reports.
 
 ## 13. Measurement and governance

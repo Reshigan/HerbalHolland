@@ -159,7 +159,7 @@ function voucherEmail(v: GiftVoucher, to: "buyer" | "recipient", buyer: { firstN
 }
 
 async function logEmail(to: string, subject: string, ok: boolean, customerId: string | null) {
-  await db.messageLog.create({ data: { channel: "EMAIL", to, kind: "TRANSACTIONAL", status: ok ? "SENT" : "FAILED", reason: ok ? null : "No email provider (SMTP_URL) configured", body: subject, customerId } });
+  await db.messageLog.create({ data: { channel: "EMAIL", to, kind: "TRANSACTIONAL", status: ok ? "SENT" : "FAILED", reason: ok ? null : "No email provider (MS_*) configured", body: subject, customerId } });
 }
 
 /** Emails the voucher to the buyer (and the recipient, when there is one) and texts the buyer the code. */

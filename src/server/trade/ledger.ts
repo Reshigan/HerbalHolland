@@ -41,11 +41,10 @@ export async function creditCheckFor(account: Pick<TradeAccount, "id" | "terms" 
 }
 
 /**
- * The credit decision under a lock on the account's row, inside the caller's transaction: two orders or till sales on
- * account at once can't both spend the same headroom. The second waits for the first, then counts it.
+ * The credit decision inside the caller's transaction: two orders or till sales on account at once can't both spend the
+ * same headroom, because D1 runs writes one at a time, so the second counts the first.
  */
 export async function lockedCreditCheck(t: Tx, accountId: string, orderInclCents: number): Promise<CreditDecision> {
-  await t.$queryRaw`SELECT 1 FROM "TradeAccount" WHERE id = ${accountId} FOR UPDATE`;
   const account = await t.tradeAccount.findUniqueOrThrow({ where: { id: accountId }, select: { id: true, terms: true, status: true, creditLimitCents: true } });
   return creditCheckFor(account, orderInclCents, t);
 }
@@ -180,8 +179,8 @@ export async function emailTradeStatement(accountId: string, month: string, opts
   }
   await db.messageLog.upsert({
     where: { id },
-    create: { id, channel: "EMAIL", to: st.account.email, kind: "trade-statement", status: reason ? "FAILED" : "SENT", reason: reason ?? (delivered ? null : "logged (SMTP_URL not set)"), body: `${r.subject}\n\n${r.text}` },
-    update: { status: reason ? "FAILED" : "SENT", reason: reason ?? (delivered ? null : "logged (SMTP_URL not set)"), body: `${r.subject}\n\n${r.text}`, createdAt: new Date() },
+    create: { id, channel: "EMAIL", to: st.account.email, kind: "trade-statement", status: reason ? "FAILED" : "SENT", reason: reason ?? (delivered ? null : "logged (MS_* not set)"), body: `${r.subject}\n\n${r.text}` },
+    update: { status: reason ? "FAILED" : "SENT", reason: reason ?? (delivered ? null : "logged (MS_* not set)"), body: `${r.subject}\n\n${r.text}`, createdAt: new Date() },
   });
   if (!reason) await audit(db, { type: "SYSTEM", name: "Trade statements" }, "trade.statement", { entity: "TradeAccount", entityId: accountId, data: { month, closing: st.closing } });
   return { sent: !reason, reason };

@@ -60,7 +60,7 @@ async function emailCode(email: string, code: string) {
   }
   // Logged without the code (HQ → Messages shows that a code went out, never what it was).
   const masked = tradeCodeEmail({ code: "••••••", minutes: CODE_MINUTES });
-  await db.messageLog.create({ data: { channel: "EMAIL", to: email, kind: "TRANSACTIONAL", status: reason ? "FAILED" : "SENT", reason: reason ?? (delivered ? null : "logged (SMTP_URL not set)"), body: `${masked.subject}\n\n${masked.text}` } });
+  await db.messageLog.create({ data: { channel: "EMAIL", to: email, kind: "TRANSACTIONAL", status: reason ? "FAILED" : "SENT", reason: reason ?? (delivered ? null : "logged (MS_* not set)"), body: `${masked.subject}\n\n${masked.text}` } });
 }
 
 /**

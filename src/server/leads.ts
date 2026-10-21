@@ -116,7 +116,7 @@ async function sendLogged(id: string, e: Email) {
   await db.messageLog.create({
     data: {
       id, channel: "EMAIL", to: e.to, kind: "TRANSACTIONAL", status: reason ? "FAILED" : "SENT",
-      body: `${e.subject}\n\n${e.text}`, reason: reason ?? (delivered ? null : "logged (SMTP_URL not set)"),
+      body: `${e.subject}\n\n${e.text}`, reason: reason ?? (delivered ? null : "logged (MS_* not set)"),
     },
   });
 }
@@ -303,7 +303,7 @@ export const viewWhere = (v: LeadView): Prisma.FranchiseLeadWhereInput =>
 export function leadSearch(raw?: string | null): Prisma.FranchiseLeadWhereInput {
   const q = (raw ?? "").trim().slice(0, 100);
   if (!q) return {};
-  const like = { contains: q, mode: "insensitive" as const };
+  const like = { contains: q };
   const number = numberQuery(q);
   return { OR: [...(number ? [{ number }] : []), { number: like }, { name: like }, { email: like }, { area: like }] };
 }

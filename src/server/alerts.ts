@@ -1,4 +1,4 @@
-// Server errors (instrumentation onRequestError, cron jobs included): always to the log, and to ALERT_EMAIL by SMTP
+// Server errors (instrumentation onRequestError, cron jobs included): always to the log, and to ALERT_EMAIL by Microsoft Graph
 // when it's set, throttled by @/lib/alerts. Never through the message log, and never with headers or the query
 // string: those can carry session cookies and signed links. reportFailure is the same for an error that was caught,
 // so no request reports it: a scheduled job's step, one item of a batch, an action's catch-all.
