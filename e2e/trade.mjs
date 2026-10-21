@@ -90,7 +90,7 @@ try {
      from "Store" s where (select count(*) from lines l where l."storeId" = s.id) >= 2 order by random() limit 1`,
   );
   if (!dc || !pick) fail("seed data: no DC, or no click & collect store with stock of two trade-priced lines");
-  const [A, B] = JSON.parse(pick.lines); // json_group_array: text, as the column has no declared type
+  const [A, B] = typeof pick.lines === "string" ? JSON.parse(pick.lines) : pick.lines; // json_group_array: text locally; parsed by the live-D1 shim
   // The trade price each line shows: the live TRADE list's base price when there is one, else the wholesale price.
   for (const L of [A, B]) {
     const listed = await one(
