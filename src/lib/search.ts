@@ -188,6 +188,27 @@ export function wordSimilarity(a: string, b: string): number {
   return best;
 }
 
+/** The most candidate names one similarity search scores (the database prefilters with `likePatterns`). */
+export const SIMILARITY_CANDIDATES = 2000;
+
+/**
+ * The LIKE patterns a name close to `needle` is likely to satisfy, for the database to prefilter candidates cheaply
+ * and with few parameters: for the whole text and each word of 3+ characters, its first two letters at the start of
+ * the column or of a word in it, and (3+ letters) the whole word anywhere. Wildcards are taken out and words cut to
+ * 40 characters (a LIKE pattern is at most 50 bytes). The real measure is trigramSimilarity / wordSimilarity over what comes back.
+ */
+export function likePatterns(needle: string): string[] {
+  const clean = needle.replace(/[%_]/g, "").trim();
+  const words = [...new Set([clean, ...clean.split(/\s+/).filter((w) => w.length >= 3)])].map((w) => w.slice(0, 40)).filter(Boolean).slice(0, 7);
+  const out = new Set<string>();
+  for (const w of words) {
+    out.add(`${w.slice(0, 2)}%`);
+    out.add(`% ${w.slice(0, 2)}%`);
+    if (w.length >= 3) out.add(`%${w}%`); // a shorter word shares no trigram with the middle of another
+  }
+  return [...out];
+}
+
 // ── Ranking ─────────────────────────────────────────────────────────────────
 
 export type SearchVariant = { name: string; grams?: number | null };

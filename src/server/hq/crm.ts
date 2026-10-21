@@ -4,7 +4,8 @@
 import { db } from "@/server/db";
 import { segmentWhere } from "@/server/marketing";
 import { SEGMENTS, type SegmentKey } from "@/lib/rfm";
-import { nameWords, parseMemberQuery } from "@/lib/member-search";
+import { NAME_SIMILARITY, nameWords, parseMemberQuery } from "@/lib/member-search";
+import { SIMILARITY_CANDIDATES, likePatterns, wordSimilarity } from "@/lib/search";
 import { CLOSE_MATCHES } from "@/lib/text-search";
 import { addDays } from "@/lib/format";
 import { Prisma, type Tier } from "@/generated/prisma/client";
@@ -81,20 +82,31 @@ export function memberWhere(s: MemberScope, f: { q?: string; tier?: string; segm
 }
 
 /**
- * Members whose first or last name contains every word typed ("Abrah" finds Abrahams; a word that is part of a name
- * matches on its own), within `bound` (SQL on "Customer" c), closest first: names starting with a word, then names
- * containing it, then by name: at most CLOSE_MATCHES ids. For a name search that found nobody. A LIKE pattern is at
- * most 50 bytes, so each word is cut to 40 characters.
+ * Members whose first or last name is close to every word typed (trigram word similarity ≥ NAME_SIMILARITY: "Abrahms"
+ * finds Abrahams, "ndlovo" Ndlovu), within `bound` (SQL on "Customer" c), closest first then by member number: at most
+ * CLOSE_MATCHES ids. For a name search that found nobody. SQLite has no trigram index: the database prefilters
+ * candidates (a word's first two letters at the start of a name, the whole word in one, or the last name's first
+ * letter; at most SIMILARITY_CANDIDATES, the likelier first then by name) and the similarity is measured in code.
  */
 export async function closeNameMatches(words: string[], bound: Prisma.Sql = Prisma.sql`1 = 1`): Promise<string[]> {
-  const ws = words.map((w) => w.slice(0, 40).replace(/[%_]/g, "")).filter(Boolean).slice(0, 4);
-  if (!ws.length) return [];
-  const rows = await db.$queryRaw<{ id: string }[]>`
-      SELECT c.id FROM "Customer" c
-      WHERE ${bound} AND ${Prisma.join(ws.map((w) => Prisma.sql`(c."firstName" LIKE ${`%${w}%`} OR c."lastName" LIKE ${`%${w}%`})`), " AND ")}
-      ORDER BY ${Prisma.join(ws.map((w) => Prisma.sql`CASE WHEN c."firstName" LIKE ${`${w}%`} OR c."lastName" LIKE ${`${w}%`} THEN 0 ELSE 1 END`), " + ")}, c."firstName", c."lastName", c."memberNo"
-      LIMIT ${CLOSE_MATCHES}`;
-  return rows.map((r) => r.id);
+  const ws = words.map((w) => w.slice(0, 40)).filter(Boolean).slice(0, 4);
+  const patterns = ws.map((w) => likePatterns(w));
+  if (!ws.length || patterns.some((p) => !p.length)) return [];
+  const likeAny = (col: string, ps: string[]) => Prisma.join(ps.map((p) => Prisma.sql`${Prisma.raw(col)} LIKE ${p}`), " OR ");
+  const initial = (w: string) => `${w.replace(/[%_]/g, "").slice(0, 1)}%`;
+  const rows = await db.$queryRaw<{ id: string; memberNo: string; firstName: string; lastName: string | null }[]>`
+      SELECT c.id, c."memberNo", c."firstName", c."lastName" FROM "Customer" c
+      WHERE ${bound} AND ${Prisma.join(patterns.map((ps, i) => Prisma.sql`(${likeAny('c."firstName"', ps)} OR ${likeAny('c."lastName"', ps)} OR c."lastName" LIKE ${initial(ws[i])})`), " AND ")}
+      ORDER BY ${Prisma.join(patterns.map((ps) => Prisma.sql`CASE WHEN ${likeAny('c."firstName"', ps)} OR ${likeAny('c."lastName"', ps)} THEN 0 ELSE 1 END`), " + ")}, c."firstName", c."lastName"
+      LIMIT ${SIMILARITY_CANDIDATES}`;
+  // Every word must be close to the first or last name; the member's score is the sum of each word's best similarity.
+  const scored: { id: string; memberNo: string; sim: number }[] = [];
+  for (const r of rows) {
+    const best = ws.map((w) => Math.max(wordSimilarity(w, r.firstName), wordSimilarity(w, r.lastName ?? "")));
+    if (best.every((b) => b >= NAME_SIMILARITY)) scored.push({ id: r.id, memberNo: r.memberNo, sim: best.reduce((a, b) => a + b, 0) });
+  }
+  scored.sort((a, b) => b.sim - a.sim || a.memberNo.localeCompare(b.memberNo));
+  return scored.slice(0, CLOSE_MATCHES).map((r) => r.id);
 }
 
 /** A name search that found nobody, loosened (closeNameMatches) within the scope: the ids that pass the other filters, closest first. */

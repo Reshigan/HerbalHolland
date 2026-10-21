@@ -1,39 +1,48 @@
-// The database side of the shop search: products whose name, tagline or a variant's name contains what was typed, or
-// one of its words (SQLite has no trigram similarity), bounded to the classes the shopper may see. The ranking itself
-// is pure (@/lib/search) so it can be tested without a database.
+// The database side of the shop search: trigram similarity (the pg_trgm rules, computed in @/lib/search) finds
+// products whose names are close to what was typed, bounded to the classes the shopper may see. SQLite has no
+// trigram index, so the database prefilters candidates with cheap LIKE patterns (`likePatterns`), at most
+// SIMILARITY_CANDIDATES of them by name, and the similarity is measured in code. The ranking itself is pure
+// (@/lib/search) so it can be tested without a database.
 import { db, Prisma } from "@/server/db";
+import { SIMILARITY_CANDIDATES, SHORT_SIMILARITY_THRESHOLD, SIMILARITY_THRESHOLD, WORD_SIMILARITY_THRESHOLD, likePatterns, similarityFloor, trigramSimilarity, wordSimilarity } from "@/lib/search";
 import type { RegClass } from "@/lib/compliance";
 
-// How alike a name is to the text typed, as the ranking counts it (0–1): the whole text at the start of the name, the
-// whole text inside it, a word of it inside the name, then the same inside the tagline (× 0.8) or a variant's name (× 0.7).
-const PREFIX = 1, WHOLE = 0.9, WORD = 0.7;
+/** `col` satisfies any of the patterns. */
+const likeAny = (col: string, patterns: string[]) => Prisma.join(patterns.map((p) => Prisma.sql`${Prisma.raw(col)} LIKE ${p}`), " OR ");
 
 /**
- * Products similar to `q` by name, tagline or a variant's name, with their best similarity (0–1), at most 100:
- * the whole text first, then a word of it ("durban" finds Durban Poison), closest first then by name. A LIKE pattern is
- * at most 50 bytes, so the text and its words are cut to 40 characters.
+ * Products similar to `q` by name, tagline or a variant's name, with their best similarity (0–1), at most 100,
+ * closest first: `similarity` of the name (≥ SIMILARITY_THRESHOLD), `word_similarity` of the text against the
+ * name (≥ WORD_SIMILARITY_THRESHOLD, or SHORT_SIMILARITY_THRESHOLD for short queries, which sit close to too many
+ * words: "tea" and "tee"), the tagline's similarity × 0.8, an active variant's name × 0.7.
  */
 export async function similarProducts(q: string, classes: RegClass[]): Promise<Map<string, number>> {
-  const needle = q.trim().slice(0, 40).replace(/[%_]/g, "").trim();
+  const needle = q.trim().slice(0, 60);
   if (needle.length < 2 || !classes.length) return new Map();
-  const words = [...new Set(needle.split(/\s+/).filter((w) => w.length >= 3 && w !== needle))].slice(0, 6);
-  const like = (col: string, w: string, prefix = false) => Prisma.sql`${Prisma.raw(col)} LIKE ${prefix ? `${w}%` : `%${w}%`}`;
-  // The best similarity of a column: the whole text at its start, the whole text in it, else a word of it in it.
-  const sim = (col: string) =>
-    Prisma.sql`CASE WHEN ${like(col, needle, true)} THEN ${PREFIX} WHEN ${like(col, needle)} THEN ${WHOLE} ${
-      words.length ? Prisma.sql`WHEN ${Prisma.join(words.map((w) => like(col, w)), " OR ")} THEN ${WORD}` : Prisma.empty
-    } ELSE 0 END`;
-  const any = (col: string) => Prisma.join([needle, ...words].map((w) => like(col, w)), " OR ");
-  const rows = await db.$queryRaw<{ id: string; sim: number }[]>`
-      SELECT p.id, MAX(MAX(${sim("p.name")}, ${sim("coalesce(p.tagline, '')")} * 0.8, coalesce(${sim("v.name")}, 0) * 0.7)) AS sim
+  const patterns = likePatterns(needle);
+  if (!patterns.length) return new Map();
+  const word = similarityFloor(needle) === SIMILARITY_THRESHOLD ? WORD_SIMILARITY_THRESHOLD : SHORT_SIMILARITY_THRESHOLD;
+  const rows = await db.$queryRaw<{ id: string; name: string; tagline: string | null; variants: string }[]>`
+      SELECT p.id, p.name, p.tagline, json_group_array(v.name) AS variants
       FROM "Product" p
       LEFT JOIN "Variant" v ON v."productId" = p.id AND v.active
       WHERE p.status = 'ACTIVE' AND p."regClass" IN (${Prisma.join(classes)})
-        AND (${any("p.name")} OR ${any("coalesce(p.tagline, '')")} OR ${any("v.name")})
+        AND (${likeAny("p.name", patterns)} OR ${likeAny("coalesce(p.tagline, '')", patterns)} OR ${likeAny("v.name", patterns)})
       GROUP BY p.id
-      ORDER BY sim DESC, p.name
-      LIMIT 100`;
-  return new Map(rows.map((r) => [r.id, Number(r.sim)]));
+      ORDER BY p.name
+      LIMIT ${SIMILARITY_CANDIDATES}`;
+  const scored: { id: string; name: string; sim: number }[] = [];
+  for (const r of rows) {
+    const name = trigramSimilarity(r.name, needle);
+    const inName = wordSimilarity(needle, r.name);
+    const tagline = trigramSimilarity(r.tagline ?? "", needle);
+    const variants = (JSON.parse(String(r.variants)) as (string | null)[]).filter((v): v is string => !!v);
+    const variant = Math.max(0, ...variants.map((v) => trigramSimilarity(v, needle)));
+    if (name < SIMILARITY_THRESHOLD && inName < word && tagline < SIMILARITY_THRESHOLD && variant < SIMILARITY_THRESHOLD) continue;
+    scored.push({ id: r.id, name: r.name, sim: Math.max(name, inName, tagline * 0.8, variant * 0.7) });
+  }
+  scored.sort((a, b) => b.sim - a.sim || a.name.localeCompare(b.name));
+  return new Map(scored.slice(0, 100).map((r) => [r.id, r.sim]));
 }
 
 /**

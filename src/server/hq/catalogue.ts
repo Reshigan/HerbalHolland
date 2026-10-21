@@ -1,6 +1,7 @@
 // Catalogue queries: paginated product list with variant counts, price ranges and
 // ranging reach; per-variant ranging by store format for the ranging tool.
 import { CLOSE_MATCHES, closeNeedle, inRankOrder, searchTerms } from "@/lib/text-search";
+import { SIMILARITY_CANDIDATES, likePatterns, wordSimilarity } from "@/lib/search";
 import { db } from "@/server/db";
 import { REG_CLASSES } from "@/lib/compliance";
 import { Prisma, type ProductStatus, type RegClass, type StoreFormat } from "@/generated/prisma/client";
@@ -73,26 +74,36 @@ export async function squashedNameMatches(q: string | undefined) {
   );
 }
 
+/** `col` satisfies any of the patterns. */
+const likeAny = (col: string, patterns: string[]) => Prisma.join(patterns.map((p) => Prisma.sql`${Prisma.raw(col)} LIKE ${p}`), " OR ");
+
 /**
- * Products whose name, or one of whose variants' names, contains `q` or one of its words ("durban" finds Durban Poison,
- * "lights" Northern Lights), closest first: names starting with the text, then names containing it, then by name: at
+ * Products whose name, or one of whose variants' names, is close to `q` (trigram word similarity, measured as the shop's
+ * search measures it: "durbn" finds Durban Poison, "nothern lights" Northern Lights), closest first then by name: at
  * most CLOSE_MATCHES ids, within `productIds` when given. For a search that found nothing as typed; any product status.
- * A LIKE pattern is at most 50 bytes, so the text and its words are cut to 40 characters.
+ * SQLite has no trigram index: the database prefilters candidates by `likePatterns` (at most SIMILARITY_CANDIDATES,
+ * by name) and the similarity is measured in code (@/lib/search).
  */
 export async function closeProducts(q: string | undefined, productIds?: string[]): Promise<string[]> {
   const c = closeNeedle(q);
   if (!c || productIds?.length === 0) return [];
-  const needle = c.needle.slice(0, 40).replace(/[%_]/g, "");
-  const words = [...new Set([needle, ...needle.split(" ").filter((w) => w.length >= 3)])].filter(Boolean).slice(0, 6);
-  if (!words.length) return [];
-  const like = (col: string, w: string, prefix = false) => Prisma.sql`${Prisma.raw(col)} LIKE ${prefix ? `${w}%` : `%${w}%`}`;
-  const rows = await db.$queryRaw<{ id: string }[]>`
-      SELECT p.id FROM "Product" p LEFT JOIN "Variant" v ON v."productId" = p.id
-      WHERE (${Prisma.join(words.map((w) => Prisma.sql`${like("p.name", w)} OR ${like("v.name", w)}`), " OR ")}) ${productIds ? Prisma.sql`AND p.id IN (SELECT value FROM json_each(${JSON.stringify(productIds)}))` : Prisma.empty}
-      GROUP BY p.id, p.name
-      ORDER BY MIN(CASE WHEN ${like("p.name", needle, true)} OR ${like("v.name", needle, true)} THEN 0 WHEN ${like("p.name", needle)} OR ${like("v.name", needle)} THEN 1 ELSE 2 END), p.name
-      LIMIT ${CLOSE_MATCHES}`;
-  return rows.map((r) => r.id);
+  const patterns = likePatterns(c.needle);
+  if (!patterns.length) return [];
+  const rows = await db.$queryRaw<{ id: string; name: string; variants: string }[]>`
+      SELECT p.id, p.name, json_group_array(v.name) AS variants
+      FROM "Product" p LEFT JOIN "Variant" v ON v."productId" = p.id
+      WHERE (${likeAny("p.name", patterns)} OR ${likeAny("v.name", patterns)}) ${productIds ? Prisma.sql`AND p.id IN (SELECT value FROM json_each(${JSON.stringify(productIds)}))` : Prisma.empty}
+      GROUP BY p.id
+      ORDER BY p.name
+      LIMIT ${SIMILARITY_CANDIDATES}`;
+  const scored: { id: string; name: string; sim: number }[] = [];
+  for (const r of rows) {
+    const variants = (JSON.parse(String(r.variants)) as (string | null)[]).filter((v): v is string => !!v);
+    const sim = Math.max(wordSimilarity(c.needle, r.name), ...variants.map((v) => wordSimilarity(c.needle, v)));
+    if (sim >= c.threshold) scored.push({ id: r.id, name: r.name, sim });
+  }
+  scored.sort((a, b) => b.sim - a.sim || a.name.localeCompare(b.name));
+  return scored.slice(0, CLOSE_MATCHES).map((r) => r.id);
 }
 
 /** A page of the catalogue; `close` when nothing matched the search as typed and these are the closest names instead. */
