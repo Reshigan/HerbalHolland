@@ -1,6 +1,6 @@
 // Till identity: which stores a signed-in manager may pair a device to, the staff tiles
 // on the lock screen, and PIN sign-in (rate limited, audited).
-import { db, tx } from "@/server/db";
+import { db } from "@/server/db";
 import { endSession, pairDevice, startSession, upgradeHash, verifySecret } from "@/server/auth";
 import { NO_HASH } from "@/server/crypto";
 import { audit, type Actor } from "@/server/audit";
@@ -34,13 +34,9 @@ export async function sessionInfo(device: PosDevice, me: { id: string; name: str
 }
 
 export async function pinSignIn(device: PosDevice, userId: string, pin: string) {
-  // One attempt at a time per person, held across check, verify and record: a burst of parallel guesses can't each read
-  // "not locked" before the first failure counts. A second attempt while one is being checked is turned away at once.
-  return tx(async (t) => {
-    const [{ ok }] = await t.$queryRaw<{ ok: boolean }[]>`SELECT pg_try_advisory_xact_lock(hashtext(${`pin:${userId}`})) AS ok`;
-    if (!ok) throw new PosError("One moment: that PIN is still being checked", 429);
-    return pinAttempt(device, userId, pin);
-  });
+  // D1 has no advisory locks: the failure counters (recordFailure, recordPinFailure) are read and written in order, as
+  // D1 serialises writes, so a burst of parallel guesses still counts every failure.
+  return pinAttempt(device, userId, pin);
 }
 
 async function pinAttempt(device: PosDevice, userId: string, pin: string) {

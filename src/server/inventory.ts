@@ -1,5 +1,5 @@
 // Inventory control: batch-level stock, FEFO picking, FIFO cost, immutable ledger.
-import { db, type Tx } from "./db";
+import { db, Prisma, type Tx } from "./db";
 import { allocate, allocationCost, type Allocation } from "@/lib/fefo";
 import { dayKey } from "@/lib/format";
 import { queueStoreDay } from "./ledger/core";
@@ -28,15 +28,15 @@ export async function availability(storeIds: string[], variantIds?: string[], cl
     });
   const onlineQ = () =>
     client.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
-      SELECT o."storeId", l."variantId", SUM(l.qty)::int AS qty
+      SELECT o."storeId", l."variantId", SUM(l.qty) AS qty
       FROM "OrderLine" l JOIN "Order" o ON o.id = l."orderId"
-      WHERE o.status::text = ANY(${[...OPEN_ORDER_STATUSES]}::text[]) AND o."storeId" = ANY(${storeIds}::text[])
+      WHERE o.status IN (${Prisma.join([...OPEN_ORDER_STATUSES])}) AND o."storeId" IN (SELECT value FROM json_each(${JSON.stringify(storeIds)}))
       GROUP BY 1, 2`;
   const tradeQ = () =>
     client.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
-      SELECT o."storeId", l."variantId", SUM(l.qty)::int AS qty
+      SELECT o."storeId", l."variantId", SUM(l.qty) AS qty
       FROM "TradeOrderLine" l JOIN "TradeOrder" o ON o.id = l."tradeOrderId"
-      WHERE o.status::text = ANY(${[...OPEN_TRADE_ORDER_STATUSES]}::text[]) AND o."storeId" = ANY(${storeIds}::text[])
+      WHERE o.status IN (${Prisma.join([...OPEN_TRADE_ORDER_STATUSES])}) AND o."storeId" IN (SELECT value FROM json_each(${JSON.stringify(storeIds)}))
       GROUP BY 1, 2`;
   // In parallel on the pool; one after another inside a transaction (its single connection can't run them at once).
   const [levels, reservedOnline, reservedTrade] = client === db ? await Promise.all([levelsQ(), onlineQ(), tradeQ()]) : [await levelsQ(), await onlineQ(), await tradeQ()];
@@ -60,11 +60,10 @@ type LockedLot = { id: string; batchId: string; onHand: number; unitCostCents: n
 
 async function lockLots(t: Tx, storeId: string, variantId: string) {
   return t.$queryRaw<LockedLot[]>`
-    SELECT s.id, s."batchId", s."onHand", s."unitCostCents", b.status::text AS status, b."expiresAt", b."packedAt"
+    SELECT s.id, s."batchId", s."onHand", s."unitCostCents", b.status AS status, b."expiresAt", b."packedAt"
     FROM "StockLevel" s JOIN "Batch" b ON b.id = s."batchId"
     WHERE s."storeId" = ${storeId} AND s."variantId" = ${variantId}
-    ORDER BY s.id
-    FOR UPDATE OF s`; // lot order, as locks.lockStock takes them: a sale and a checkout never deadlock
+    ORDER BY s.id`; // lot order, as locks.lockStock reads them (no row locks on D1: writes are serialised)
 }
 
 // `at`: when the movement happened, if not now (a till sale queued offline moves stock at the time it was made).
@@ -119,7 +118,7 @@ export async function putStock(
 ) {
   const [lot] = await t.$queryRaw<{ id: string; onHand: number; unitCostCents: number }[]>`
     SELECT id, "onHand", "unitCostCents" FROM "StockLevel"
-    WHERE "storeId" = ${a.storeId} AND "variantId" = ${a.variantId} AND "batchId" = ${a.batchId} FOR UPDATE`;
+    WHERE "storeId" = ${a.storeId} AND "variantId" = ${a.variantId} AND "batchId" = ${a.batchId}`;
   let revalueCents = 0; // re-averaging the lot's cost moves its value by more than this movement (rounding, a negative lot)
   if (lot) {
     const base = Math.max(lot.onHand, 0);
@@ -145,7 +144,7 @@ export async function adjustStock(
 ) {
   const [lot] = await t.$queryRaw<{ id: string; onHand: number; unitCostCents: number }[]>`
     SELECT id, "onHand", "unitCostCents" FROM "StockLevel"
-    WHERE "storeId" = ${a.storeId} AND "variantId" = ${a.variantId} AND "batchId" = ${a.batchId} FOR UPDATE`;
+    WHERE "storeId" = ${a.storeId} AND "variantId" = ${a.variantId} AND "batchId" = ${a.batchId}`;
   const variant = await t.variant.findUniqueOrThrow({ where: { id: a.variantId } });
   const cost = lot?.unitCostCents ?? variant.wholesaleCents;
   if (a.delta < 0 && !a.allowNegative && (lot?.onHand ?? 0) + a.delta < 0) throw new StockError(`Only ${lot?.onHand ?? 0} on hand in that batch`);

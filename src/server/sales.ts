@@ -13,6 +13,8 @@ import { queueSaleInvoice } from "./invoices";
 import { isOffer, offerPromo, redeemOffers } from "./offers";
 import { dropBlocks } from "./drops";
 import { checkTradeBasket, evaluateBasket } from "./compliance";
+import type { RegClass } from "@/lib/compliance";
+import { asList } from "@/lib/json-list";
 import { redeemVoucherTx, restoreVoucherTx, VoucherError } from "./shop/vouchers";
 import { lockedCreditCheck, postLedgerEntry } from "./trade/ledger";
 import { licenceProblem } from "./trade/licences";
@@ -293,7 +295,7 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
     items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass, grams: l.grams, qty: l.qty, tobaccoRelated: l.tobaccoRelated })),
     channel: "POS" as const,
     customerId: input.customerId,
-    storeLicences: store.licences,
+    storeLicences: asList<RegClass>(store.licences),
     ageCheckedAtCounter: input.ageCheck === "ID_SIGHTED" || input.ageCheck === "ID_NUMBER",
     staffCanDispense: staff.canDispense,
   };
@@ -388,7 +390,7 @@ async function postTradeSale(input: PosSaleInput, ctx: { storeId: string; device
   if (!q.lines.length) throw new SaleError("The sale has no items");
   if (q.codeError) throw new SaleError(q.codeError);
   const store = await db.store.findUniqueOrThrow({ where: { id: ctx.storeId }, select: { code: true, licences: true } });
-  const comp = await checkTradeBasket({ items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass })), accountClasses: account.classes, storeLicences: store.licences });
+  const comp = await checkTradeBasket({ items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass })), accountClasses: asList<string>(account.classes), storeLicences: asList<string>(store.licences) });
   if (!comp.ok) throw new SaleError(comp.blocks[0]);
 
   const paid = input.payments.reduce((s, p) => s + p.amountCents, 0);
@@ -471,8 +473,7 @@ export async function refundSale(a: {
   let invoiceTo: string | null = null;
   return tx(async (t) => {
     // One refund of a sale at a time: what's left to refund (and what goes back to vouchers, points and the account) is
-    // worked out under the sale's row lock, so two refunds at once can't both take the same line.
-    await t.$queryRaw`SELECT 1 FROM "Sale" WHERE id = ${a.saleId} FOR UPDATE`;
+    // worked out from the sale's refunds as they stand (D1 serialises writes; there are no row locks).
     const again = await t.sale.findUnique({ where: { id: a.id } });
     if (again) return again;
     const orig = await t.sale.findUniqueOrThrow({

@@ -4,7 +4,7 @@
 import { db } from "@/server/db";
 import { segmentWhere } from "@/server/marketing";
 import { SEGMENTS, type SegmentKey } from "@/lib/rfm";
-import { NAME_SIMILARITY, nameWords, parseMemberQuery } from "@/lib/member-search";
+import { nameWords, parseMemberQuery } from "@/lib/member-search";
 import { CLOSE_MATCHES } from "@/lib/text-search";
 import { addDays } from "@/lib/format";
 import { Prisma, type Tier } from "@/generated/prisma/client";
@@ -16,16 +16,16 @@ const scoped = (s: MemberScope): Prisma.CustomerWhereInput => (s ? { homeStoreId
 export async function crmKpis(s: MemberScope) {
   const monthStart = new Date(`${new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg", year: "numeric", month: "2-digit" }).format(new Date())}-01T00:00:00+02:00`);
   const since30 = addDays(new Date(), -30);
-  const filter = s ? Prisma.sql`WHERE "homeStoreId" = ANY(${s}::text[])` : Prisma.empty;
+  const filter = s ? Prisma.sql`WHERE "homeStoreId" IN (SELECT value FROM json_each(${JSON.stringify(s)}))` : Prisma.empty;
   const [r] = await db.$queryRaw<{ members: number; active30: number; newMonth: number; sms: number; email: number; whatsapp: number; push: number; points: number }[]>`
-    SELECT COUNT(*)::int AS members,
-           COUNT(*) FILTER (WHERE "lastPurchaseAt" >= ${since30})::int AS active30,
-           COUNT(*) FILTER (WHERE "createdAt" >= ${monthStart})::int AS "newMonth",
-           COUNT(*) FILTER (WHERE "consentSms")::int AS sms,
-           COUNT(*) FILTER (WHERE "consentEmail" AND email IS NOT NULL)::int AS email,
-           COUNT(*) FILTER (WHERE "consentWhatsapp")::int AS whatsapp,
-           COUNT(*) FILTER (WHERE "consentPush")::int AS push,
-           COALESCE(SUM(points), 0)::int AS points
+    SELECT COUNT(*) AS members,
+           COUNT(CASE WHEN "lastPurchaseAt" >= ${since30} THEN 1 END) AS active30,
+           COUNT(CASE WHEN "createdAt" >= ${monthStart} THEN 1 END) AS "newMonth",
+           COUNT(CASE WHEN "consentSms" THEN 1 END) AS sms,
+           COUNT(CASE WHEN "consentEmail" AND email IS NOT NULL THEN 1 END) AS email,
+           COUNT(CASE WHEN "consentWhatsapp" THEN 1 END) AS whatsapp,
+           COUNT(CASE WHEN "consentPush" THEN 1 END) AS push,
+           COALESCE(SUM(points), 0) AS points
     FROM "Customer" ${filter}`;
   return r;
 }
@@ -62,7 +62,7 @@ export function memberSearchWhere(raw: string | undefined): Prisma.CustomerWhere
         ],
       };
     case "names":
-      return { AND: q.words.map((w) => ({ OR: [{ firstName: { startsWith: w, mode: "insensitive" as const } }, { lastName: { startsWith: w, mode: "insensitive" as const } }] })) };
+      return { AND: q.words.map((w) => ({ OR: [{ firstName: { startsWith: w } }, { lastName: { startsWith: w } }] })) };
   }
 }
 
@@ -81,28 +81,26 @@ export function memberWhere(s: MemberScope, f: { q?: string; tier?: string; segm
 }
 
 /**
- * Members whose first or last name is close to every word typed (pg_trgm word similarity ≥ NAME_SIMILARITY: "Abrahms"
- * finds Abrahams, "ndlovo" Ndlovu), within `bound` (SQL on "Customer" c), closest first: at most CLOSE_MATCHES ids. For a
- * name search that found nobody. The threshold is set for this transaction only, so `<%` uses the names' trigram indexes.
+ * Members whose first or last name contains every word typed ("Abrah" finds Abrahams; a word that is part of a name
+ * matches on its own), within `bound` (SQL on "Customer" c), closest first: names starting with a word, then names
+ * containing it, then by name: at most CLOSE_MATCHES ids. For a name search that found nobody. A LIKE pattern is at
+ * most 50 bytes, so each word is cut to 40 characters.
  */
-export async function closeNameMatches(words: string[], bound: Prisma.Sql = Prisma.sql`TRUE`): Promise<string[]> {
-  const ws = words.map((w) => w.slice(0, 40)).filter(Boolean).slice(0, 4);
+export async function closeNameMatches(words: string[], bound: Prisma.Sql = Prisma.sql`1 = 1`): Promise<string[]> {
+  const ws = words.map((w) => w.slice(0, 40).replace(/[%_]/g, "")).filter(Boolean).slice(0, 4);
   if (!ws.length) return [];
-  const rows = await db.$transaction(async (t) => {
-    await t.$executeRawUnsafe(`SET LOCAL pg_trgm.word_similarity_threshold = ${NAME_SIMILARITY}`);
-    return t.$queryRaw<{ id: string }[]>`
+  const rows = await db.$queryRaw<{ id: string }[]>`
       SELECT c.id FROM "Customer" c
-      WHERE ${bound} AND ${Prisma.join(ws.map((w) => Prisma.sql`(${w} <% c."firstName" OR ${w} <% c."lastName")`), " AND ")}
-      ORDER BY ${Prisma.join(ws.map((w) => Prisma.sql`GREATEST(word_similarity(${w}, c."firstName"), word_similarity(${w}, coalesce(c."lastName", '')))`), " + ")} DESC, c."memberNo"
+      WHERE ${bound} AND ${Prisma.join(ws.map((w) => Prisma.sql`(c."firstName" LIKE ${`%${w}%`} OR c."lastName" LIKE ${`%${w}%`})`), " AND ")}
+      ORDER BY ${Prisma.join(ws.map((w) => Prisma.sql`CASE WHEN c."firstName" LIKE ${`${w}%`} OR c."lastName" LIKE ${`${w}%`} THEN 0 ELSE 1 END`), " + ")}, c."firstName", c."lastName", c."memberNo"
       LIMIT ${CLOSE_MATCHES}`;
-  });
   return rows.map((r) => r.id);
 }
 
 /** A name search that found nobody, loosened (closeNameMatches) within the scope: the ids that pass the other filters, closest first. */
 export async function closeMembers(s: MemberScope, f: { q?: string; tier?: string; segment?: string; store?: string }) {
   if (parseMemberQuery(f.q).kind !== "names") return [];
-  const ids = await closeNameMatches(nameWords(f.q), s ? Prisma.sql`c."homeStoreId" = ANY(${s}::text[])` : undefined);
+  const ids = await closeNameMatches(nameWords(f.q), s ? Prisma.sql`c."homeStoreId" IN (SELECT value FROM json_each(${JSON.stringify(s)}))` : undefined);
   if (!ids.length) return [];
   const pass = await db.customer.findMany({ where: { AND: [memberWhere(s, { ...f, q: undefined }), { id: { in: ids } }] }, select: { id: true } });
   const ok = new Set(pass.map((r) => r.id));

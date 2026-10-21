@@ -1,6 +1,6 @@
 // Server side of the compliance engine: builds the customer context (age, patient
 // authorisation headroom, grams bought) and evaluates a basket for a channel.
-import { db } from "./db";
+import { db, Prisma } from "./db";
 import { getSettings } from "./settings";
 import { OPEN_ORDER_STATUSES } from "./inventory";
 import { checkCompliance, evaluateTradeBasket, type ComplianceItem, type RegClass, type SellChannel, type TradeComplianceItem } from "@/lib/compliance";
@@ -9,18 +9,19 @@ import { addDays, startOfDaySA } from "@/lib/format";
 
 /** Grams of the given classes bought since `since` (posted sales + open online orders). */
 export async function gramsSince(customerId: string, classes: string[], since: Date) {
+  if (!classes.length) return 0;
   const [r] = await db.$queryRaw<{ g: number }[]>`
-    SELECT COALESCE(SUM(x.g), 0)::float AS g FROM (
+    SELECT COALESCE(SUM(x.g), 0) * 1.0 AS g FROM (
       SELECT l.qty * COALESCE(v.grams, 0) AS g FROM "SaleLine" l
         JOIN "Sale" s ON s.id = l."saleId" JOIN "Variant" v ON v.id = l."variantId" JOIN "Product" p ON p.id = v."productId"
-        WHERE s."customerId" = ${customerId} AND s."createdAt" >= ${since} AND p."regClass"::text = ANY(${classes}::text[])
+        WHERE s."customerId" = ${customerId} AND s."createdAt" >= ${since} AND p."regClass" IN (${Prisma.join(classes)})
       UNION ALL
       SELECT l.qty * COALESCE(v.grams, 0) FROM "OrderLine" l
         JOIN "Order" o ON o.id = l."orderId" JOIN "Variant" v ON v.id = l."variantId" JOIN "Product" p ON p.id = v."productId"
         WHERE o."customerId" = ${customerId} AND o."createdAt" >= ${since}
-          AND o.status::text = ANY(${[...OPEN_ORDER_STATUSES]}::text[]) AND p."regClass"::text = ANY(${classes}::text[])
+          AND o.status IN (${Prisma.join([...OPEN_ORDER_STATUSES])}) AND p."regClass" IN (${Prisma.join(classes)})
     ) x`;
-  return r?.g ?? 0;
+  return Number(r?.g ?? 0);
 }
 
 export async function activeAuthorisation(customerId: string, at = new Date()) {

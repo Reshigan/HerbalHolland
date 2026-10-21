@@ -4,14 +4,14 @@ import { shortCode } from "./counters";
 
 export class EventError extends Error {}
 
-/** Reserves a place (idempotent per member). Capacity is enforced under a row lock. */
+/** Reserves a place (idempotent per member). Capacity is checked against the RSVPs as they stand (D1 serialises writes). */
 export async function rsvp(eventId: string, customerId: string, now = new Date()) {
   return tx(async (t) => {
-    const [e] = await t.$queryRaw<{ capacity: number; endsAt: Date }[]>`SELECT capacity, "endsAt" FROM "StoreEvent" WHERE id = ${eventId} FOR UPDATE`;
+    const [e] = await t.$queryRaw<{ capacity: number; endsAt: Date | string }[]>`SELECT capacity, "endsAt" FROM "StoreEvent" WHERE id = ${eventId}`;
     if (!e) throw new EventError("That event doesn't exist");
     const mine = await t.rsvp.findUnique({ where: { eventId_customerId: { eventId, customerId } } });
     if (mine) return mine;
-    if (e.endsAt < now) throw new EventError("This event has ended");
+    if (new Date(e.endsAt) < now) throw new EventError("This event has ended");
     if ((await t.rsvp.count({ where: { eventId } })) >= e.capacity) throw new EventError("This event is full, but come and see us in store");
     return t.rsvp.create({ data: { eventId, customerId, code: shortCode(8) } });
   });

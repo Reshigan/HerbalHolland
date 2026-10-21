@@ -3,16 +3,17 @@
 import { db, type Tx } from "./db";
 import { audit, type Actor } from "./audit";
 import { checklistProgress, groupTasks, openingTasks } from "@/lib/opening";
+import { asList } from "@/lib/json-list";
 
 export class StoreTaskError extends Error {}
 
 /** Seeds the checklist for a store (no-op when it already has one). Licence lines only where THC is licensed. */
-export async function seedChecklist(client: Tx | typeof db, store: { id: string; openedAt: Date | null; licences: string[]; status?: string }, actor: Actor) {
+export async function seedChecklist(client: Tx | typeof db, store: { id: string; openedAt: Date | null; licences: unknown; status?: string }, actor: Actor) {
   if (await client.storeTask.count({ where: { storeId: store.id } })) return 0;
   // A store already trading has no opening day ahead: leave the dates off and let HQ tick things as they stand.
   const openingAt = store.status === "ACTIVE" ? null : store.openedAt;
-  const tasks = openingTasks({ openingAt, thc: store.licences.includes("THC") });
-  const r = await client.storeTask.createMany({ data: tasks.map((t) => ({ storeId: store.id, key: t.key, title: t.title, group: t.group, sortOrder: t.sortOrder, dueAt: t.dueAt })), skipDuplicates: true });
+  const tasks = openingTasks({ openingAt, thc: asList<string>(store.licences).includes("THC") });
+  const r = await client.storeTask.createMany({ data: tasks.map((t) => ({ storeId: store.id, key: t.key, title: t.title, group: t.group, sortOrder: t.sortOrder, dueAt: t.dueAt })) });
   await audit(client, actor, "store.checklist_seed", { storeId: store.id, entity: "Store", entityId: store.id, data: { tasks: r.count, openingAt } });
   return r.count;
 }
@@ -58,8 +59,8 @@ export async function rescheduleChecklist(storeId: string, openingAt: Date | nul
 export async function checklistProgressByStore(storeIds: string[], now = new Date()) {
   if (!storeIds.length) return new Map<string, { total: number; done: number; overdue: number }>();
   const rows = await db.$queryRaw<{ storeId: string; total: number; done: number; overdue: number }[]>`
-    SELECT "storeId", COUNT(*)::int AS total, COUNT("doneAt")::int AS done,
-      COUNT(*) FILTER (WHERE "doneAt" IS NULL AND "dueAt" < ${now})::int AS overdue
-    FROM "StoreTask" WHERE "storeId" = ANY(${storeIds}::text[]) GROUP BY 1`;
+    SELECT "storeId", COUNT(*) AS total, COUNT("doneAt") AS done,
+      COUNT(CASE WHEN "doneAt" IS NULL AND "dueAt" < ${now} THEN 1 END) AS overdue
+    FROM "StoreTask" WHERE "storeId" IN (SELECT value FROM json_each(${JSON.stringify(storeIds)})) GROUP BY 1`;
   return new Map(rows.map((r) => [r.storeId, { total: r.total, done: r.done, overdue: r.overdue }]));
 }

@@ -18,10 +18,10 @@ export async function stockTakeList(storeId: string, page: number, pageSize: num
   const [stats, users] = await Promise.all([
     ids.length
       ? db.$queryRaw<{ stockTakeId: string; lines: number; counted: number; netUnits: number; absUnits: number; netValue: number }[]>`
-          SELECT "stockTakeId", COUNT(*)::int AS lines, COUNT("countedQty")::int AS counted,
-                 COALESCE(SUM("varianceQty"), 0)::int AS "netUnits", COALESCE(SUM(ABS("varianceQty")), 0)::int AS "absUnits",
-                 COALESCE(SUM("varianceQty"::float8 * "unitCostCents"), 0)::float8 AS "netValue"
-          FROM "StockTakeLine" WHERE "stockTakeId" = ANY(${ids}::text[]) GROUP BY 1`
+          SELECT "stockTakeId", COUNT(*) AS lines, COUNT("countedQty") AS counted,
+                 COALESCE(SUM("varianceQty"), 0) AS "netUnits", COALESCE(SUM(ABS("varianceQty")), 0) AS "absUnits",
+                 COALESCE(SUM("varianceQty" * 1.0 * "unitCostCents"), 0) AS "netValue"
+          FROM "StockTakeLine" WHERE "stockTakeId" IN (SELECT value FROM json_each(${JSON.stringify(ids)})) GROUP BY 1`
       : Promise.resolve([]),
     db.user.findMany({ where: { id: { in: takes.flatMap((t) => [t.createdById, t.approvedById]).filter((x): x is string => !!x) } }, select: { id: true, name: true } }),
   ]);

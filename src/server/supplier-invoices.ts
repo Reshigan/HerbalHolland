@@ -99,7 +99,7 @@ export async function captureSupplierInvoice(a: CaptureInput, actor: Actor & { i
   if (a.dueDate < a.invoiceDate) throw new SupplierInvoiceError("The due date can't be before the invoice date", "dueDate");
   if (!Number.isInteger(a.totalCents) || a.totalCents <= 0 || a.totalCents > 100_000_000) throw new SupplierInvoiceError("Enter the invoice total including VAT", "total");
   if (!Number.isInteger(a.vatCents) || a.vatCents < 0 || a.vatCents > a.totalCents) throw new SupplierInvoiceError("VAT can't be more than the total", "vat");
-  if (await db.supplierInvoice.count({ where: { storeId: a.storeId, supplierName: { equals: supplierName, mode: "insensitive" }, number: { equals: number, mode: "insensitive" } } }))
+  if (await db.supplierInvoice.count({ where: { storeId: a.storeId, supplierName: { equals: supplierName }, number: { equals: number } } }))
     throw new SupplierInvoiceError(`Invoice ${number} from ${supplierName} is already captured`, "number");
   const accountId = await chargedTo(a.storeId, a.accountId);
 
@@ -164,7 +164,7 @@ export function invoiceWhere(f: InvoiceFilters): Prisma.SupplierInvoiceWhereInpu
   return {
     storeId: { in: f.storeIds },
     ...(f.status && { status: f.status }),
-    ...(q && { OR: [{ supplierName: { contains: q, mode: "insensitive" } }, { number: { contains: q, mode: "insensitive" } }] }),
+    ...(q && { OR: [{ supplierName: { contains: q } }, { number: { contains: q } }] }),
   };
 }
 
@@ -225,16 +225,17 @@ export async function supplierInvoiceSummary(storeIds: string[], now = new Date(
 export async function supplierInvoicesByStore(storeIds: string[], now = new Date()) {
   if (!storeIds.length) return [];
   const today = dateCol(dayKey(now));
-  return db.$queryRaw<{ storeId: string; due: number; dueCents: number; overdue: number; overdueCents: number; queried: number; oldestDue: Date | null }[]>`
+  const rows = await db.$queryRaw<{ storeId: string; due: number; dueCents: number; overdue: number; overdueCents: number; queried: number; oldestDue: Date | string | null }[]>`
     SELECT "storeId",
-      COUNT(*) FILTER (WHERE status = 'DUE')::int AS due,
-      COALESCE(SUM("totalCents") FILTER (WHERE status = 'DUE'), 0)::int AS "dueCents",
-      COUNT(*) FILTER (WHERE status = 'DUE' AND "dueDate" < ${today})::int AS overdue,
-      COALESCE(SUM("totalCents") FILTER (WHERE status = 'DUE' AND "dueDate" < ${today}), 0)::int AS "overdueCents",
-      COUNT(*) FILTER (WHERE status = 'QUERIED')::int AS queried,
-      MIN("dueDate") FILTER (WHERE status = 'DUE') AS "oldestDue"
-    FROM "SupplierInvoice" WHERE "storeId" = ANY(${storeIds}::text[]) AND status IN ('DUE', 'QUERIED') AND NOT "onStatement"
+      COUNT(CASE WHEN status = 'DUE' THEN 1 END) AS due,
+      COALESCE(SUM(CASE WHEN status = 'DUE' THEN "totalCents" END), 0) AS "dueCents",
+      COUNT(CASE WHEN status = 'DUE' AND "dueDate" < ${today} THEN 1 END) AS overdue,
+      COALESCE(SUM(CASE WHEN status = 'DUE' AND "dueDate" < ${today} THEN "totalCents" END), 0) AS "overdueCents",
+      COUNT(CASE WHEN status = 'QUERIED' THEN 1 END) AS queried,
+      MIN(CASE WHEN status = 'DUE' THEN "dueDate" END) AS "oldestDue"
+    FROM "SupplierInvoice" WHERE "storeId" IN (SELECT value FROM json_each(${JSON.stringify(storeIds)})) AND status IN ('DUE', 'QUERIED') AND NOT "onStatement"
     GROUP BY 1`; // stock orders settle on the statements, so this is what stores owe outside suppliers
+  return rows.map((r) => ({ ...r, oldestDue: r.oldestDue ? new Date(r.oldestDue) : null }));
 }
 
 /** A stock order's invoice (shown on the order page). */

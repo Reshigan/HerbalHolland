@@ -26,7 +26,6 @@ export function isLocked(user: Counted, kind: LockKind, now = Date.now()) {
 export function recordFailure(userId: string, kind: LockKind): Promise<boolean> {
   const r = RULES[kind];
   return tx(async (t) => {
-    await t.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
     const u: Counted = await t.user.findUniqueOrThrow({ where: { id: userId }, select: { passwordFails: true, passwordLockedAt: true, pinFails: true, pinLockedAt: true } });
     const fails = u[r.fails] + 1;
     const locks = fails >= r.max;

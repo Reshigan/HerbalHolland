@@ -18,7 +18,7 @@ export default async function NewStockTakePage({ params }: { params: Promise<{ c
   const canManage = canManageStore(user);
   const [cats, open, last] = await Promise.all([
     db.$queryRaw<{ slug: string; name: string; lines: number }[]>`
-      SELECT c.slug, c.name, COUNT(sl.id)::int AS lines
+      SELECT c.slug, c.name, COUNT(sl.id) AS lines
       FROM "Category" c
       LEFT JOIN "Product" p ON p."categoryId" = c.id
       LEFT JOIN "Variant" v ON v."productId" = p.id

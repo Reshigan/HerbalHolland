@@ -8,7 +8,7 @@ import { emailLayout, esc, sendEmail } from "./email";
 import { reportFailure } from "./alerts";
 import { getSettings } from "./settings";
 import { APP_URL } from "./invoices";
-import { sast } from "./sql";
+import { sastDay } from "./sql";
 import { openState, parseHours } from "./shop/hours";
 import { aboveNorm, cashShort, median, refundFlags, type LossSettings, type Severity } from "@/lib/loss";
 import { cashToBank, isOverdue, bankBy } from "@/lib/banking";
@@ -47,7 +47,8 @@ export const visibleAlerts = (u: Pick<Staff, "id">, storeIds: string[]): Prisma.
 /** Raises new alerts (existing keys are skipped) and emails the high-severity ones at once. */
 export async function raiseAlerts(list: NewAlert[]) {
   if (!list.length) return 0;
-  const { count } = await db.alert.createMany({ data: list.map((a) => ({ ...a, userId: a.userId ?? null, amountCents: a.amountCents ?? null })), skipDuplicates: true });
+  const raised = new Set((await db.alert.findMany({ where: { key: { in: list.map((a) => a.key) } }, select: { key: true } })).map((a) => a.key));
+  const { count } = await db.alert.createMany({ data: list.filter((a) => !raised.has(a.key)).map((a) => ({ ...a, userId: a.userId ?? null, amountCents: a.amountCents ?? null })) });
   if (list.some((a) => a.severity === "HIGH")) await notifyHigh(list.filter((a) => a.severity === "HIGH").map((a) => a.key)).catch((e) => console.error("[loss] notify failed", e));
   return count;
 }
@@ -132,7 +133,7 @@ export async function checkShifts(where: Prisma.ShiftWhereInput, s: LossSettings
 
 async function repeatShorts(now: Date, s: LossSettings) {
   const rows = await db.$queryRaw<{ storeId: string; userId: string; n: number; short: number }[]>`
-    SELECT "storeId", "closedById" AS "userId", COUNT(*)::int AS n, (-SUM("countedCashCents" - "expectedCashCents"))::int AS short
+    SELECT "storeId", "closedById" AS "userId", COUNT(*) AS n, -SUM("countedCashCents" - "expectedCashCents") AS short
     FROM "Shift" WHERE "closedAt" >= ${addDays(now, -30)} AND "closedById" IS NOT NULL AND "countedCashCents" - "expectedCashCents" <= ${-s.cashShortCents}
     GROUP BY 1, 2 HAVING COUNT(*) >= ${s.repeatShorts}`;
   const code = await codes(rows.map((r) => r.storeId));
@@ -206,8 +207,8 @@ async function refunds(since: Date, s: LossSettings) {
 
 async function refundRates(now: Date, s: LossSettings) {
   const rows = await db.$queryRaw<{ storeId: string; userId: string; role: string; sales: number; refunds: number; value: number }[]>`
-    SELECT s."storeId", s."staffId" AS "userId", u.role::text AS role, COUNT(*) FILTER (WHERE s.kind = 'SALE')::int AS sales, COUNT(*) FILTER (WHERE s.kind = 'REFUND')::int AS refunds,
-      (-COALESCE(SUM(s."totalCents") FILTER (WHERE s.kind = 'REFUND'), 0))::int AS value
+    SELECT s."storeId", s."staffId" AS "userId", u.role AS role, COUNT(CASE WHEN s.kind = 'SALE' THEN 1 END) AS sales, COUNT(CASE WHEN s.kind = 'REFUND' THEN 1 END) AS refunds,
+      -COALESCE(SUM(CASE WHEN s.kind = 'REFUND' THEN s."totalCents" END), 0) AS value
     FROM "Sale" s JOIN "User" u ON u.id = s."staffId" WHERE s."createdAt" >= ${addDays(now, -30)} AND s.channel = 'POS' GROUP BY 1, 2, 3`;
   const rate = (r: { sales: number; refunds: number }) => r.refunds / Math.max(1, r.sales);
   // Compared with people in the same role across the network: refunds are usually a manager's job.
@@ -227,7 +228,7 @@ async function salesRefunded(now: Date, s: LossSettings) {
   const month = dayKey(now).slice(0, 7);
   const start = new Date(`${month}-01T00:00:00+02:00`);
   const rows = await db.$queryRaw<{ storeId: string; userId: string; sold: number; refunded: number; n: number }[]>`
-    SELECT o."storeId", COALESCE(o."soldById", o."staffId") AS "userId", SUM(o."totalCents")::int AS sold, (-COALESCE(SUM(r.value), 0))::int AS refunded, COALESCE(SUM(r.n), 0)::int AS n
+    SELECT o."storeId", COALESCE(o."soldById", o."staffId") AS "userId", SUM(o."totalCents") AS sold, -COALESCE(SUM(r.value), 0) AS refunded, COALESCE(SUM(r.n), 0) AS n
     FROM "Sale" o
     LEFT JOIN (SELECT "refundOfId", SUM("totalCents") AS value, COUNT(*) AS n FROM "Sale" WHERE kind = 'REFUND' AND "createdAt" >= ${start} GROUP BY 1) r ON r."refundOfId" = o.id
     WHERE o.kind = 'SALE' AND o.channel = 'POS' AND COALESCE(o."soldById", o."staffId") IS NOT NULL AND o."createdAt" >= ${start}
@@ -245,8 +246,8 @@ async function salesRefunded(now: Date, s: LossSettings) {
 async function writeOffs(now: Date, s: LossSettings) {
   const rows = await db.$queryRaw<{ storeId: string; week: number; norm: number }[]>`
     SELECT "storeId",
-      COALESCE(SUM(-qty * "unitCostCents") FILTER (WHERE "createdAt" >= ${addDays(now, -7)}), 0)::int AS week,
-      (COALESCE(SUM(-qty * "unitCostCents") FILTER (WHERE "createdAt" < ${addDays(now, -7)}), 0) / 12.0)::float8 AS norm
+      COALESCE(SUM(CASE WHEN "createdAt" >= ${addDays(now, -7)} THEN -qty * "unitCostCents" END), 0) AS week,
+      COALESCE(SUM(CASE WHEN "createdAt" < ${addDays(now, -7)} THEN -qty * "unitCostCents" END), 0) / 12.0 AS norm
     FROM "StockMovement"
     WHERE "createdAt" >= ${addDays(now, -91)} AND qty < 0 AND ((type = 'ADJUST' AND reason IN ('DAMAGED', 'THEFT', 'LOST', 'EXPIRED')) OR type = 'COUNT')
     GROUP BY 1`;
@@ -262,11 +263,11 @@ async function writeOffs(now: Date, s: LossSettings) {
 
 async function memberCards(since: Date, s: LossSettings) {
   const own = await db.$queryRaw<{ storeId: string; userId: string; customerId: string; day: string; n: number; total: number }[]>`
-    SELECT s."storeId", s."staffId" AS "userId", s."customerId", to_char(${sast('s."createdAt"')}, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n, SUM(s."totalCents")::int AS total
+    SELECT s."storeId", s."staffId" AS "userId", s."customerId", ${sastDay('s."createdAt"')} AS day, COUNT(*) AS n, SUM(s."totalCents") AS total
     FROM "Sale" s JOIN "User" u ON u.id = s."staffId" AND u."memberId" = s."customerId"
     WHERE s."createdAt" >= ${since} AND s.kind = 'SALE' GROUP BY 1, 2, 3, 4`;
   const repeat = await db.$queryRaw<{ storeId: string; userId: string; customerId: string; day: string; n: number; total: number }[]>`
-    SELECT "storeId", "staffId" AS "userId", "customerId", to_char(${sast('"createdAt"')}, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n, SUM("totalCents")::int AS total
+    SELECT "storeId", "staffId" AS "userId", "customerId", ${sastDay('"createdAt"')} AS day, COUNT(*) AS n, SUM("totalCents") AS total
     FROM "Sale" WHERE "createdAt" >= ${since} AND kind = 'SALE' AND channel = 'POS' AND "customerId" IS NOT NULL AND "staffId" IS NOT NULL
     GROUP BY 1, 2, 3, 4 HAVING COUNT(*) >= ${s.memberRepeat}`;
   const code = await codes([...own, ...repeat].map((r) => r.storeId));
@@ -286,8 +287,8 @@ async function memberCards(since: Date, s: LossSettings) {
 async function offlineShare(now: Date, s: LossSettings) {
   const rows = await db.$queryRaw<{ storeId: string; weekOff: number; weekAll: number; normOff: number; normAll: number }[]>`
     SELECT "storeId",
-      COUNT(*) FILTER (WHERE "createdAt" >= ${addDays(now, -7)} AND offline)::int AS "weekOff", COUNT(*) FILTER (WHERE "createdAt" >= ${addDays(now, -7)})::int AS "weekAll",
-      COUNT(*) FILTER (WHERE "createdAt" < ${addDays(now, -7)} AND offline)::int AS "normOff", COUNT(*) FILTER (WHERE "createdAt" < ${addDays(now, -7)})::int AS "normAll"
+      COUNT(CASE WHEN "createdAt" >= ${addDays(now, -7)} AND offline THEN 1 END) AS "weekOff", COUNT(CASE WHEN "createdAt" >= ${addDays(now, -7)} THEN 1 END) AS "weekAll",
+      COUNT(CASE WHEN "createdAt" < ${addDays(now, -7)} AND offline THEN 1 END) AS "normOff", COUNT(CASE WHEN "createdAt" < ${addDays(now, -7)} THEN 1 END) AS "normAll"
     FROM "Sale" WHERE "createdAt" >= ${addDays(now, -63)} AND channel = 'POS' GROUP BY 1`;
   const code = await codes(rows.map((r) => r.storeId));
   const share = (off: number, all: number) => off / Math.max(1, all);

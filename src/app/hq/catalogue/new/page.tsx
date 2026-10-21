@@ -19,7 +19,7 @@ export default async function NewProductPage() {
   if (!can(user, "network")) redirect("/hq/catalogue");
   const [categories, claimRows, settings] = await Promise.all([
     db.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
-    db.$queryRaw<{ claim: string }[]>`SELECT DISTINCT unnest(claims) AS claim FROM "Product" ORDER BY 1 LIMIT 200`,
+    db.$queryRaw<{ claim: string }[]>`SELECT DISTINCT j.value AS claim FROM "Product" p, json_each(p.claims) j ORDER BY 1 LIMIT 200`,
     getSettings(),
   ]);
   return (

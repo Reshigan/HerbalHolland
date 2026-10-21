@@ -1,19 +1,17 @@
 // Rate limits that hold across every server and restart: each counted event is a Throttle row under a key (for
-// example "signin-ip:<hash>", "otp-sms:all", "pin:<userId>"), counted in a sliding window. Checking and counting run
-// under a Postgres advisory lock on the key, so requests arriving together can't all slip under the limit. The daily
-// job prunes rows older than the longest window.
+// example "signin-ip:<hash>", "otp-sms:all", "pin:<userId>"), counted in a sliding window. D1 serialises writes, so
+// requests arriving together are checked and counted one after another (no advisory locks). The daily job prunes rows
+// older than the longest window.
 import { ipBucket } from "@/lib/client-ip";
 import { createHmac } from "node:crypto";
-import { db, tx, type Tx } from "./db";
+import { db, tx } from "./db";
 import { appSecret } from "./secret";
 
-const lock = (t: Tx, key: string) => t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`throttle:${key}`}))`;
 const since = (windowMs: number) => new Date(Date.now() - windowMs);
 
 /** Counts one event under `key` unless `max` already happened in the last `windowMs`; true when it was allowed. */
 export function hit(key: string, max: number, windowMs: number): Promise<boolean> {
   return tx(async (t) => {
-    await lock(t, key);
     if ((await t.throttle.count({ where: { key, createdAt: { gte: since(windowMs) } } })) >= max) return false;
     await t.throttle.create({ data: { key } });
     return true;
@@ -23,7 +21,6 @@ export function hit(key: string, max: number, windowMs: number): Promise<boolean
 /** Counts one event (a failure, say) without a limit check; returns how many there now are in the window. */
 export function record(key: string, windowMs: number): Promise<number> {
   return tx(async (t) => {
-    await lock(t, key);
     await t.throttle.create({ data: { key } });
     return t.throttle.count({ where: { key, createdAt: { gte: since(windowMs) } } });
   });

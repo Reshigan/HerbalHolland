@@ -11,17 +11,17 @@ export const NO_STATS: HereStats = { spendCents: 0, visits: 0, firstAt: null, la
 /** Spend (net of refunds), visits, first and last visit and Rewards savings at one store, per member. */
 export async function statsHere(storeId: string, customerIds: string[]) {
   if (!customerIds.length) return new Map<string, HereStats>();
-  const rows = await db.$queryRaw<{ id: string; spend: number; visits: number; first: Date | null; last: Date | null; saved: number }[]>`
+  const rows = await db.$queryRaw<{ id: string; spend: number; visits: number; first: Date | string | null; last: Date | string | null; saved: number }[]>`
     SELECT "customerId" AS id,
-           COALESCE(SUM("totalCents"), 0)::float8 AS spend,
-           (COUNT(*) FILTER (WHERE kind = 'SALE'))::int AS visits,
-           MIN("createdAt") FILTER (WHERE kind = 'SALE') AS first,
-           MAX("createdAt") FILTER (WHERE kind = 'SALE') AS last,
-           COALESCE(SUM("memberSavingsCents"), 0)::float8 AS saved
+           COALESCE(SUM("totalCents"), 0) AS spend,
+           COUNT(CASE WHEN kind = 'SALE' THEN 1 END) AS visits,
+           MIN(CASE WHEN kind = 'SALE' THEN "createdAt" END) AS first,
+           MAX(CASE WHEN kind = 'SALE' THEN "createdAt" END) AS last,
+           COALESCE(SUM("memberSavingsCents"), 0) AS saved
     FROM "Sale"
-    WHERE "storeId" = ${storeId} AND "customerId" = ANY(${customerIds}::text[])
+    WHERE "storeId" = ${storeId} AND "customerId" IN (SELECT value FROM json_each(${JSON.stringify(customerIds)}))
     GROUP BY 1`;
-  return new Map(rows.map((r) => [r.id, { spendCents: Math.round(r.spend), visits: r.visits, firstAt: r.first, lastAt: r.last, savedCents: Math.round(r.saved) }]));
+  return new Map(rows.map((r) => [r.id, { spendCents: Math.round(r.spend), visits: r.visits, firstAt: r.first ? new Date(r.first) : null, lastAt: r.last ? new Date(r.last) : null, savedCents: Math.round(r.saved) }]));
 }
 
 /**
@@ -50,7 +50,7 @@ export async function membersByHere(storeId: string, where: Prisma.CustomerWhere
 export async function homeMemberTotals(storeId: string, since: Date) {
   const [[active], spend] = await Promise.all([
     db.$queryRaw<{ n: number }[]>`
-      SELECT COUNT(DISTINCT s."customerId")::int AS n
+      SELECT COUNT(DISTINCT s."customerId") AS n
       FROM "Sale" s JOIN "Customer" c ON c.id = s."customerId"
       WHERE s."storeId" = ${storeId} AND s.kind = 'SALE' AND s."createdAt" >= ${since} AND c."homeStoreId" = ${storeId}`,
     db.sale.aggregate({ where: { storeId, customer: { is: { homeStoreId: storeId } } }, _sum: { totalCents: true } }),
@@ -69,10 +69,10 @@ export function customerSearch(q: string): Prisma.CustomerWhereInput {
   return {
     AND: words.map((w) => ({
       OR: [
-        { firstName: { contains: w, mode: "insensitive" as const } },
-        { lastName: { contains: w, mode: "insensitive" as const } },
-        { memberNo: { contains: w, mode: "insensitive" as const } },
-        { email: { contains: w, mode: "insensitive" as const } },
+        { firstName: { contains: w } },
+        { lastName: { contains: w } },
+        { memberNo: { contains: w } },
+        { email: { contains: w } },
         ...(digits.length >= 4 ? [{ phone: { contains: digits.replace(/^0/, "") } }] : []),
       ],
     })),

@@ -54,10 +54,10 @@ function historyWhere(storeId: string, f: HistoryFilter) {
     ...(words.length && {
       AND: words.map((w) => ({
         OR: [
-          { variant: { sku: { contains: w, mode: "insensitive" as const } } },
-          { variant: { name: { contains: w, mode: "insensitive" as const } } },
-          { variant: { product: { name: { contains: w, mode: "insensitive" as const } } } },
-          { batch: { code: { contains: w, mode: "insensitive" as const } } },
+          { variant: { sku: { contains: w } } },
+          { variant: { name: { contains: w } } },
+          { variant: { product: { name: { contains: w } } } },
+          { batch: { code: { contains: w } } },
         ],
       })),
     }),
@@ -84,8 +84,8 @@ export async function adjustmentHistory(storeId: string, f: HistoryFilter, page:
 /** Units and value by reason for the filter (value at the cost posted on each movement). */
 export async function adjustmentTotals(storeId: string, f: Omit<HistoryFilter, "reason" | "q">) {
   return db.$queryRaw<{ reason: AdjustReason | null; units: number; value: number; n: number }[]>`
-    SELECT reason, SUM(qty)::int AS units, SUM(qty::float8 * "unitCostCents")::float8 AS value, COUNT(*)::int AS n
+    SELECT reason, SUM(qty) AS units, SUM(qty * 1.0 * "unitCostCents") AS value, COUNT(*) AS n
     FROM "StockMovement"
-    WHERE "storeId" = ${storeId} AND type::text = ANY(${f.types}::text[]) AND "createdAt" >= ${f.range.start} AND "createdAt" < ${f.range.end}
+    WHERE "storeId" = ${storeId} AND type IN (SELECT value FROM json_each(${JSON.stringify(f.types)})) AND "createdAt" >= ${f.range.start} AND "createdAt" < ${f.range.end}
     GROUP BY reason`;
 }

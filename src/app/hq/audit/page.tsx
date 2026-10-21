@@ -81,8 +81,8 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         await db.$queryRaw<{ id: string }[]>`
           SELECT id FROM "AuditLog"
           WHERE at >= ${searchFrom} ${to ? Prisma.sql`AND at < ${addDays(to, 1)}` : Prisma.empty}
-            ${scope.kind === "HQ" ? Prisma.empty : Prisma.sql`AND "storeId" = ANY(${ids}::text[])`}
-            AND ("entityId" = ${q} OR "actorName" ILIKE ${`%${q}%`} OR data::text ILIKE ${`%${q}%`})
+            ${scope.kind === "HQ" ? Prisma.empty : Prisma.sql`AND "storeId" IN (SELECT value FROM json_each(${JSON.stringify(ids)}))`}
+            AND ("entityId" = ${q} OR "actorName" LIKE ${`%${q.slice(0, 40)}%`} OR data LIKE ${`%${q.slice(0, 40)}%`})
           ORDER BY at DESC LIMIT 2000`
       ).map((r) => r.id)
     : null;
@@ -93,7 +93,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       ...(user.role === "HQ_ADMIN" ? [] : [{ NOT: { action: { startsWith: "ledger." } } }, { NOT: { action: { startsWith: "bank." } } }]),
       action ? { action: { startsWith: action } } : {},
       sp.store ? { storeId: (await db.store.findFirst({ where: { code: sp.store, id: { in: ids } }, select: { id: true } }))?.id ?? "__none__" } : {},
-      sp.actor?.trim() ? { actorName: { contains: sp.actor.trim(), mode: "insensitive" } } : {},
+      sp.actor?.trim() ? { actorName: { contains: sp.actor.trim() } } : {},
       from ? { at: { gte: from } } : {},
       to ? { at: { lt: addDays(to, 1) } } : {},
       searchIds ? { id: { in: searchIds } } : {},

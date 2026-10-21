@@ -15,10 +15,15 @@ export async function launchState(now = new Date()) {
   return { ...l, at, preLaunch: !!at && now < at };
 }
 
+// A tier's rank (SEED 0 … HARVEST 3), to compare tiers in SQL (they are text on SQLite).
+const tierRank = (col: Prisma.Sql) => Prisma.sql`CASE ${col} ${Prisma.join(TIERS.map((t, i) => Prisma.sql`WHEN ${t.key} THEN ${i}`), " ")} ELSE 0 END`;
+// The higher of a tier column and a tier.
+const atLeast = (col: Prisma.Sql, tier: string) => Prisma.sql`CASE WHEN ${tierRank(col)} >= ${TIERS.findIndex((t) => t.key === tier)} THEN ${col} ELSE ${tier} END`;
+
 // Waitlist ranking (members who joined before `at`), shared by the place lookup and founding assignment.
 const ranked = (at: Date, boost: number) => Prisma.sql`
   WITH refs AS (
-    SELECT "referredById" AS id, count(*)::int AS n FROM "Customer"
+    SELECT "referredById" AS id, count(*) AS n FROM "Customer"
     WHERE "referredById" IS NOT NULL AND "createdAt" < ${at} GROUP BY 1
   ), w AS (
     SELECT c.id, row_number() OVER (ORDER BY c."createdAt", c.id) AS seq, coalesce(r.n, 0) AS refs
@@ -53,8 +58,8 @@ export async function assignFounding(now = new Date()) {
   until.setMonth(until.getMonth() + s.foundingMonths);
   const assigned = await db.$executeRaw`
     ${ranked(s.at, s.referralBoost)}
-    UPDATE "Customer" c SET "foundingNo" = ranked.place, "tierFloor" = ${s.foundingTier}::"Tier", "tierFloorUntil" = ${until},
-      tier = GREATEST(c.tier, ${s.foundingTier}::"Tier")
+    UPDATE "Customer" AS c SET "foundingNo" = ranked.place, "tierFloor" = ${s.foundingTier}, "tierFloorUntil" = ${until},
+      tier = ${atLeast(Prisma.sql`c.tier`, s.foundingTier)}
     FROM ranked WHERE c.id = ranked.id AND ranked.place <= ${s.foundingCap}`;
   // First Year Members: everyone else who joined before the list closed holds the founding tier for a shorter while.
   let firstYear = 0;
@@ -62,7 +67,7 @@ export async function assignFounding(now = new Date()) {
     const fyUntil = new Date(s.at);
     fyUntil.setMonth(fyUntil.getMonth() + s.firstYearMonths);
     firstYear = await db.$executeRaw`
-      UPDATE "Customer" c SET "tierFloor" = ${s.foundingTier}::"Tier", "tierFloorUntil" = ${fyUntil}, tier = GREATEST(c.tier, ${s.foundingTier}::"Tier")
+      UPDATE "Customer" AS c SET "tierFloor" = ${s.foundingTier}, "tierFloorUntil" = ${fyUntil}, tier = ${atLeast(Prisma.sql`c.tier`, s.foundingTier)}
       WHERE c."createdAt" < ${s.at} AND c."foundingNo" IS NULL AND c."tierFloor" IS NULL`;
   }
   return { assigned, firstYear };
@@ -71,11 +76,11 @@ export async function assignFounding(now = new Date()) {
 /** When a floor lapses, members drop back to the tier their 12-month spend earns. */
 export async function expireTierFloors(now = new Date()) {
   const cases = Prisma.join(
-    [...TIERS].reverse().map((t) => Prisma.sql`WHEN coalesce(s.spend, 0) >= ${t.minCents} THEN ${t.key}::"Tier"`),
+    [...TIERS].reverse().map((t) => Prisma.sql`WHEN coalesce(s.spend, 0) >= ${t.minCents} THEN ${t.key}`),
     " ",
   );
   const expired = await db.$executeRaw`
-    UPDATE "Customer" c SET tier = CASE ${cases} END, "tierFloor" = NULL, "tierFloorUntil" = NULL
+    UPDATE "Customer" AS c SET tier = CASE ${cases} END, "tierFloor" = NULL, "tierFloorUntil" = NULL
     FROM (
       SELECT x.id, (SELECT sum(sa."totalCents") FROM "Sale" sa WHERE sa."customerId" = x.id AND sa."createdAt" > ${new Date(now.getTime() - 365 * 86_400_000)}) AS spend
       FROM "Customer" x WHERE x."tierFloorUntil" <= ${now}

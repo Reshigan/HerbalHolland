@@ -49,7 +49,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
     db.loyaltyEntry.groupBy({ by: ["storeId", "kind"], where: { createdAt: { gte: since }, storeId: { in: ids }, kind: { in: ["EARN", "REDEEM", "REFERRAL", "BONUS", "BIRTHDAY", "REVERSAL"] } }, _sum: { points: true } }),
     db.customer.findMany({ where: members, orderBy: { lifetimeCents: "desc" }, take: 8, select: { id: true, firstName: true, lastName: true, memberNo: true, tier: true, points: true, lifetimeCents: true, homeStore: { select: { name: true } } } }),
     db.store.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true } }),
-    db.$queryRaw<{ saved: number; offers: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0)::float8 AS saved, COALESCE(SUM("offerCents"), 0)::float8 AS offers FROM "DailyStoreStat" WHERE "storeId" = ANY(${ids}::text[]) AND "date" >= ${r30.fromDate}`,
+    db.$queryRaw<{ saved: number; offers: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0) AS saved, COALESCE(SUM("offerCents"), 0) AS offers FROM "DailyStoreStat" WHERE "storeId" IN (SELECT value FROM json_each(${JSON.stringify(ids)})) AND "date" >= ${r30.fromDate}`,
     // My Deals, last 30 days: loaded onto cards, and how many of those were used.
     db.memberOffer.count({ where: offerWhere }),
     db.memberOffer.count({ where: { ...offerWhere, redeemedAt: { not: null } } }),

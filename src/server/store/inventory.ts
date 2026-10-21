@@ -11,7 +11,7 @@ import { closeProducts } from "@/server/hq/catalogue";
 import { stockStatus, overstockUnits, type StockStatus } from "./rules";
 import type { RegClass } from "@/lib/compliance";
 
-type LotAgg = { variantId: string; onHand: number; blocked: number; value: number; negativeLots: number; nextExpiry: Date | null };
+type LotAgg = { variantId: string; onHand: number; blocked: number; value: number; negativeLots: number; nextExpiry: Date | string | null };
 
 export type StockRow = {
   variantId: string;
@@ -53,11 +53,11 @@ export async function stockRows(storeId: string): Promise<StockRow[]> {
     db.storeVariant.findMany({ where: { storeId }, select: { variantId: true, reorderPoint: true, parLevel: true, priceCents: true } }),
     db.$queryRaw<LotAgg[]>`
       SELECT sl."variantId",
-             SUM(sl."onHand")::int AS "onHand",
-             COALESCE(SUM(sl."onHand") FILTER (WHERE b.status <> 'RELEASED' AND sl."onHand" > 0), 0)::int AS blocked,
-             COALESCE(SUM(sl."onHand"::float8 * sl."unitCostCents"), 0)::float8 AS value,
-             COUNT(*) FILTER (WHERE sl."onHand" < 0)::int AS "negativeLots",
-             MIN(b."expiresAt") FILTER (WHERE sl."onHand" > 0 AND b.status = 'RELEASED') AS "nextExpiry"
+             SUM(sl."onHand") AS "onHand",
+             COALESCE(SUM(CASE WHEN b.status <> 'RELEASED' AND sl."onHand" > 0 THEN sl."onHand" END), 0) AS blocked,
+             COALESCE(SUM(sl."onHand" * 1.0 * sl."unitCostCents"), 0) AS value,
+             COUNT(CASE WHEN sl."onHand" < 0 THEN 1 END) AS "negativeLots",
+             MIN(CASE WHEN sl."onHand" > 0 AND b.status = 'RELEASED' THEN b."expiresAt" END) AS "nextExpiry"
       FROM "StockLevel" sl JOIN "Batch" b ON b.id = sl."batchId"
       WHERE sl."storeId" = ${storeId}
       GROUP BY 1`,
@@ -113,7 +113,7 @@ export async function stockRows(storeId: string): Promise<StockRow[]> {
       available: a.available,
       valueCents: Math.round(lot?.value ?? 0),
       negativeLots,
-      nextExpiry: lot?.nextExpiry ?? null,
+      nextExpiry: lot?.nextExpiry ? new Date(lot.nextExpiry) : null,
       sold28,
       avgDaily,
       cover: daysOfCover(Math.max(0, a.available), avgDaily),
@@ -200,7 +200,7 @@ export async function ledger(storeId: string, variantId: string, page: number, p
     db.stockLevel.aggregate({ where: { storeId, variantId }, _sum: { onHand: true } }),
     skip
       ? db.$queryRaw<{ s: number }[]>`
-          SELECT COALESCE(SUM(qty), 0)::int AS s FROM (
+          SELECT COALESCE(SUM(qty), 0) AS s FROM (
             SELECT qty FROM "StockMovement" WHERE "storeId" = ${storeId} AND "variantId" = ${variantId}
             ORDER BY "createdAt" DESC, id DESC LIMIT ${skip}) x`
       : Promise.resolve([{ s: 0 }]),
@@ -218,7 +218,7 @@ export async function ledger(storeId: string, variantId: string, page: number, p
   const order = new Map(orders.map((o) => [o.id, o.code]));
   const po = new Map(stockOrders.map((o) => [o.id, o.number]));
   const st = new Map(stockTakes.map((s) => [s.id, s.number]));
-  let balance = (onHand._sum.onHand ?? 0) - newer[0].s;
+  let balance = (onHand._sum.onHand ?? 0) - Number(newer[0].s);
   return {
     total,
     rows: rows.map((r) => {

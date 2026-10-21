@@ -46,8 +46,7 @@ export async function recordPurchase(
   t: Tx,
   a: { customerId: string; storeId: string; paidCents: number; totalCents: number; multiplier: number; saleId: string; orderId?: string; at: Date; earnPer100: number; referralBonus: number },
 ) {
-  // The member's row lock first: two first purchases at once can't both pay the referral bonus.
-  await t.$queryRaw`SELECT 1 FROM "Customer" WHERE id = ${a.customerId} FOR UPDATE`;
+  // The member's row first (no row locks on D1: writes are serialised, so the second of two first purchases sees the first).
   const before = await t.customer.findUniqueOrThrow({ where: { id: a.customerId } });
   const spend = await spend12m(t, a.customerId);
   const tier = heldTier(tierFor(spend).key as TierKey, before.tierFloor, before.tierFloorUntil, a.at);

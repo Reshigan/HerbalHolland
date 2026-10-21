@@ -10,10 +10,10 @@ export async function dcStockHealth(dcId: string) {
     db.stockLevel.groupBy({ by: ["variantId"], where: { storeId: dcId, batch: { status: "RELEASED" } }, _sum: { onHand: true } }),
     db.stockLevel.groupBy({ by: ["variantId"], where: { storeId: dcId, onHand: { gt: 0 }, batch: { status: { not: "RELEASED" } } }, _sum: { onHand: true } }),
     db.$queryRaw<{ variantId: string; qty: number }[]>`
-      SELECT l."variantId", SUM(l.qty)::int AS qty FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
+      SELECT l."variantId", SUM(l.qty) AS qty FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
       WHERE o."sellerId" = ${dcId} AND o.status IN ('SUBMITTED', 'APPROVED') GROUP BY 1`,
     db.$queryRaw<{ variantId: string; qty: number }[]>`
-      SELECT l."variantId", SUM(l.qty)::int AS qty FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
+      SELECT l."variantId", SUM(l.qty) AS qty FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
       WHERE o."sellerId" = ${dcId} AND o.status IN ('SHIPPED', 'RECEIVED') AND o."shippedAt" >= ${since} GROUP BY 1`,
     db.stockLevel.findMany({
       where: { storeId: dcId, onHand: { gt: 0 }, batch: { status: "RELEASED", expiresAt: { not: null } } },

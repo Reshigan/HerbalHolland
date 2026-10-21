@@ -10,6 +10,7 @@ import { guard, inScope, DENIED, fail, done, flashTo, type ActionState } from "@
 import { str } from "@/server/hq/form";
 import { completeTask, reopenTask, seedChecklist, StoreTaskError } from "@/server/store-tasks";
 import { isEmail } from "@/lib/email";
+import { asList } from "@/lib/json-list";
 
 async function checklistStore(storeId: string) {
   const g = await guard("network");
@@ -22,7 +23,7 @@ export async function startChecklist(storeId: string, _: ActionState, fd: FormDa
   void fd;
   const c = await checklistStore(storeId);
   if (!c) return DENIED;
-  const n = await seedChecklist(db, c.store, c.g.actor);
+  const n = await seedChecklist(db, { ...c.store, licences: asList(c.store.licences) }, c.g.actor);
   revalidatePath(`/hq/stores/${c.store.code}`);
   revalidatePath("/hq/stores");
   return done(n ? `Opening checklist started: ${n} tasks.` : "The checklist already exists.");
@@ -110,8 +111,7 @@ export async function setOwnerActive(storeId: string, userId: string, active: bo
   if (!c) return DENIED;
   const { companyId } = c.store;
   const result = await tx(async (t) => {
-    // One decision at a time per company, so two owners can't be deactivated together past the last one.
-    await t.$queryRaw`SELECT id FROM "Company" WHERE id = ${companyId} FOR UPDATE`;
+    // One decision at a time per company (D1 serialises writes), so two owners can't be deactivated together past the last one.
     const u = await t.user.findFirst({ where: { id: userId, role: "OWNER", companyId } });
     if (!u) return { error: "Owner not found." };
     if (!active && u.active) {

@@ -12,6 +12,7 @@ import { getObject, putObject } from "@/server/storage";
 import { importProductImages, type ImageImportResult } from "@/server/shop/images";
 import { IMPORT_MAX_BYTES, importKeys, planDigest, planImport, readImport, type ImportPlan, type ImportRead, type ImportSnapshot } from "@/lib/catalogue-import";
 import { dayKey, fmtDateTime } from "@/lib/format";
+import { asList } from "@/lib/json-list";
 
 export class ImportError extends Error {}
 
@@ -77,11 +78,11 @@ export async function loadSnapshot(client: Tx | typeof db, read: ImportRead, loc
   const size = new Map(sizes.map((s) => [s.productId, s._count]));
   return {
     categories,
-    products: products.map((p) => ({ ...p, variantCount: size.get(p.id) ?? 0 })),
+    products: products.map((p) => ({ ...p, effects: asList<string>(p.effects), flavours: asList<string>(p.flavours), claims: asList<string>(p.claims), allergens: asList<string>(p.allergens), variantCount: size.get(p.id) ?? 0 })),
     variants,
     barcodes: barcodes.map((b) => ({ barcode: b.barcode!, sku: b.sku })),
     batches,
-    location,
+    location: location && { ...location, licences: asList<string>(location.licences) },
     licensedOnly: settings.compliance.licensedOnly,
     today: dayKey(new Date()),
   };
@@ -107,7 +108,6 @@ export async function runImport(a: { uploadId: string; fileName: string; sha256:
   const read = readImport(a.text);
   const done = await db.$transaction(
     async (t) => {
-      await t.$queryRaw`SELECT 1 AS ok FROM (SELECT pg_advisory_xact_lock(hashtext(${a.uploadId}))) x`;
       const done = await t.auditLog.findFirst({ where: { action: "catalogue.import", entity: "Upload", entityId: a.uploadId }, select: { at: true } });
       if (done) throw new ImportError(`This file was imported on ${fmtDateTime(done.at)}. To import it again, upload it again.`);
       const snap = await loadSnapshot(t, read, a.locationId);
