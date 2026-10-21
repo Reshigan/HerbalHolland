@@ -97,13 +97,53 @@ function typed(columns, row) {
   return row;
 }
 
-/** Opens the file; the object quacks like the `pg.Client` the journeys were written for. */
-export function createDb(file = databaseFile()) {
-  const sqlite = new Database(file, { timeout: 10_000 });
+/**
+ * The same shape over Cloudflare's D1 HTTP API, for journeys against a deployed Worker (the staging run in
+ * .github/workflows/test-cloudflare.yml): set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_DATABASE_ID and CLOUDFLARE_D1_TOKEN.
+ * The API gives no column types, so rows are typed by column name from the schema (a name whose type differs between
+ * tables is left as the API returns it).
+ */
+export function createRemoteDb({ accountId, databaseId, token } = { accountId: process.env.CLOUDFLARE_ACCOUNT_ID, databaseId: process.env.CLOUDFLARE_DATABASE_ID, token: process.env.CLOUDFLARE_D1_TOKEN }) {
+  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`;
+  let types;
+  async function run(sql, params) {
+    const r = await fetch(url, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ sql, params }) });
+    const j = await r.json();
+    if (!j.success) throw new Error(`D1: ${j.errors?.map((e) => e.message).join("; ") || r.status}\n${sql}`);
+    return j.result[0];
+  }
+  async function columnTypes() {
+    const { results } = await run("select sql from sqlite_master where type = 'table' and sql is not null", []);
+    const seen = new Map();
+    for (const { sql } of results)
+      for (const m of sql.matchAll(/^\s*"([^"]+)"\s+([A-Z]+)/gm)) {
+        const prev = seen.get(m[1]);
+        seen.set(m[1], prev && prev !== m[2] ? "?" : m[2]);
+      }
+    return [...seen].filter(([, t]) => t !== "?").map(([name, type]) => ({ name, type }));
+  }
+  return {
+    file: `d1:${databaseId}`,
+    async connect() {},
+    async query(sql, params = []) {
+      types ??= await columnTypes();
+      const bound = Object.values(bind(params));
+      const r = await run(toSqlite(sql).replace(/\$(\d+)/g, "?$1"), bound);
+      const rows = (r.results ?? []).map((row) => typed(types.filter((c) => c.name in row), row));
+      return { rows, rowCount: r.meta?.changes ?? 0 };
+    },
+    async end() {},
+  };
+}
+
+/** Opens the file; the object quacks like the `pg.Client` the journeys were written for. A live D1 when CLOUDFLARE_DATABASE_ID is set. */
+export function createDb(file) {
+  if (!file && process.env.CLOUDFLARE_DATABASE_ID) return createRemoteDb();
+  const sqlite = new Database(file ?? databaseFile(), { timeout: 10_000 });
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
   return {
-    file,
+    file: sqlite.name,
     sqlite,
     async connect() {},
     async query(sql, params = []) {

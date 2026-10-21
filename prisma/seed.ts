@@ -94,7 +94,9 @@ async function openLocalR2() {
   if (process.env.SEED_FILES === "skip") return null;
   try {
     const { getPlatformProxy } = await import("wrangler");
-    const proxy = await getPlatformProxy<{ FILES?: LocalR2 }>({ persist: true, remoteBindings: false });
+    // SEED_WRANGLER_CONFIG names another config (the staging one, whose FILES bucket is remote) and SEED_REMOTE_BINDINGS=true
+    // lets wrangler reach it: the demo files then land in that bucket instead of the local R2.
+    const proxy = await getPlatformProxy<{ FILES?: LocalR2 }>({ persist: true, configPath: process.env.SEED_WRANGLER_CONFIG, remoteBindings: process.env.SEED_REMOTE_BINDINGS === "true" });
     if (!proxy.env.FILES) throw new Error("no FILES binding in wrangler.jsonc");
     return { bucket: proxy.env.FILES, dispose: proxy.dispose };
   } catch (e) {

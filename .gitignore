@@ -32,3 +32,5 @@ worker-configuration.d.ts
 
 # wrangler dev secrets (CI writes one; never commit yours)
 .dev.vars
+wrangler.staging.jsonc
+seed.sql
