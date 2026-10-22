@@ -2,6 +2,7 @@
 // of the catalogue a file touches for the dry run, and applies it in one transaction (products, variants and prices,
 // then opening stock through the inventory service) with one audit entry carrying the counts. The rules themselves
 // are pure: @/lib/catalogue-import.
+import type { RegClass } from "@/generated/prisma/client";
 import { createHash, randomUUID } from "node:crypto";
 import { db, type Tx } from "@/server/db";
 import { audit, type Actor } from "@/server/audit";
@@ -60,7 +61,7 @@ export const importLocations = (storeIds: string[]) =>
   db.store.findMany({ where: { id: { in: storeIds }, status: { not: "CLOSED" } }, select: { id: true, code: true, name: true, kind: true }, orderBy: [{ kind: "desc" }, { name: "asc" }] });
 
 /** The slice of the catalogue a file touches: its SKUs, product names, barcodes and batches, plus the categories. */
-export async function loadSnapshot(client: Tx | typeof db, read: ImportRead, locationId: string | null): Promise<ImportSnapshot> {
+export async function loadSnapshot(client: Tx | typeof db, read: ImportRead, locationId: string | null, licensedOnly?: RegClass[]): Promise<ImportSnapshot> {
   const keys = importKeys(read);
   const [categories, variants, named, barcodes, batches, location, settings] = await Promise.all([
     client.category.findMany({ select: { id: true, name: true, slug: true } }),
@@ -69,7 +70,7 @@ export async function loadSnapshot(client: Tx | typeof db, read: ImportRead, loc
     inBatches(keys.barcodes, (part) => client.variant.findMany({ where: { barcode: { in: part } }, select: { barcode: true, sku: true } })),
     inBatches(keys.batches, (part) => client.batch.findMany({ where: { code: { in: part } }, select: { id: true, code: true, variantId: true } })),
     locationId ? client.store.findFirst({ where: { id: locationId, status: { not: "CLOSED" } }, select: { id: true, code: true, name: true, kind: true, licences: true } }) : null,
-    getSettings(),
+    licensedOnly ? { compliance: { licensedOnly } } : getSettings(), // a script on another database passes the classes itself
   ]);
   const namedIds = new Set(named.map((p) => p.id));
   const owners = [...new Set(variants.map((v) => v.productId))].filter((id) => !namedIds.has(id));
