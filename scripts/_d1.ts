@@ -7,7 +7,8 @@
 // The domain services a script calls still use `db` from @/server/db, which outside Cloudflare reads DATABASE_URL: so
 // scripts that reach into those (ledger-backfill, bench) pass the D1 client where they can and otherwise need the
 // file. Pass `--d1` or set the variables; nothing else is read.
-import { PrismaClient } from "@/generated/prisma/client";
+import { createRequire } from "node:module";
+import type { PrismaClient } from "@/generated/prisma/client";
 import { connectDb, db } from "@/server/db";
 
 const D1_VARS = ["CLOUDFLARE_D1_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_DATABASE_ID"] as const;
@@ -27,7 +28,10 @@ export async function scriptDb(): Promise<PrismaClient> {
   if (missing.length) throw new Error(`Set all of ${D1_VARS.join(", ")} to use the live D1 (missing: ${missing.join(", ")})`);
   if (!live) {
     const { PrismaD1Http } = await import("@prisma/adapter-d1");
-    live = new PrismaClient({
+    // The Node build of the client (npm run generate): the Workers one loads its query compiler as a WASM module, which Node can't.
+    const req = createRequire(`${process.cwd()}/package.json`);
+    const { PrismaClient: NodeClient } = (await import(req.resolve("./src/generated/prisma-node.mjs"))) as { PrismaClient: typeof PrismaClient };
+    live = new NodeClient({
       adapter: new PrismaD1Http({
         CLOUDFLARE_D1_TOKEN: process.env.CLOUDFLARE_D1_TOKEN!,
         CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID!,
