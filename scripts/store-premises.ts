@@ -22,10 +22,11 @@ async function main() {
   const db = await scriptDb();
   console.log(`Store premises on ${describeDb()}`);
   for (const p of PREMISES) {
-    const st = await db.store.findUnique({ where: { code: p.code }, select: { id: true, addressLine: true, hours: true } });
+    const st = await db.store.findUnique({ where: { code: p.code }, select: { id: true, addressLine: true, suburb: true, city: true, postalCode: true, hours: true } });
     if (!st) { console.log(`${p.code}: not there yet (scripts/launch-network.ts first)`); continue; }
+    // Each field on its own: only what's still blank is filled, so a correction HQ made to any one of them stays.
     const data: Record<string, unknown> = {};
-    if (!st.addressLine) Object.assign(data, { addressLine: p.addressLine, suburb: p.suburb, city: p.city, province: "KZN", postalCode: p.postalCode });
+    for (const k of ["addressLine", "suburb", "city", "postalCode"] as const) if (!st[k]) data[k] = p[k];
     if (st.hours == null) data.hours = p.hours;
     if (!Object.keys(data).length) { console.log(`${p.code}: already filled in, left as is`); continue; }
     await db.store.update({ where: { id: st.id }, data });
