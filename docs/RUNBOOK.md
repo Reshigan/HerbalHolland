@@ -87,7 +87,9 @@ buckets the first time, migrates, deploys and checks `/api/health`. Once, in thi
    It prints a temporary password once; they choose their own at first sign-in, and everyone after them is added from
    HQ → Team. Then `npx tsx scripts/launch-network.ts` (same variables; idempotent) creates the launch network, and
    `npx tsx scripts/fill-launch.ts` (same variables; idempotent) adds the shop's categories, the stores' map positions, the
-   public contact address and the house accessories range as drafts, from what the repository holds. The launch network:
+   public contact address and the house accessories range as drafts, from what the repository holds, and
+   `npx tsx scripts/store-premises.ts` (same variables; idempotent) fills Hillcrest's and Hilton's addresses and hours from their
+   leases. The launch network:
    KwaZulu-Natal, the Durban DC, Pietermaritzburg and the Bluff trading, Hillcrest and Hilton opening 1 December. The
    stores still need their address, phone, hours, licences and owner in HQ → Stores, and the franchisor's other
    details (registration and VAT numbers, address, phone, email, directors) are edited on the DC: HQ → Stores → the

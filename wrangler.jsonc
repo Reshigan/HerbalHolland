@@ -34,5 +34,5 @@
   },
   // Plain settings. Secrets (SESSION_SECRET, CRON_SECRET, MS_CLIENT_SECRET, payment keys…) are Worker secrets
   // (`wrangler secret put`), never here: .env.example says which is which.
-  "vars": { "DEMO_MODE": "false", "APP_URL": "https://shop.herbalholland.com", "WEB_PUSH_PUBLIC_KEY": "BKsNBqCH71HyERfv0ADK7jBmEaKgMbyvxeCUcejkgjWxPpKqOPdIATqGycjVrSJtm5R_4E1TSgx3TO-px_iXULM", "WEB_PUSH_SUBJECT": "mailto:hello@herbalholland.com" }
+  "vars": { "DEMO_MODE": "false", "APP_URL": "https://shop.herbalholland.com", "WEB_PUSH_PUBLIC_KEY": "BKsNBqCH71HyERfv0ADK7jBmEaKgMbyvxeCUcejkgjWxPpKqOPdIATqGycjVrSJtm5R_4E1TSgx3TO-px_iXULM", "WEB_PUSH_SUBJECT": "mailto:hello@herbalholland.com", "EMAIL_FROM": "Herbal Holland <hello@herbalholland.com>" }
 }
