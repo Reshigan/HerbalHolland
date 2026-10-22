@@ -127,17 +127,24 @@ jobs:
           WORKERS_DEV_URL: ${{ steps.deploy.outputs.workers_dev_url }}
         run: |
           # The custom domain's DNS record and certificate are made on the first deploy and can take a few minutes.
-          ok=""
+          ok=""; code=""
           for i in $(seq 1 60); do
-            if curl -sf --max-time 15 "$SHOP_URL/api/health" > health.json; then ok=1; break; fi
+            code=$(curl -s --max-time 15 -A "deploy-shop health check" -o health.json -w '%{http_code}' -D headers.txt "$SHOP_URL/api/health" || echo 000)
+            if [ "$code" = 200 ]; then ok=1; break; fi
+            echo "attempt $i: HTTP $code"
             sleep 5
           done
           if [ -z "$ok" ] && [ -n "$WORKERS_DEV_URL" ]; then
             echo "::warning::$SHOP_URL doesn't answer yet; checking $WORKERS_DEV_URL instead"
             curl -sf --max-time 15 "$WORKERS_DEV_URL/api/health" > health.json && ok=1
           fi
+          if [ -z "$ok" ] && grep -qi '^cf-mitigated:' headers.txt; then
+            # The zone's bot protection challenged the runner, so this check can't see the Worker; the deploy itself succeeded.
+            echo "::warning::Cloudflare challenged the health check (HTTP $code): add a WAF skip rule for $SHOP_URL/api/health, or check it from a browser."
+            exit 0
+          fi
           if [ -z "$ok" ]; then
-            echo "::error::No answer from $SHOP_URL/api/health. First deploy: is the herbalholland.com zone in this account, and does the token have Workers Routes and DNS edit on it? Check the Worker → Settings → Domains & Routes."
+            echo "::error::No answer from $SHOP_URL/api/health (last HTTP $code). First deploy: is the herbalholland.com zone in this account, and does the token have Workers Routes and DNS edit on it? Check the Worker → Settings → Domains & Routes."
             exit 1
           fi
           cat health.json
