@@ -24,7 +24,9 @@ export default async function ClubLayout({ children }: { children: React.ReactNo
         </Container>
       )}
       <div className={customer ? "pb-20 sm:pb-0" : undefined}>
-        <ViewTransition default="hh-page">{children}</ViewTransition>
+        <ViewTransition default="hh-page">
+          <div>{children}</div>
+        </ViewTransition>
       </div>
     </ShopChrome>
   );
