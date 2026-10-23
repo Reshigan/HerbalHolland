@@ -194,6 +194,9 @@
  *   .hh-draw           the Mark's strokes draw in (the window poster); .hh-glow one pulse of brand light around a frame.
  *   .hh-shimmer-once   one diagonal highlight across a card (the Rewards card when it is new); .hh-skeleton a loading
  *                      placeholder with a moving sheen.
+ *   Member card        .hh-sheen, the foil over the Rewards card (CardSheen, src/components/shop/card-sheen.tsx, sets
+ *                      --hh-sx/--hh-sy/--hh-fx and data-live while it follows the pointer or the phone; otherwise the
+ *                      highlight drifts on its own); .hh-burst, the dots that rise once when points land.
  */
 @layer base {
   :root {
@@ -208,6 +211,9 @@
 @keyframes hh-draw { to { stroke-dashoffset: 0; } }
 @keyframes hh-glow { 0% { opacity: 0; transform: scale(0.96); } 35% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.04); } }
 @keyframes hh-shimmer { from { transform: translateX(-120%) skewX(-12deg); } to { transform: translateX(120%) skewX(-12deg); } }
+@keyframes hh-sheen-idle { from { transform: translate(-14%, -10%); } to { transform: translate(12%, 12%); } }
+@keyframes hh-foil-idle { from { background-position: 20% 0; } to { background-position: 80% 0; } }
+@keyframes hh-burst { 0% { opacity: 0; transform: translateY(0) scale(0.4); } 18% { opacity: 1; transform: translateY(-18px) scale(1); } 100% { opacity: 0; transform: translateY(-120px) scale(0.7); } }
 
 @media (prefers-reduced-motion: no-preference) {
   .hh-press { transition: transform var(--dur-fast) var(--ease-out-expo); }
@@ -234,6 +240,21 @@
 
   html.motion .hh-shimmer-once::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.2) 50%, transparent 62%); transform: translateX(-120%) skewX(-12deg); animation: hh-shimmer 1.2s ease-in-out 0.7s 1 both; }
   .hh-skeleton::after { animation: hh-shimmer 1.4s ease-in-out infinite; }
+
+  /* Member card. The sheen is two layers under the QR code (the card's content sits below it, the QR above): a soft
+     highlight twice the card's size that translates to the pointer, and a faint foil band whose position follows it.
+     While nobody steers it, the highlight drifts slowly. The card itself tilts via an inline transform (pointer only). */
+  html.motion .hh-card { transition: transform var(--dur) var(--ease-out-expo); }
+  html.motion .hh-card[style*="transform"] { transition: none; will-change: transform; }
+  html.motion .hh-sheen { position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit; overflow: hidden; --hh-sx: 0px; --hh-sy: 0px; --hh-fx: 50%; }
+  html.motion .hh-sheen::before { content: ""; position: absolute; inset: -50%; background: radial-gradient(closest-side, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.05) 45%, transparent 70%); transform: translate(var(--hh-sx), var(--hh-sy)); }
+  html.motion .hh-sheen::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 32%, rgb(255 255 255 / 0.06) 44%, rgb(245 145 60 / 0.12) 50%, rgb(255 255 255 / 0.06) 56%, transparent 68%); background-size: 260% 100%; background-position: var(--hh-fx) 0; }
+  html.motion .hh-sheen:not([data-live])::before { animation: hh-sheen-idle 11s ease-in-out infinite alternate; }
+  html.motion .hh-sheen:not([data-live])::after { animation: hh-foil-idle 11s ease-in-out infinite alternate; }
+  html.motion .hh-burst { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+  html.motion .hh-burst > i { position: absolute; bottom: 22%; left: calc(6% + var(--i) * 8%); width: 7px; height: 7px; border-radius: 9999px; background: var(--color-brand-400); opacity: 0; transform: translateY(0) scale(0.4); animation: hh-burst var(--dur-slow) var(--ease-out-expo) calc(var(--i) * 28ms) 1 both; }
+  html.motion .hh-burst > i:nth-child(even) { background: var(--color-ink-50); width: 5px; height: 5px; bottom: 30%; }
+  html.motion .hh-burst > i:nth-child(3n) { animation-duration: 1100ms; }
 
   /* Page swaps (React's ViewTransition in the shop and Rewards layouts): a short cross-fade, only with html.motion. */
   html.motion::view-transition-old(.hh-page) { animation: hh-fade 220ms ease-out reverse both; }

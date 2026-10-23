@@ -63,7 +63,7 @@ export function QuestQuiz({ quest, signedIn, done, joinHref, action }: { quest: 
           <CheckCircle2 className="h-8 w-8 shrink-0 text-leaf-500" /> {points ? `+${points} points` : "Quest complete"}
         </h2>
         <p className="mt-2 text-ink-300">{points ? "All correct, nicely done. Your points are already on your Rewards card." : "All correct, and you've already earned the points for this one."}</p>
-        <Link href="/club/points" className={buttonClass("outline-dark", "lg", "mt-5")}>
+        <Link href={points ? `/club?earned=${points}` : "/club/points"} className={buttonClass("outline-dark", "lg", "mt-5")}>
           See your points
         </Link>
       </div>,
