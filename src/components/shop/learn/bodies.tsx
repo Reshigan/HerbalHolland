@@ -304,6 +304,43 @@ function Points({ settings }: { settings: Settings }) {
   );
 }
 
+function Accessories() {
+  return (
+    <>
+      <P>
+        Good accessories last for years if you look after them, and most of that care takes a few minutes with things you already have at home: warm water, coarse salt, isopropyl alcohol from the pharmacy aisle, a soft brush and a clean cloth. Here is how we look after our own.
+      </P>
+      <H2>Glass</H2>
+      <P>
+        Glass is easiest to clean little and often, before residue sets. Rinse it with warm (not boiling) water after use. For a deeper clean, seal it in a zip-lock bag with isopropyl alcohol and a spoonful of coarse salt, shake gently for a minute or two, then rinse thoroughly with warm water and leave it to dry completely before you use it again.
+      </P>
+      <Fact title="Go gently with glass" tone="warn">
+        <p>• Never pour boiling water onto cold glass, or cold water onto hot glass: sudden temperature changes crack it.</p>
+        <p>• Isopropyl alcohol is flammable. Rinse it all away and let the piece dry before any flame comes near it.</p>
+      </Fact>
+      <H2>Grinders</H2>
+      <P>
+        A grinder that sticks usually just needs clearing. Pop it in the freezer for half an hour so the residue goes brittle, then brush the teeth and the screen with a soft, dry brush. Metal grinders can then be soaked in isopropyl alcohol, rinsed and dried; wipe wooden and acrylic ones instead, because soaking warps wood and clouds acrylic. Put the pieces back together only when they are completely dry.
+      </P>
+      <H2>Papers, cones and filters</H2>
+      <P>Keep them flat, sealed and dry. Humidity is what ruins them, so a drawer is better than a bathroom shelf, and the original packet or a small tin keeps them from creasing.</P>
+      <H2>Storage</H2>
+      <Steps
+        items={[
+          { icon: <Lock className="h-5 w-5" />, title: "Airtight and opaque", body: "A sealed, opaque container keeps out air, light and moisture, which are what make things go stale." },
+          { icon: <Clock className="h-5 w-5" />, title: "Cool, dry and steady", body: "Away from windows, stoves and the car's dashboard: heat and sunlight age everything faster." },
+          { icon: <Baby className="h-5 w-5" />, title: "Out of reach", body: "Locked or on a top shelf, away from children and pets, and clearly labelled." },
+        ]}
+      />
+      <H2>Sharing</H2>
+      <P>Keep your own mouthpiece, or wipe one with an alcohol swab between people. It is simple hygiene, the same as you would with a water bottle.</P>
+      <P>
+        Need a replacement part, a new grinder or a storage tin? Ask in any <A href="/stores">Herbal Holland store</A>. Our accessories are for adults 18+.
+      </P>
+    </>
+  );
+}
+
 export function ArticleBody({ slug, settings }: { slug: string; settings: Settings }) {
   switch (slug) {
     case "heritage-landraces":
@@ -318,6 +355,8 @@ export function ArticleBody({ slug, settings }: { slug: string; settings: Settin
       return <Responsible />;
     case "points":
       return <Points settings={settings} />;
+    case "caring-for-accessories":
+      return <Accessories />;
     default:
       return null;
   }

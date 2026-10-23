@@ -86,6 +86,16 @@ export const ARTICLES: ArticleMeta[] = [
     updated: "2026-10-07",
     art: { slug: "rewards-points", regClass: "APPAREL" },
   },
+  {
+    slug: "caring-for-accessories",
+    kicker: "Care",
+    title: "Caring for your accessories",
+    dek: "Glass, grinders, papers and storage: how to keep what you own clean, working and lasting for years, with things you already have at home.",
+    minutes: 3,
+    published: "2026-10-24",
+    updated: "2026-10-24",
+    art: { slug: "caring-for-accessories", regClass: "ACCESSORY" },
+  },
 ];
 
 assertArticleDates(ARTICLES);

@@ -26,10 +26,12 @@ live, then national.
       Paying for sign-ups waits on the owner (see below).
 - [ ] **Area pages that earn their place:** one page per store's catchment (Bluff and the south coast, Pietermaritzburg
       and the Midlands, Hillcrest and the Upper Highway, Hilton and Howick) with the store, hours, directions, local
-      events and how to join. Real content only.
+      events and how to join. Real content only. On hold: today they would only repeat the store pages (a doorway risk);
+      they need the owner's local facts first (hours, parking, landmarks, events, the team).
 - [ ] **Learn, one article a week, each with a quest:** KZN's landraces in depth; hemp and cannabis in South African
       law, plainly; reading a product label; caring for your accessories; private growing and the law since 2018;
-      responsible use for adults. Copy screen and claims list apply.
+      responsible use for adults. Copy screen and claims list apply. Published: caring for your accessories (24 Oct).
+      Next: reading a product label.
 - [ ] **IndexNow:** tell Bing and others the moment a page is published or changed (free, no account).
 - [ ] **Monthly specials page:** shareable with the member's link (the earlier plan, no newsfeed).
 - [ ] **Events: the plus-one joins to RSVP.**
@@ -51,4 +53,5 @@ live, then national.
 - Publish the real product range.
 - Decide whether staff earn anything per sign-up (an amount per member who joins with them, paid by the store owner).
   The count is on the till already; paying it needs the amount and is a staff incentive, never on medicines.
+- For the area pages: each store's hours, parking, nearby landmarks, local events and who's on the team.
 - Forward your own referral link to people you know; the first members come from people who trust you.
