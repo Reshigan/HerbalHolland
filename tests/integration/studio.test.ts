@@ -142,7 +142,7 @@ describe("Campaign Studio", () => {
     expect(done.campaigns).toBe(own.length);
     // Queued, not released: nothing has left the platform yet.
     expect(own.every((i) => i.status === "SCHEDULED" && !i.releasedAt && !i.campaignId)).toBe(true);
-    // No Postiz here: social, WhatsApp and Google wait, approved, to be posted by hand.
+    // No network connected here: social, WhatsApp and Google wait, approved, to be posted by hand.
     expect(items.filter((i) => !["EMAIL", "SMS", "PUSH"].includes(i.channel)).every((i) => i.status === "APPROVED")).toBe(true);
     expect(await db.auditLog.count({ where: { action: "studio.schedule", entityId: plan.id } })).toBe(1);
     expect(await scheduleApproved(plan.id, actor)).toMatchObject({ campaigns: 0, social: 0 });
@@ -198,62 +198,56 @@ describe("Campaign Studio", () => {
     expect(out.campaign).toMatchObject({ segment: "interest:CBD", storeId: null });
   });
 
-  it("releases social posts to Postiz with their card at their time, and reads back how they went", async () => {
-    vi.stubEnv("POSTIZ_URL", "https://social.example.com/api/public/v1");
-    vi.stubEnv("POSTIZ_API_KEY", "key-1");
-    const uploads: string[] = [];
-    const modes: string[] = [];
+  it("releases social posts to the networks with their card at their time, and records how each went", async () => {
+    vi.stubEnv("META_PAGE_TOKEN", "tok");
+    vi.stubEnv("META_IG_USER_ID", "456");
+    vi.stubEnv("APP_URL", "https://shop.example.com");
+    const containers: string[] = [];
     let n = 0;
-    let state: { id: string; state: string; releaseURL?: string; error?: string }[] = [];
+    let refuse = false;
     const real = globalThis.fetch;
     vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-      if (!url.startsWith("https://social.example.com/")) return real(input, init); // next/og loads its renderer with fetch
-      const path = url.replace("https://social.example.com/api/public/v1", "").split("?")[0];
-      if (path === "/integrations") return Response.json([{ id: "ig", name: "herbalholland", identifier: "instagram" }, { id: "li", name: "Herbal Holland", identifier: "linkedin-page" }]);
-      if (path === "/upload") {
-        uploads.push(((init?.body as FormData).get("file") as File).type);
-        return Response.json({ id: `f${uploads.length}`, path: `https://uploads/f${uploads.length}.jpg` });
+      if (!url.startsWith("https://graph.facebook.com/")) return real(input, init); // next/og loads its renderer with fetch
+      if (url.endsWith("/456/media")) {
+        if (refuse) return Response.json({ error: { message: "Media too small" } }, { status: 400 });
+        containers.push(String((init?.body as URLSearchParams).get("image_url")));
+        return Response.json({ id: `c${++n}` });
       }
-      if (path === "/posts" && init?.method === "POST") {
-        modes.push(JSON.parse(String(init.body)).type);
-        return Response.json([{ postId: `p${++n}` }]);
-      }
-      return Response.json({ posts: state });
+      if (url.includes("?fields=status_code")) return Response.json({ status_code: "FINISHED" });
+      if (url.endsWith("/456/media_publish")) return Response.json({ id: `ig${n}` });
+      if (url.includes("?fields=permalink")) return Response.json({ permalink: `https://instagram.com/p/${n}` });
+      return Response.json({ error: { message: `unexpected ${url}` } }, { status: 404 });
     });
     const plan = await createPlan({ playbook: "brand-launch", anchor: dayT("brand-launch", 3), storeId: null, by: "Hanna HQ", actor });
     const [byHand, ...social] = await db.studioItem.findMany({ where: { planId: plan.id, channel: "SOCIAL", status: "DRAFT", linkedin: null }, orderBy: { at: "asc" }, take: 3 });
     await db.studioItem.update({ where: { id: social[1].id }, data: { linkedin: "also" } });
-    // The team makes this one with its own photo: it waits, approved, for them instead of going to Postiz.
+    // The team makes this one with its own photo: it waits, approved, for them instead of going out on its own.
     await setHand(byHand.id, true, actor);
     await approveItems(plan.id, [byHand.id, ...social.map((s) => s.id)], "Hanna HQ", actor);
     expect(await scheduleApproved(plan.id, actor)).toMatchObject({ social: 2 });
     expect(await db.studioItem.findUniqueOrThrow({ where: { id: byHand.id } })).toMatchObject({ status: "APPROVED", hand: true });
-    expect(uploads).toEqual([]); // queued: nothing sent to Postiz yet
+    expect(containers).toEqual([]); // queued: nothing sent yet
 
     expect(await releaseStudio(new Date(social[0].at.getTime() + 60_000))).toEqual({ released: 1, failed: 0 });
-    expect(await releaseStudio(new Date(social[1].at.getTime() + 60_000))).toEqual({ released: 1, failed: 0 });
-    expect(uploads).toEqual(["image/jpeg", "image/jpeg"]);
-    expect(modes).toEqual(["now", "now"]);
+    refuse = true;
+    expect(await releaseStudio(new Date(social[1].at.getTime() + 60_000))).toEqual({ released: 0, failed: 1 });
+    // The card went to storage and Instagram was given its public address.
+    expect(containers).toEqual([`https://shop.example.com/social/cards/${social[0].key}.jpg`]);
     const [one, two] = await db.studioItem.findMany({ where: { id: { in: social.map((s) => s.id) } }, include: { socialPost: true }, orderBy: { at: "asc" } });
-    expect(one.socialPost?.postizIds).toEqual(["p1"]);
-    // LinkedIn gets only the posts meant for it.
-    expect([one.socialPost?.channels, two.socialPost?.channels]).toEqual([["Instagram · herbalholland"], ["Instagram · herbalholland", "LinkedIn · Herbal Holland"]]);
+    expect(one).toMatchObject({ status: "POSTED", link: "https://instagram.com/p/1", doneBy: "Studio" });
+    expect(one.socialPost).toMatchObject({ channels: ["instagram"], results: [{ network: "instagram", id: "ig1", link: "https://instagram.com/p/1" }] });
+    expect(two).toMatchObject({ status: "FAILED", note: "Instagram: Instagram said 400: Media too small" });
 
-    // Postiz published one and failed the other.
-    state = [{ id: "p1", state: "PUBLISHED", releaseURL: "https://instagram.com/p/one" }, { id: "p2", state: "ERROR", error: "Media too small" }];
-    await syncStudio(new Date(social[1].at.getTime() + 10 * 60_000));
-    expect(await db.studioItem.findUniqueOrThrow({ where: { id: one.id } })).toMatchObject({ status: "POSTED", link: "https://instagram.com/p/one", doneBy: "Postiz" });
-    expect(await db.studioItem.findUniqueOrThrow({ where: { id: two.id } })).toMatchObject({ status: "FAILED", note: "Media too small" });
-
-    // Fixed and queued again, it goes out afresh: not stuck as released, not failed again by the old post's state.
+    // Fixed and queued again, it goes out afresh: not stuck as released, not failed again by the old attempt.
+    refuse = false;
     await saveItem(two.id, { text: two.text, short: two.short, title: two.title, card: two.card as Card, at: two.at });
     await approveItems(plan.id, [two.id], "Hanna HQ", actor);
     expect(await scheduleApproved(plan.id, actor)).toMatchObject({ social: 1 });
     expect(await db.studioItem.findUniqueOrThrow({ where: { id: two.id } })).toMatchObject({ status: "SCHEDULED", releasedAt: null, socialPostId: null });
-    await syncStudio(new Date(two.at.getTime() + 20 * 60_000));
+    await syncStudio();
     expect(await releaseStudio(new Date(two.at.getTime() + 30 * 60_000))).toEqual({ released: 1, failed: 0 });
-    expect((await db.studioItem.findUniqueOrThrow({ where: { id: two.id }, include: { socialPost: true } })).socialPost?.postizIds).toEqual(["p3"]);
+    expect((await db.studioItem.findUniqueOrThrow({ where: { id: two.id }, include: { socialPost: true } })).socialPost?.results).toEqual([{ network: "instagram", name: "Professional account", id: "ig2", link: "https://instagram.com/p/2" }]);
   });
 
   it("tells the first-access list the shop is open, once each, then deletes them", async () => {

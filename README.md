@@ -103,8 +103,8 @@ black on cream). The browser only offers installs on HTTPS (or localhost) with `
 - **Trade (wholesale):** business accounts with verified licences, ex-VAT trade prices and case packs, credit terms,
   pro formas and invoices, statements, and trade sales at the till.
 - **Marketing:** RFM segments, campaigns over SMS/email/push, POPIA consent ledger, CPA send windows, opt-out registry
-  suppression, copy compliance lint, attribution and ROI. Social posts to Instagram, Facebook, LinkedIn, X and Threads
-  through Postiz (free, self-hosted), screened so the brand never sells cannabis or CBD on social.
+  suppression, copy compliance lint, attribution and ROI. Social posts to Instagram, Facebook, Threads, Bluesky and Telegram
+  straight from the platform, screened so the brand never sells cannabis or CBD on social.
 - **Compliance:** members-only selling (every member accepts the versioned membership terms, recorded), SAHPRA
   medical mode (switchable to adult-use), licence gating per store, Schedule 0 CBD validation,
   Medicines Act s18A incentive exclusions, dispensing register, recalls, audit log.

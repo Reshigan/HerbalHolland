@@ -3,7 +3,7 @@
 // Signs in as the HQ administrator and drives every HQ form through the UI: onboard a store (profile, fees, status,
 // owner) → new product, variants, ranging → catalogue import (template → preview → import) → batch lab results, quarantine/release → DC orders (approve + ship,
 // reject, cancel) → recall → compliance rules and licences → pricing → promotions → drops → events → campaigns
-// (reach for an interest audience, draft, schedule, send, cancel, do-not-contact import) → social (Postiz not
+// (reach for an interest audience, draft, schedule, send, cancel, do-not-contact import) → social (no network
 // connected) → the Studio (a merch drop laid out, approved and queued, paused and resumed, a post marked posted by hand, the QR maker)
 // → online orders (cancel, delivery settings) → a member's POPIA export and erasure → launch lock →
 // Rewards settings and My Deals → statements → team → announcements → reports centre (+ CSV) → trade (an application
@@ -849,33 +849,25 @@ try {
   assert(dncRows.length === 2 && dncRows.every((r) => r.source === "REFUSED" && r.channel === null), `${T.dncPhone} and ${T.dncEmail} on the list (all channels); the bad line was reported`);
 
   // ── Social ────────────────────────────────────────────────────────────────
-  step("Social: the page says Postiz isn't connected, screening blocks selling copy, nothing reaches Postiz");
+  step("Social: the page says no network is connected, screening blocks selling copy, nothing is sent");
   await page.getByRole("link", { name: "Social", exact: true }).click();
   await page.waitForURL(/\/hq\/marketing\/social/);
   const sc = formWith("#content");
   await hydrated(sc);
-  // Without POSTIZ_* (CI, a fresh server) posts are only recorded. A server holding a Postiz address it can't reach says
-  // so and fails a post before anything is sent. A reachable Postiz would publish for real: the test stops there.
-  const offline = await notice("Postiz isn't connected").isVisible();
-  const problem = alertIn(page, "Couldn't load your channels");
-  const unreachable = !offline && (await problem.isVisible()) ? (await problem.textContent()).replace("Couldn't load your channels", "") : null;
-  if (!offline && !unreachable) fail("Postiz is connected on this server. The test won't publish to real social accounts");
-  ok(offline ? "“Postiz isn't connected. Posts are recorded here only.”" : `POSTIZ_* is set but Postiz is unreachable, and the page says so: “${unreachable}”`);
+  // Without the networks' secrets (CI, a fresh server) posts are only recorded. A server with a network connected
+  // would publish for real: the test stops there.
+  if (!(await notice("No social network is connected").isVisible())) fail("A social network is connected on this server. The test won't publish to real accounts");
+  ok("“No social network is connected. Posts are recorded here only.”");
   await sc.locator("#content").fill("Buy CBD oil at 20% off this weekend only");
   await sc.getByText(/Sells cannabis or CBD/).waitFor();
   assert(await sc.getByRole("button", { name: /Post now/ }).isDisabled(), "a caption selling CBD is flagged and can't be posted");
   await sc.locator("#content").fill(T.caption);
   await sc.getByText("Caption passes screening").waitFor();
-  if (offline) {
-    await act("social.postSocial (not connected)", () => sc.getByRole("button", { name: /Post now/ }).click(), () => notice("Recorded here only. Connect Postiz to publish (docs/INTEGRATIONS.md).").waitFor());
-    const post = await one(`select id, mode, "postizIds", image from "SocialPost" where content = $1`, [T.caption]);
-    assert(post && post.postizIds.length === 0 && post.image === "brand", "post recorded (nothing sent to Postiz)");
-    await page.getByRole("listitem").filter({ hasText: T.caption }).getByText("Recorded only").waitFor();
-    ok("listed under Posts as “Recorded only”");
-  } else {
-    await act("social.postSocial (Postiz unreachable)", () => sc.getByRole("button", { name: /Post now/ }).click(), () => alertIn(sc, "Couldn't reach Postiz").waitFor());
-    assert(!(await one(`select 1 from "SocialPost" where content = $1`, [T.caption])), "the post fails with the reason on the form; nothing recorded, nothing sent");
-  }
+  await act("social.postSocial (not connected)", () => sc.getByRole("button", { name: /Post now/ }).click(), () => notice("Recorded here only. Connect the networks to publish (docs/INTEGRATIONS.md).").waitFor());
+  const post = await one(`select id, mode, results, image from "SocialPost" where content = $1`, [T.caption]);
+  assert(post && post.results.length === 0 && post.image === "brand", "post recorded (nothing sent)");
+  await page.getByRole("listitem").filter({ hasText: T.caption }).getByText("Recorded only").waitFor();
+  ok("listed under Posts as “Recorded only”");
   await shot("social");
 
   // ── Campaign Studio ───────────────────────────────────────────────────────
@@ -924,7 +916,7 @@ try {
   await act("studio.pauseStudio (resume)", () => page.getByRole("button", { name: "Resume releases" }).click(), () => notice("Resumed").waitFor());
   assert((await one(`select paused from "StudioPlan" where id = $1`, [studioPlan.id])).paused === false, "and resumed");
   const byHand = planned.filter((i) => !["EMAIL", "SMS", "PUSH"].includes(i.channel));
-  assert(byHand.every((i) => i.status === "APPROVED"), `${byHand.length} social and WhatsApp posts wait, approved, to be posted by hand (no Postiz here)`);
+  assert(byHand.every((i) => i.status === "APPROVED"), `${byHand.length} social and WhatsApp posts wait, approved, to be posted by hand (no network connected here)`);
   const handPost = page.locator(`#p-${byHand[0].key}`);
   await handPost.getByRole("button", { name: "Mark posted" }).waitFor();
   await act("studio.postedStudioItem", () => handPost.getByRole("button", { name: "Mark posted" }).click(), () => handPost.getByText("Out", { exact: true }).waitFor());

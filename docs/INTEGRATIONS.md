@@ -282,7 +282,7 @@ Before selling anything made to order, get the partner's terms in writing (that 
 wellness brand, per-piece prices, white-label packing, tracking by email), then set the variant's partner code and
 cost (HQ → Catalogue), `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (HQ → Online orders).
 
-## Social posting with Postiz, and the Campaign Studio (`src/server/social.ts`, `src/server/studio.ts`)
+## Social posting, and the Campaign Studio (`src/server/social.ts`, `src/server/studio.ts`)
 
 HQ → Marketing → **Studio** lays a whole campaign out from one day, its day T. The playbooks are in
 `src/lib/studio-playbooks/`, one file per pack: the launch's six campaigns (`launch.ts`: brand launch, online shop
@@ -290,13 +290,14 @@ launch, store opening, Founding Members, hiring, merch drop), a product launch (
 posts for one store (`google.ts`), the gift email (`gifts.ts`) and the month packs (`festive.ts`, `january.ts`,
 `february.ts`, `march.ts`). Every post comes with its brand card, checked for the channel it goes on (`screenDraft`:
 the copy rules, the platforms' rules, lengths, public holidays). HQ approves, then **Schedule what's approved** queues
-them in the platform, and the `frequent` job (every 15 minutes) releases each at its time: a social post goes to
-[Postiz](https://postiz.com) with its card, to publish straight away, and an email, SMS or push becomes a Campaign to
+them in the platform, and the `frequent` job (every 15 minutes) releases each at its time: a social post goes
+straight to each connected network with its card, and an email, SMS or push becomes a Campaign to
 the members who said yes (held for the next legal send window when needed). **Pause releases** holds a whole campaign
 until it's resumed; **Take back** returns a queued post to draft. A post more than six hours late (paused, or the
 scheduler stopped) isn't sent: it fails, to be given a new time. HQ → Marketing → **Social** still posts one-off
-captions with the brand pictures in `public/social`. Postiz is open source and free when self-hosted, with no limit on
-channels or posts. Without it, social posts wait in the Studio to be posted by hand (copy the words, download the card).
+captions with the brand pictures in `public/social`, now or at a time. The platform talks to the networks itself,
+nothing sits in between. With no network connected, social posts wait in the Studio to be posted by hand (copy the
+words, download the card).
 
 **Laying a campaign out** (`layout`, `spreadFeed` and `firstDayT` in `src/lib/studio.ts`; `createPlan` in
 `src/server/studio.ts`):
@@ -342,12 +343,13 @@ All members", "To: Into Merch & apparel", "To: First-access list").
 
 **LinkedIn.** A social post goes to LinkedIn only when its playbook says so, and the post shows it: **LinkedIn too**
 (`also`) goes to every connected account, LinkedIn included; **LinkedIn only** (`only`) goes to the LinkedIn page
-alone, and fails at its time if no LinkedIn page is connected in Postiz. Every other social post skips LinkedIn.
+alone. LinkedIn is posted by hand (its page API needs LinkedIn's approval), so a LinkedIn-only post fails at its time
+unless it's marked **I'll post it by hand**. Every other social post skips LinkedIn.
 
 **Briefs, and posting by hand.** Many social posts carry a brief, shown as **Shoot:**: the photo or Reel that makes
 the post, with adults over 25 who've signed a release. Until someone shoots it, the card goes out. **I'll post it by
-hand** keeps a post out of Postiz (copy the words, post it with the photo or video, then **Mark posted** with its
-link); **Send the card through Postiz** puts it back. A post can switch while it's a draft, approved or failed.
+hand** keeps a post off the scheduler (copy the words, post it with the photo or video, then **Mark posted** with its
+link); **Let the Studio post the card** puts it back. A post can switch while it's a draft, approved or failed.
 
 **The first-access list** (`src/server/early-access.ts`, `src/lib/early-access.ts`): the people who asked
 herbalholland.com to hear the day the online shop opens. The day before, HQ pastes the site's D1 export into the
@@ -361,34 +363,28 @@ instead. Every sign-up is deleted as its message goes (POPIA: kept no longer tha
 list** clears it by hand. Until then, a member's POPIA export and erasure (`src/server/popia.ts`) include any sign-up
 with their mobile or email.
 
-**Setting up Postiz:**
+**Connecting the networks.** Each network is connected by its secrets on the Worker (`wrangler secret bulk`, docs/RUNBOOK.md
+→ Releases); none set means posts are only recorded. Every account is set to adults 18+.
 
-1. Run Postiz on a small host of its own (the platform has no server: it runs on Cloudflare Workers, and Postiz needs a
-   Node process with PostgreSQL and Redis), from `deploy/postiz` (Postiz's own Docker Compose file, with `API_LIMIT=500`: the default 30 public API calls an hour is less than a launch day needs, an upload and
-   a post per card and the read-back every 15 minutes). It brings PostgreSQL, Redis and Temporal (with Temporal's own
-   PostgreSQL and Elasticsearch); Postiz tested it on 2 CPUs and 2 GB of memory.
-   `cd deploy/postiz && cp .env.example .env`, fill in the three secrets (`openssl rand -hex 32` each), then
-   `docker compose up -d`, and put `social.herbalholland.com` in front of it over HTTPS (a Cloudflare Tunnel on that host is the simplest).
-   Create HQ's Postiz account, then set `DISABLE_REGISTRATION="true"` in `.env` and `docker compose up -d` again so
-   nobody else can sign up. The Studio holds every post, so Postiz needs no backup beyond its connected accounts.
-2. Connect the accounts, all set to adults 18+:
-   - **Facebook, Instagram (a professional account) and Threads**: one Meta developer app owned by HQ, with the
-     marketing team added to the app's roles. That gives standard access to HQ's own Page and accounts, so no App
-     Review is needed. Its keys go in `deploy/postiz/.env` (Postiz docs → Providers).
-   - **Bluesky**: an app password. **Telegram**: a channel, and a bot from @BotFather made its admin (its name and
-     token in `deploy/postiz/.env`).
-   - **LinkedIn page**: the Community Management API needs LinkedIn's approval. Until then, mark each LinkedIn-only
-     post **I'll post it by hand** (or it fails at its time) and post the LinkedIn-too ones on LinkedIn by hand as well.
-   - **X** charges for API posts ($0.015 a post, $0.20 with a link), so it's left to by-hand posting.
-   - TikTok, Pinterest and YouTube keep API posts private until an audit, and TikTok bans cannabis content: not used.
-3. Postiz → Settings → Public API: copy the key. Set `POSTIZ_URL` (`https://social.herbalholland.com/api/public/v1`;
-   Postiz cloud: `https://api.postiz.com/public/v1`) and `POSTIZ_API_KEY`.
-4. For the Social page's pictures only, `APP_URL` must be public HTTPS (Postiz fetches `${APP_URL}/social/<picture>.jpg`).
-   Studio cards are uploaded with the post.
+| Network | Secrets | Where they come from |
+|---|---|---|
+| Facebook Page | `META_PAGE_ID`, `META_PAGE_TOKEN` | One Meta developer app owned by HQ (developers.facebook.com → Create app → Business), with the marketing team in the app's roles: that gives standard access to HQ's own Page and accounts, no App Review. Add the **Facebook Login for Business** and **Instagram** products. In Graph API Explorer, pick the app, grant `pages_manage_posts`, `pages_read_engagement`, `instagram_basic`, `instagram_content_publish`, generate a user token, then exchange it for a long-lived one (`GET /oauth/access_token?grant_type=fb_exchange_token&…`) and read the Page token from `GET /me/accounts`: a Page token from a long-lived user token doesn't expire. The Page id is on the Page's About tab |
+| Instagram | `META_IG_USER_ID` (with the Page token) | A professional Instagram account linked to the Page; its id from `GET /{page-id}?fields=instagram_business_account` |
+| Threads | `THREADS_USER_ID`, `THREADS_TOKEN` | The same app with the **Threads API** product; a long-lived Threads token (60 days: refresh it with `GET https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token=…` and set the new secret before it lapses) |
+| Bluesky | `BLUESKY_HANDLE`, `BLUESKY_APP_PASSWORD` | Settings → App passwords in Bluesky |
+| Telegram | `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID` | A bot from @BotFather made admin of the channel; the chat id is the channel's `@username` (or its numeric id for a private channel) |
+| LinkedIn, X | none | By hand: LinkedIn's page API needs their approval; X charges per API post |
 
-The same job (`syncStudio`) reads back how each released post went: published (with its link) or failed (with Postiz's
-reason), and marks members' messages out once their campaign has sent. Postiz only gets a post at its time, so the
-Studio is where a post is changed, held or taken back; once released, delete it in Postiz if it must come down. Meta
+Instagram and Threads fetch the picture by URL, so `APP_URL` must be public HTTPS: a brand picture is
+`${APP_URL}/social/<picture>.jpg`, and a Studio card is put in R2 and served at `${APP_URL}/social/cards/<key>.jpg`.
+Posts go out one network at a time; one refusing never stops the others, and each post keeps every network's answer
+(the post's id and link, or the error) in `SocialPost.results`, shown on the Social page and in the Studio. The `daily`
+job checks the Meta Page token (`debug_token`) and reports one about to expire (audit `social.token`, the ops log) two
+weeks ahead.
+
+A released social post is posted or failed on the spot, with its link or the network's reason; `syncStudio` marks
+members' messages out once their campaign has sent. A post only leaves the platform at its time, so the Studio is where
+it's changed, held or taken back; once out, take it down on the network itself. Meta
 rejects cannabis and CBD ads, so this is organic posting only, with no boosting.
 
 **WhatsApp and Google** are never posted through an API: WhatsApp's Business Messaging Policy (the app and the API
@@ -480,7 +476,7 @@ the seed and scripts.
 | `YOCO_WEBHOOK_SECRET` | The `whsec_…` secret Yoco returned when the webhook (`/api/payments/yoco`) was registered with that same mode's key. Unset: the webhook answers 503 |
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
 | `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name, for a variant made to order (none in the range today); unset = production orders only logged |
-| `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |
+| `META_PAGE_ID`, `META_PAGE_TOKEN`, `META_IG_USER_ID`, `THREADS_USER_ID`, `THREADS_TOKEN`, `BLUESKY_HANDLE`, `BLUESKY_APP_PASSWORD`, `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID` | The social networks ([Connecting the networks](#social-posting-and-the-campaign-studio-srcserversocialts-srcserverstudiots)); unset = posts only recorded |
 | `WORKERS_AI_ACCOUNT_ID`, `WORKERS_AI_TOKEN`, `WORKERS_AI_MODEL` | Optional: Studio rewrites in the brand's voice through Cloudflare Workers AI (free allowance); unset = no AI |
 | `CRON_SECRET` | Protects `/api/cron/*`: 32+ random characters (`openssl rand -hex 32`); the Cron Triggers in `worker.ts` send it |
 | `ALERT_EMAIL` | Ops inbox for errors and failed scheduled-job steps (by Graph, throttled: one per distinct error an hour, at most 20 an hour; addresses and long numbers left out); unset = errors are only logged |

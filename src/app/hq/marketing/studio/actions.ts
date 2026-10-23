@@ -166,7 +166,7 @@ export async function handStudioItem(itemId: string, hand: boolean, _: ActionSta
     return failed(e);
   }
   revalidatePath(path(it.planId));
-  return done(hand ? "Yours to post by hand: copy the words, shoot it, then mark it posted." : "The card goes out through Postiz when you schedule it.");
+  return done(hand ? "Yours to post by hand: copy the words, shoot it, then mark it posted." : "The card goes out on its own when you schedule it.");
 }
 
 export async function unscheduleStudioItem(itemId: string, _: ActionState): Promise<ActionState> {

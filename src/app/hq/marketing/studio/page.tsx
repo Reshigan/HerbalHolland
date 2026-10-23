@@ -3,7 +3,7 @@ import { QrCode, Sparkles } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { db } from "@/server/db";
 import { can } from "@/server/hq/guard";
-import { postizConnected } from "@/server/social";
+import { socialConnected } from "@/server/social";
 import { aiReady } from "@/server/studio-ai";
 import { PLAYBOOKS } from "@/lib/studio-playbooks";
 import { longDate, STUDIO_CHANNELS, WEEKDAYS, type StudioChannel } from "@/lib/studio";
@@ -53,9 +53,9 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
         }
       />
       <MarketingTabs current="studio" />
-      {!postizConnected() && (
-        <Notice tone="info" title="Postiz isn't connected" className="mb-5">
-          Social posts wait in the list for you to post by hand (copy the words, download the card). Connect Postiz and the Studio schedules them for you. See docs/INTEGRATIONS.md.
+      {!socialConnected() && (
+        <Notice tone="info" title="No social network is connected" className="mb-5">
+          Social posts wait in the list for you to post by hand (copy the words, download the card). Connect the networks and the Studio posts them for you. See docs/INTEGRATIONS.md.
         </Notice>
       )}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">

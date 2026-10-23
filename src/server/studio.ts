@@ -1,13 +1,13 @@
 // Campaign Studio, the server side: a playbook laid out into dated drafts, approved by HQ, queued, and released by the
 // platform at each post's time (the `frequent` job), so HQ holds the release: a campaign can be paused and resumed, and
-// a post taken back, until the moment it goes. Social posts go to Postiz then, with their card; email, SMS and push
+// a post taken back, until the moment it goes. Social posts go to the networks then, with their card; email, SMS and push
 // become Campaigns (consent, the do-not-contact list and CPA windows as always). WhatsApp Channel and Google posts wait
 // as "post by hand" with their text and card.
 import { db } from "./db";
 import { audit, type Actor } from "./audit";
 import { sendCampaign } from "./marketing";
 import { sendEarlyAccess } from "./early-access";
-import { postizConnected, postizPosts, publishSocial, socialChannels } from "./social";
+import { publishSocial, socialChannels, socialConnected } from "./social";
 import { cardJpeg } from "./studio-cards";
 import { hoursLine, parseHours } from "./shop/hours";
 import { NEW_ONLINE_DAYS, PLAYBOOKS } from "@/lib/studio-playbooks";
@@ -193,17 +193,17 @@ export async function saveItem(id: string, patch: { text: string; short: string 
 }
 
 /**
- * Queues every approved post that's due later and goes out on its own: social (when Postiz is connected), email, SMS and
+ * Queues every approved post that's due later and goes out on its own: social (when a network is connected), email, SMS and
  * push. Nothing leaves the platform yet: the scheduler releases each one at its time. WhatsApp, Google, and social
- * without Postiz stay approved, to be posted by hand.
+ * without a connected network stay approved, to be posted by hand.
  */
 export async function scheduleApproved(planId: string, actor: Actor, now = new Date()) {
   const plan = await db.studioPlan.findUnique({ where: { id: planId }, select: { storeId: true } });
   if (!plan) throw new StudioError("That campaign isn't there any more");
-  const ready = { planId, status: "APPROVED" as const, hand: false, channel: { in: [...OWN_CHANNELS, ...(postizConnected() ? ["SOCIAL" as const] : [])] } };
+  const ready = { planId, status: "APPROVED" as const, hand: false, channel: { in: [...OWN_CHANNELS, ...(socialConnected() ? ["SOCIAL" as const] : [])] } };
   const late = await db.studioItem.count({ where: { ...ready, at: { lt: new Date(now.getTime() + 5 * 60_000) } } });
   const queued = await db.studioItem.findMany({ where: { ...ready, at: { gte: new Date(now.getTime() + 5 * 60_000) } }, select: { id: true, channel: true } });
-  // A post that failed at release and was fixed starts again: no release, Postiz post or campaign from the last try.
+  // A post that failed at release and was fixed starts again: no release, social post or campaign from the last try.
   if (queued.length) await db.studioItem.updateMany({ where: { id: { in: queued.map((i) => i.id) }, status: "APPROVED" }, data: { status: "SCHEDULED", releasedAt: null, socialPostId: null, campaignId: null } });
   const done = { social: queued.filter((i) => i.channel === "SOCIAL").length, campaigns: queued.filter((i) => i.channel !== "SOCIAL").length, late };
   if (queued.length) await audit(db, actor, "studio.schedule", { storeId: plan.storeId, entity: "StudioPlan", entityId: planId, data: done });
@@ -222,7 +222,7 @@ const SCHEDULER: Actor = { type: "SYSTEM", name: "Studio scheduler" };
 
 /**
  * The scheduler's step: releases each queued post whose time has come, unless its campaign is paused. Social posts go to
- * Postiz to publish now, with their card as a JPEG; members' messages become a Campaign and send (held for the next legal
+ * the networks now, with their card as a JPEG; members' messages become a Campaign and send (held for the next legal
  * window when needed). A post more than six hours late isn't released: it fails, to be given a new time.
  */
 export async function releaseStudio(now = new Date()) {
@@ -253,17 +253,24 @@ export async function releaseStudio(now = new Date()) {
         await db.studioItem.update({ where: { id: it.id }, data: { campaignId: c.id } });
         await sendCampaign(c.id, SCHEDULER, now);
       } else {
-        if (!postizConnected()) throw new StudioError("Postiz isn't connected any more: post it by hand");
+        if (!socialConnected()) throw new StudioError("No social network is connected any more: post it by hand");
         channels ??= await socialChannels();
-        const linkedin = (c: SocialChannel) => c.identifier.startsWith("linkedin");
+        const linkedin = (c: SocialChannel) => c.identifier === "linkedin";
         const to = channels.filter((c) => (it.linkedin === "only" ? linkedin(c) : it.linkedin === "also" || !linkedin(c)));
-        if (!to.length) throw new StudioError(it.linkedin === "only" ? "No LinkedIn page is connected in Postiz" : "No social accounts are connected in Postiz");
+        if (!to.length) throw new StudioError(it.linkedin === "only" ? "LinkedIn is posted by hand" : "No social network is connected");
         const data = await cardJpeg(it.card as Card, "portrait");
-        const postizIds = await publishSocial({ content: it.text, short: it.short, picture: { file: { data, name: `${it.key}.jpg`, type: "image/jpeg" } }, channels: to, mode: "now", at: now });
-        const post = await db.socialPost.create({
-          data: { content: it.text, image: null, channels: to.map((c) => `${SOCIAL_NETWORKS[c.identifier].label} · ${c.name}`), mode: "now", postizIds, createdBy: "Studio" },
+        const results = await publishSocial({ content: it.text, short: it.short, picture: { file: { data, name: `${it.key}.jpg`, type: "image/jpeg" } }, channels: to });
+        const post = await db.socialPost.create({ data: { content: it.text, image: null, channels: to.map((c) => c.identifier), mode: "now", postedAt: now, results, createdBy: "Studio" } });
+        const failed = results.filter((r) => r.error);
+        await db.studioItem.update({
+          where: { id: it.id },
+          data: failed.length
+            ? { socialPostId: post.id, status: "FAILED", note: failed.map((r) => `${SOCIAL_NETWORKS[r.network]?.label ?? r.network}: ${r.error}`).join(" · ").slice(0, 300) }
+            : { socialPostId: post.id, status: "POSTED", doneAt: now, doneBy: "Studio", link: results.find((r) => r.link)?.link ?? null },
         });
-        await db.studioItem.update({ where: { id: it.id }, data: { socialPostId: post.id } });
+        if (failed.length) done.failed++;
+        else done.released++;
+        continue;
       }
       done.released++;
     } catch (e) {
@@ -279,20 +286,20 @@ export async function releaseStudio(now = new Date()) {
 export async function unschedule(id: string, actor: Actor) {
   const it = await db.studioItem.findUnique({ where: { id }, include: { campaign: { select: { status: true } } } });
   if (!it || it.status !== "SCHEDULED") throw new StudioError("Only a scheduled post can be taken back");
-  if (it.releasedAt && !(it.campaign && it.campaign.status === "SCHEDULED")) throw new StudioError(it.socialPostId ? "It has gone to Postiz: delete it there" : "It has already gone out");
+  if (it.releasedAt && !(it.campaign && it.campaign.status === "SCHEDULED")) throw new StudioError("It has already gone out");
   if (it.campaignId) await db.campaign.update({ where: { id: it.campaignId }, data: { status: "CANCELLED", scheduledAt: null } });
   await db.studioItem.update({ where: { id }, data: { status: "DRAFT", approvedBy: null, campaignId: null, releasedAt: null } });
   await audit(db, actor, "studio.unschedule", { entity: "StudioItem", entityId: id, data: { key: it.key, channel: it.channel } });
 }
 
-/** A social post the team makes by hand, with its own photo or video (the brief), instead of the card through Postiz. */
+/** A social post the team makes by hand, with its own photo or video (the brief), instead of the card going out on its own. */
 export async function setHand(id: string, hand: boolean, actor: Actor) {
   const r = await db.studioItem.updateMany({ where: { id, channel: "SOCIAL", status: { in: ["DRAFT", "APPROVED", "FAILED"] } }, data: { hand } });
   if (!r.count) throw new StudioError("Take it out of the schedule first");
   await audit(db, actor, "studio.hand", { entity: "StudioItem", entityId: id, data: { hand } });
 }
 
-/** A post made by hand (WhatsApp Channel, Google, or social without Postiz), with its link when there is one. */
+/** A post made by hand (WhatsApp Channel, Google, or social with no network connected), with its link when there is one. */
 export async function markPosted(id: string, by: string, link: string | null, actor: Actor) {
   const r = await db.studioItem.updateMany({ where: { id, status: { in: ["APPROVED", "FAILED"] } }, data: { status: "POSTED", doneBy: by, doneAt: new Date(), link } });
   if (!r.count) throw new StudioError("Approve it first");
@@ -306,31 +313,12 @@ export async function skipItem(id: string, skip: boolean) {
 }
 
 /**
- * The scheduler's step: a Campaign that went out marks its item posted (one that was cancelled, failed), and Postiz says
- * how each social post went (published, with its link, or the error). Idempotent.
+ * The scheduler's step: a Campaign that went out marks its item posted (one that was cancelled, failed). Social posts
+ * know how they went the moment they're released. Idempotent.
  */
-export async function syncStudio(now = new Date()) {
+export async function syncStudio() {
   const own = await db.studioItem.findMany({ where: { status: "SCHEDULED", campaign: { status: { in: ["SENT", "CANCELLED"] } } }, select: { id: true, campaign: { select: { status: true, sentAt: true } } } });
   for (const it of own)
     await db.studioItem.update({ where: { id: it.id }, data: it.campaign?.status === "SENT" ? { status: "POSTED", doneAt: it.campaign.sentAt, doneBy: "Campaign" } : { status: "FAILED", note: "Its campaign was cancelled" } });
-  if (!postizConnected()) return { campaigns: own.length, social: 0 };
-  const due = await db.studioItem.findMany({
-    where: { status: "SCHEDULED", channel: "SOCIAL", at: { lte: now }, socialPostId: { not: null } },
-    select: { id: true, at: true, socialPost: { select: { postizIds: true } } },
-    orderBy: { at: "asc" },
-    take: 100,
-  });
-  if (!due.length) return { campaigns: own.length, social: 0 };
-  const posts = new Map((await postizPosts(new Date(due[0].at.getTime() - 86_400_000), new Date(now.getTime() + 3_600_000))).map((p) => [p.id, p]));
-  let social = 0;
-  for (const it of due) {
-    const states = asList<string>(it.socialPost?.postizIds).flatMap((id) => posts.get(id) ?? []);
-    if (!states.length) continue;
-    const failed = states.find((s) => s.state === "ERROR");
-    if (failed) await db.studioItem.update({ where: { id: it.id }, data: { status: "FAILED", note: failed.error?.slice(0, 300) ?? "Postiz couldn't publish it" } });
-    else if (states.every((s) => s.state === "PUBLISHED")) await db.studioItem.update({ where: { id: it.id }, data: { status: "POSTED", doneAt: now, doneBy: "Postiz", link: states.find((s) => s.releaseURL)?.releaseURL ?? null } });
-    else continue;
-    social++;
-  }
-  return { campaigns: own.length, social };
+  return { campaigns: own.length };
 }

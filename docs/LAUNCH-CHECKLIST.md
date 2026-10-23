@@ -53,7 +53,7 @@ A fresh database starts in step 1 (the demo seed starts at step 3); the shop, it
 - [ ] SMS and email providers live (Microsoft 365 `MS_*`, `MESSAGING_PROVIDER`); sender footer details correct
 - [ ] Storefront content (Learn articles, store pages, hours) reviewed; age gate on
 - [ ] Herbal Holland Rewards rules and liability policy approved by finance
-- [ ] Postiz running with Instagram, Facebook, LinkedIn, X and Threads connected; `POSTIZ_URL` / `POSTIZ_API_KEY` set; a test post scheduled and deleted
+- [ ] Instagram, Facebook, Threads, Bluesky and Telegram connected (their secrets on the Worker, docs/INTEGRATIONS.md → Connecting the networks); a test post sent from HQ → Marketing → Social and taken down
 - [ ] Social profiles say "adults 18+"; the team briefed: brand, merch, stores, events and Learn only; no products for sale, prices or orders taken in DMs
 
 ## Platform

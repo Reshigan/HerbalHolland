@@ -1416,15 +1416,16 @@ model QuestCompletion {
   @@id([customerId, key])
 }
 
-// Posts handed to Postiz for the brand's social accounts (HQ → Campaigns → Social).
+// Posts to the brand's social accounts (HQ → Campaigns → Social), published straight to each network (src/server/social.ts).
 model SocialPost {
   id          String       @id @default(cuid())
   content     String
   image       String? // public/social/<image>.jpg
-  channels    Json @default("[]") // "Instagram · herbalholland", as posted; empty when Postiz isn't connected
-  mode        String // now | schedule | draft
+  channels    Json @default("[]") // network identifiers ("instagram"); empty when no network is connected
+  mode        String // now | schedule
   scheduledAt DateTime?
-  postizIds   Json @default("[]")
+  postedAt    DateTime? // when it went to the networks (claimed before posting, so it never goes twice)
+  results     Json @default("[]") // per network: { network, name, id, link } or { network, name, error }
   createdBy   String?
   createdAt   DateTime     @default(now())
   studioItems StudioItem[]
@@ -1433,7 +1434,7 @@ model SocialPost {
 }
 
 // Campaign Studio (HQ → Marketing → Studio): a playbook (src/lib/studio-playbooks.ts) laid out from day T into dated
-// drafts. Approved posts wait here until their time and the scheduler releases them: social to Postiz, members' own
+// drafts. Approved posts wait here until their time and the scheduler releases them: social to the networks, members' own
 // channels as Campaigns. WhatsApp Channel and Google posts are made by hand from the draft's text and card.
 model StudioPlan {
   id        String       @id @default(cuid())
@@ -1482,9 +1483,9 @@ model StudioItem {
   short        String? // social: the version for Threads, Bluesky and X
   card         Json? // { template, eyebrow?, headline, sub?, lines?, image? } (src/lib/studio.ts Card)
   status       StudioStatus  @default(DRAFT)
-  note         String? // why it moved, or what Postiz said when it failed
+  note         String? // why it moved, or what the network said when it failed
   link         String? // the published post
-  releasedAt   DateTime? // when the scheduler handed it to Postiz or sent it as a Campaign
+  releasedAt   DateTime? // when the scheduler posted it or sent it as a Campaign
   audience     String? // members' channels: the campaign audience (src/lib/rfm.ts); null = everyone (the store's members)
   linkedin     String? // social: "also" or "only"; null = not LinkedIn
   brief        String? // what to shoot for it (a photo, a Reel)
