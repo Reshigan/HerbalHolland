@@ -21,7 +21,9 @@ live, then national.
 - [x] **WhatsApp Status cards:** a 9:16 card with the member's join QR and code ("Status card" next to every invite; Founding
       wording while the list is open), shared as an image straight to Status where the phone allows. Events, drops and
       specials cards follow with those pages.
-- [ ] **Staff referral codes:** each staff member's code on the till; sign-ups credited to them and fed to commission.
+- [x] **Staff referral codes:** each staff member's own join QR on the till's Shift view (`/club/join?src=staff-…`),
+      with a count of members who joined with them this month (from the link, or signed up by them at the till).
+      Paying for sign-ups waits on the owner (see below).
 - [ ] **Area pages that earn their place:** one page per store's catchment (Bluff and the south coast, Pietermaritzburg
       and the Midlands, Hillcrest and the Upper Highway, Hilton and Howick) with the store, hours, directions, local
       events and how to join. Real content only.
@@ -47,4 +49,6 @@ live, then national.
 - Connect the social accounts in HQ → Marketing → Social so the Studio's scheduled posts go out.
 - Store phones and the Bluff and Pietermaritzburg hours; Google Business Profiles (see GOOGLE-BUSINESS-PROFILES.md).
 - Publish the real product range.
+- Decide whether staff earn anything per sign-up (an amount per member who joins with them, paid by the store owner).
+  The count is on the till already; paying it needs the amount and is a staff incentive, never on medicines.
 - Forward your own referral link to people you know; the first members come from people who trust you.

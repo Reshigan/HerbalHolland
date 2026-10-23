@@ -552,6 +552,9 @@ try {
   await tile.waitFor();
   const mine = (await tile.textContent()).replace("Your commission this month", "");
   assert(/^R[\d,]+\.\d\d$|^Held: see your manager$/.test(mine), `commission tile: ${mine}`);
+  const invite = page.getByTestId("my-invite"); // my own join QR and how many joined with me this month
+  await invite.waitFor();
+  assert(/Joined with you this month\d+/.test((await invite.textContent()) ?? "") && (await invite.locator("svg").count()) === 1, "join QR tile with a count");
   await page.getByTestId("denom-20000").fill("7");
   // A count out by more than the R50 tolerance needs a note before the shift can close.
   await page.locator("#shift-notes").fill("E2E run: test count");
