@@ -202,14 +202,14 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-400">
                 Lab-tested, batch-traceable CBD wellness, accessories and gear{footprint.trading ? `, in ${plural(footprint.trading, "store")} across ${plural(footprint.provinces.length, "province")}${canBuyOnline(phase) ? " and online" : ""}.` : canBuyOnline(phase) ? ", online." : "."}
               </p>
-              <Link href="/club/join" className={buttonClass("outline-dark", "md", "mt-6")}>
-                Join Herbal Holland Rewards
+              <Link href={customer ? "/club" : "/club/join"} className={buttonClass("outline-dark", "md", "mt-6")}>
+                {customer ? "Your Rewards card" : "Join Herbal Holland Rewards"}
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
               <FooterCol title="Shop" links={[["CBD wellness", "/shop?category=wellness"], ["Accessories", "/shop?category=accessories"], ["Grow", "/shop?category=grow"], ["Apparel", "/shop?category=apparel"], ["Gift vouchers", "/gift"], ["Dispensary (patients)", "/dispensary"]]} />
               <FooterCol title="Help" links={[["Store finder", "/stores"], ["Track an order", "/club/orders"], ["Learn", "/learn"], ["Read a lab result", "/learn/reading-lab-results"], ["Contact us", `mailto:${contactEmailOf(company)}`]]} />
-              <FooterCol title="Rewards" links={[["Join free", "/club/join"], ["Sign in", "/club"], ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"], ["Wishlist", "/club/wishlist"], ["Reorder reminders", "/club/reminders"]]} />
+              <FooterCol title="Rewards" links={[...(customer ? [["Your card", "/club"], ["Settings", "/club/settings"]] as [string, string][] : [["Join free", "/club/join"], ["Sign in", "/club"]] as [string, string][]), ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"], ["Wishlist", "/club/wishlist"], ["Reorder reminders", "/club/reminders"]]} />
               <FooterCol title="Legal" links={[["Membership terms", "/legal/terms"], ["Privacy notice (POPIA)", "/legal/privacy"], ["Returns & refunds", "/legal/returns"], ["Delivery", "/legal/delivery"], ["PAIA manual", `${SITE}/paia`], ["Responsible use", "/learn/responsible-use"]]} />
               {/* The corporate site (sites/herbalholland.com, on Cloudflare) */}
               <FooterCol title="About Herbal Holland" links={[["About us", `${SITE}/about`], ["Own a store", `${SITE}/franchise`], ["Press", `${SITE}/press`], ["Careers", `${SITE}/careers`]]} />

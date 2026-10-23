@@ -71,12 +71,13 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             : `Your card is ready. Show the QR code at any till to earn points. We've added ${fmtPoints(settings.loyalty.signupBonus)} to get you started.`}
         </Callout>
       )}
+      {sp.welcome && <InstallPrompt app="rewards" priority className="mb-8" />}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
         <div className="space-y-4">
           <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} firstYear={!m.customer.foundingNo && !!m.floor} floorUntil={floorUntil} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
           <WalletButtons />
-          <InstallPrompt app="rewards" />
+          {!sp.welcome && <InstallPrompt app="rewards" />}
         </div>
 
         <div className="space-y-6">

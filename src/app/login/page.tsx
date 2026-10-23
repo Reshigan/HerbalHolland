@@ -13,7 +13,7 @@ const DEMO = [
   { email: "manager.pta01@herbalholland.com", label: "Store manager", sub: "Hatfield · responsible dispenser" },
 ];
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; denied?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; denied?: string; reset?: string }> }) {
   const sp = await searchParams;
   const demo = process.env.DEMO_MODE === "true";
   return (
@@ -32,10 +32,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <h1 className="font-display text-3xl font-semibold text-ink-950">Sign in</h1>
           <p className="mb-6 mt-1 text-sm text-ink-500">Back office and HQ console. Member advisors sign in at the till with their PIN.</p>
           {sp.denied && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">Your account doesn&apos;t have access to that page.</p>}
+          {sp.reset && <p className="mb-4 rounded-xl bg-leaf-50 px-4 py-3 text-sm text-leaf-700">Your password is saved. Sign in with it below.</p>}
           <LoginForm next={sp.next} />
           <div className="mt-6 flex justify-between text-sm">
-            <Link href="/pos" className="font-medium text-brand-700 hover:underline">Open the POS →</Link>
-            <Link href="/" className="text-ink-500 hover:text-ink-800">Shop</Link>
+            <Link href="/login/forgot" className="font-medium text-brand-700 hover:underline">Forgot your password?</Link>
+            <Link href="/pos" className="text-ink-500 hover:text-ink-800">Open the POS →</Link>
           </div>
           {demo && (
             <div className="mt-10">
