@@ -9,7 +9,8 @@ import { db } from "@/server/db";
 import { endSession, getCustomer, startSession } from "@/server/auth";
 import { audit } from "@/server/audit";
 import { quote } from "@/server/pricing";
-import { COLLISION_REFUSED, CollisionError, collisionsUsedUp, createCustomer, CustomerError, noteCollision, recordAgeCheck, requestOtp, verifyOtp } from "@/server/customers";
+import { background } from "../background";
+import { COLLISION_REFUSED, CollisionError, collisionsUsedUp, createCustomer, CustomerError, noteCollision, recordAgeCheck, requestOtp, sendWelcome, verifyOtp } from "@/server/customers";
 import { getDispensaryAccess, getClasses } from "./access";
 import { getCart, getRetailStores, HOME_STORE_STATUSES, saveAge, saveCart, savePreferredStore, savePromoCode, SHOP_COOKIE, shopPhase } from "./context";
 import { openState, parseHours } from "./hours";
@@ -97,6 +98,8 @@ type Field = "phone" | "code" | "firstName" | "email" | "idNumber" | "dob" | "ho
 export type AuthState = {
   step: "phone" | "code" | "register" | "done";
   phone?: string;
+  /** The address the code went to, when it went by email; registration starts with it filled in. */
+  email?: string;
   demoCode?: string;
   error?: string;
   fields?: Partial<Record<Field, string>>;
@@ -117,12 +120,15 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
 
   if (intent === "send") {
     const raw = String(form.get("phone") ?? "");
+    const byEmail = form.get("by") === "email";
+    const email = byEmail ? String(form.get("email") ?? "") : prev.email ?? "";
     try {
-      const r = await requestOtp(raw, { ip: clientIpFrom(await headers()) });
-      return { step: "code", phone: r.phone, demoCode: r.demoCode };
+      const r = await requestOtp(raw, { ip: clientIpFrom(await headers()), email: email || null });
+      return { step: "code", phone: r.phone, email: r.email, demoCode: r.demoCode };
     } catch (e) {
-      // Resending from the code step keeps the member where they are; a first send shows the error on the number.
-      if (e instanceof CustomerError) return prev.step === "code" ? { ...prev, error: e.message, fields: undefined } : { step: "phone", fields: { phone: e.message }, values: { phone: raw } };
+      // Resending from the code step keeps the member where they are; a first send shows the error on the number (or the email).
+      if (e instanceof CustomerError)
+        return prev.step === "code" ? { ...prev, error: e.message, fields: undefined } : { step: "phone", fields: { [email && /email/i.test(e.message) ? "email" : "phone"]: e.message }, values: { phone: raw, email, by: byEmail ? "email" : "" } };
       throw e;
     }
   }
@@ -141,7 +147,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
         return { step: "done" };
       }
       jar.set(SHOP_COOKIE.phone, signPhone(r.phone), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 20 * 60 });
-      return { step: "register", phone: r.phone };
+      return { step: "register", phone: r.phone, email: prev.email, values: prev.email ? { email: prev.email } : undefined };
     } catch (e) {
       if (e instanceof CustomerError) return { ...prev, step: "code", error: undefined, fields: { code: e.message } };
       throw e;
@@ -195,6 +201,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
       jar.delete(SHOP_COOKIE.phone);
       await startSession("customer", { customerId: c.id }, 24 * 30);
       await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "customer.sign_in", { entity: "Customer", entityId: c.id, data: { firstVisit: true } });
+      background("welcome email", sendWelcome(c));
     } catch (e) {
       const collision = e instanceof CollisionError ? "idNumber" : (e as { code?: string }).code === "P2002" ? "email" : null;
       if (collision && !(await noteCollision(`phone:${phone}`, { type: "CUSTOMER", name: v.firstName }, collision))) return refused();

@@ -57,3 +57,22 @@ describe("Messaging", () => {
     expect(await db.consentEvent.count({ where: { customerId: w.walkIn.id, channel: "EMAIL", granted: false } })).toBe(1);
   });
 });
+
+describe("Sign-in codes by email", () => {
+  it("emails the code to a new number's own address, or to the email already on the member's account, never elsewhere", async () => {
+    vi.stubEnv("MESSAGING_PROVIDER", "log");
+    const r = await requestOtp("082 555 0401", { ip: null, email: "New.Member@Example.com" });
+    expect(r).toMatchObject({ phone: "+27825550401", email: "new.member@example.com" });
+    const log = await db.messageLog.findFirstOrThrow({ orderBy: { createdAt: "desc" } });
+    expect(log).toMatchObject({ channel: "EMAIL", to: "new.member@example.com", status: "SENT", kind: "TRANSACTIONAL" });
+    expect(log.body).not.toMatch(/\d{6}/);
+    expect(log.body).toContain("Your Herbal Holland code is ••••••");
+
+    const member = await db.customer.update({ where: { id: w.patient.id }, data: { email: "patient@example.co.za" }, select: { phone: true, email: true } });
+    await expect(requestOtp(member.phone, { ip: null, email: "someone.else@example.com" })).rejects.toThrow(/isn't the email on your account/);
+    expect((await requestOtp(member.phone, { ip: null, email: member.email!.toUpperCase() })).email).toBe(member.email);
+    const noEmail = await db.customer.update({ where: { id: w.walkIn.id }, data: { email: null }, select: { phone: true } });
+    await expect(requestOtp(noEmail.phone, { ip: null, email: "x@example.com" })).rejects.toThrow(/no email on your account/);
+    await expect(requestOtp("082 555 0402", { ip: null, email: "not-an-email" })).rejects.toThrow(/doesn't look right/);
+  });
+});

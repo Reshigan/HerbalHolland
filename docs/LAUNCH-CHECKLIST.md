@@ -50,7 +50,7 @@ A fresh database starts in step 1 (the demo seed starts at step 3); the shop, it
 - [ ] Training: POS (sale, split tenders, offline, refunds), handover with ID checks, stock takes, receiving, recalls
 
 ## Customer channels
-- [ ] SMS and email providers live (Microsoft 365 `MS_*`, `MESSAGING_PROVIDER`); sender footer details correct
+- [ ] Email live (Microsoft 365 `MS_*`); SMS live (`MESSAGING_PROVIDER=smsportal` with the SMSPortal secrets) or members told to get their code by email; sender footer details correct
 - [ ] Storefront content (Learn articles, store pages, hours) reviewed; age gate on
 - [ ] Herbal Holland Rewards rules and liability policy approved by finance
 - [ ] Instagram, Facebook, Threads, Bluesky and Telegram connected (their secrets on the Worker), and TikTok, YouTube, LinkedIn, X and Pinterest signed in from HQ → Marketing → Social (docs/INTEGRATIONS.md → Connecting the networks); TikTok's audit, Google's verification and Pinterest's standard access applied for; a test post sent from the Social page and taken down

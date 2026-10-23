@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, KeyRound, MessageSquareText, Smartphone } from "lucide-react";
+import { ArrowRight, CheckCircle2, KeyRound, Mail, MessageSquareText, Smartphone } from "lucide-react";
 import { authFlow, type AuthState } from "@/server/shop/actions";
 import { buttonClass } from "@/components/ui/button";
 import { CheckRow, FieldRow, SelectInput, TextInput } from "./ui";
@@ -39,6 +39,8 @@ export function PhoneAuth({
   intro?: string;
 }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(authFlow, { step: "phone" });
+  const [byEmail, setByEmail] = useState(false);
+  const viaEmail = byEmail || state.values?.by === "email";
   const hidden = (
     <>
       {next && <input type="hidden" name="next" value={next} />}
@@ -75,12 +77,25 @@ export function PhoneAuth({
             <h2 className="font-display text-2xl font-semibold text-white">{title}</h2>
             <p className="mt-1 text-sm text-ink-400">{intro}</p>
           </div>
-          <FieldRow label="Mobile number" htmlFor="auth-phone" error={state.fields?.phone} hint="We'll send a 6-digit code by SMS.">
+          <FieldRow label="Mobile number" htmlFor="auth-phone" error={state.fields?.phone} hint={viaEmail ? "Your number is your membership; the code goes to your email." : "We'll send a 6-digit code by SMS."}>
             <div className="relative">
               <Smartphone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
               <TextInput id="auth-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel-national" required placeholder="082 123 4567" defaultValue={state.values?.phone} className="pl-11 text-lg tracking-wide" aria-invalid={!!state.fields?.phone} autoFocus={!!state.error || !!state.fields?.phone} />
             </div>
           </FieldRow>
+          {viaEmail ? (
+            <FieldRow label="Email address" htmlFor="auth-email" error={state.fields?.email} hint="New here? Any address you read. Already a member? The email on your account.">
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+                <input type="hidden" name="by" value="email" />
+                <TextInput id="auth-email" name="email" type="email" inputMode="email" autoComplete="email" required placeholder="you@example.com" defaultValue={state.values?.email} className="pl-11" aria-invalid={!!state.fields?.email} />
+              </div>
+            </FieldRow>
+          ) : (
+            <button type="button" onClick={() => setByEmail(true)} className="flex items-center gap-2 text-sm font-medium text-ink-400 hover:text-white">
+              <Mail className="h-4 w-4" /> Get my code by email instead
+            </button>
+          )}
           <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
             {pending ? "Sending…" : "Send my code"} <ArrowRight className="h-5 w-5" />
           </button>
@@ -125,7 +140,7 @@ function CodeStep({ state, action, pending, hidden }: StepProps) {
       <div>
         <h2 className="font-display text-2xl font-semibold text-white">Enter your code</h2>
         <p className="mt-1 text-sm text-ink-400">
-          Sent to <strong className="text-ink-100">{state.phone ? displayPhone(state.phone) : "your phone"}</strong>. It expires in 10 minutes.
+          Sent to <strong className="text-ink-100">{state.email ?? (state.phone ? displayPhone(state.phone) : "your phone")}</strong>. It expires in 10 minutes.{state.email && " Not there in a minute? Check your spam folder."}
         </p>
       </div>
       {state.demoCode && (
@@ -172,6 +187,8 @@ function CodeStep({ state, action, pending, hidden }: StepProps) {
         <form action={action}>
           {hidden}
           <input type="hidden" name="intent" value="send" />
+          {state.email && <input type="hidden" name="by" value="email" />}
+          {state.email && <input type="hidden" name="email" value={state.email} />}
           <button className="font-semibold text-brand-400 hover:underline">Send a new code</button>
         </form>
       </div>

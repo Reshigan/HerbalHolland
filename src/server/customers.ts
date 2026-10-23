@@ -14,6 +14,7 @@ import { ageOn, checkSaId, normalisePhone } from "@/lib/sa";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
 import { DEALS_QUESTION, TERMS_VERSION } from "@/lib/terms";
 import { interestsFrom } from "@/lib/rfm";
+import { isEmail } from "@/lib/email";
 import { appSecret } from "./secret";
 
 export class CustomerError extends Error {}
@@ -23,18 +24,48 @@ export const CODE_PROBLEM = { wrong: "That code isn't right", expired: "That cod
 
 const idHash = (id: string) => createHmac("sha256", appSecret()).update(id).digest("hex");
 
-/** Texts a sign-in code. Requests pass the requester's IP (clientIpFrom) for the per-connection limit (src/server/otp.ts). */
-export async function requestOtp(raw: string, opts?: { ip: string | null }) {
+/**
+ * Sends a sign-in code: by SMS, or by email when asked (`email`). The number stays the member's identity, so an email
+ * code goes only to a new number's own address or to the email already on the member's account, never to an address
+ * someone types for a number that isn't theirs. Requests pass the requester's IP (clientIpFrom) for the per-connection
+ * limit (src/server/otp.ts).
+ */
+export async function requestOtp(raw: string, opts?: { ip: string | null; email?: string | null }) {
   const phone = normalisePhone(raw);
   if (!phone) throw new CustomerError("Enter a valid South African mobile number");
+  const email = opts?.email?.trim().toLowerCase() || null;
+  if (email) {
+    if (!isEmail(email)) throw new CustomerError("That email address doesn't look right");
+    const member = await db.customer.findUnique({ where: { phone }, select: { email: true } });
+    if (member && member.email !== email) throw new CustomerError(member.email ? "That isn't the email on your account. Use the one you joined with, or get your code by SMS" : "There's no email on your account yet. Get your code by SMS");
+  }
   const code = await issueCode({ phone }, opts).catch((e) => {
     throw e instanceof OtpLimitError ? new CustomerError(e.message) : e;
   });
   if (!code) throw new CustomerError("Too many codes requested. Try again in 10 minutes");
   const text = (c: string) => `Your Herbal Holland code is ${c}. It expires in 10 minutes.`;
-  const sms = await send({ channel: "SMS", to: phone, body: `${text(code)}\n\n@${new URL(APP_URL()).hostname} #${code}`, logBody: text("••••••"), kind: "TRANSACTIONAL" });
-  if (sms.status === "FAILED") throw new CustomerError("We couldn't send your code just now. Please try again in a minute");
-  return { phone, demoCode: process.env.DEMO_MODE === "true" ? code : undefined };
+  const sent = email
+    ? await send({ channel: "EMAIL", to: email, subject: "Your Herbal Holland sign-in code", body: `${text(code)}\n\nIf you didn't ask for a code, you can ignore this email.`, logBody: text("••••••"), kind: "TRANSACTIONAL" })
+    : await send({ channel: "SMS", to: phone, body: `${text(code)}\n\n@${new URL(APP_URL()).hostname} #${code}`, logBody: text("••••••"), kind: "TRANSACTIONAL" });
+  if (sent.status === "FAILED") throw new CustomerError("We couldn't send your code just now. Please try again in a minute");
+  return { phone, email: email ?? undefined, demoCode: process.env.DEMO_MODE === "true" ? code : undefined };
+}
+
+/** The welcome to a new member who gave an email: their card, the app, and what to do first. */
+export async function sendWelcome(c: { id: string; firstName: string; email: string | null; memberNo: string }) {
+  if (!c.email) return;
+  const url = APP_URL();
+  await send({
+    channel: "EMAIL", to: c.email, customerId: c.id, kind: "TRANSACTIONAL",
+    subject: `Welcome to Herbal Holland Rewards, ${c.firstName}`,
+    body: [
+      `Hi ${c.firstName},`,
+      `You're in. Your member number is ${c.memberNo}, and your card is ready at ${url}/club. Show it in any store to earn points on every purchase.`,
+      `Keep it on your phone: open ${url}/club, then add Herbal Holland to your Home Screen (on iPhone, Share → Add to Home Screen). You can switch on notifications there too, so you hear about drops and events first.`,
+      `Sign in any time with your mobile number: we send a one-time code, no password to remember.`,
+      `See you in store.`,
+    ].join("\n\n"),
+  });
 }
 
 export async function verifyOtp(raw: string, code: string) {
