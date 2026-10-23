@@ -3,6 +3,7 @@
 // and category pages. Pure SVG and CSS gradients: nothing to load, nothing to hydrate.
 import { Mark } from "@/components/brand/logo";
 import { cn } from "@/lib/cn";
+import { Drift } from "./motion";
 
 export type SkyTime = "gold" | "dusk" | "night";
 
@@ -20,12 +21,12 @@ const HILLS = {
   near: "M0 570 C 200 540 340 560 520 530 S 820 500 1000 520 S 1300 480 1460 500 S 1560 480 1600 470 V600 H0 Z",
 };
 
-/** A hero background: `time` sets the sky; children sit on top. `mill` places the windmill on the near ridge. */
-export function Sky({ time = "dusk", mill = true, className, children }: { time?: SkyTime; mill?: boolean; className?: string; children?: React.ReactNode }) {
+/** A hero background: `time` sets the sky; children sit on top. `mill` places the windmill on the near ridge; `drift` lets the hills drift as the page scrolls (with html.motion). */
+export function Sky({ time = "dusk", mill = true, drift = false, className, children }: { time?: SkyTime; mill?: boolean; drift?: boolean; className?: string; children?: React.ReactNode }) {
   const night = time !== "gold";
   return (
     <div className={cn("relative isolate overflow-hidden", { gold: "hh-sky-gold", dusk: "hh-sky-dusk", night: "hh-sky-night" }[time], className)}>
-      <svg aria-hidden viewBox="0 0 1600 600" preserveAspectRatio="xMidYMax slice" className="pointer-events-none absolute inset-0 -z-10 h-full w-full">
+      <svg aria-hidden viewBox="0 0 1600 600" preserveAspectRatio="xMidYMax slice" data-drift={drift ? "" : undefined} className="pointer-events-none absolute inset-0 -z-10 h-full w-full">
         {night && (
           <g fill="#fbf7f3" opacity={time === "night" ? 0.9 : 0.55}>
             {STARS.map(([x, y, r], i) => (
@@ -43,6 +44,7 @@ export function Sky({ time = "dusk", mill = true, className, children }: { time?
         <path d={HILLS.near} fill="#0c0a09" />
       </svg>
       {mill && <Mark aria-hidden title="" className="pointer-events-none absolute bottom-[8%] right-[9%] -z-10 hidden h-14 w-14 text-brand-500/80 sm:block lg:h-20 lg:w-20" spin />}
+      {drift && <Drift />}
       {children}
       <span aria-hidden className="hh-beads absolute inset-x-0 bottom-0" />
     </div>

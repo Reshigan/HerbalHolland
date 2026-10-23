@@ -37,7 +37,7 @@ export function DateBlock({ date, className }: { date: Date; className?: string 
 export function EventCardView({ e, showStore = true }: { e: EventCard; showStore?: boolean }) {
   const full = e.left <= 0;
   return (
-    <Link href={`/events/${e.slug}`} className="group flex gap-4 rounded-2xl border border-ink-800 bg-ink-900/60 p-4 transition hover:border-brand-500/60 hover:bg-ink-900">
+    <Link href={`/events/${e.slug}`} className="hh-lift hh-press group flex gap-4 rounded-2xl border border-ink-800 bg-ink-900/60 p-4 hover:border-brand-500/60 hover:bg-ink-900">
       <DateBlock date={e.startsAt} className="self-start" />
       <div className="flex min-w-0 flex-1 flex-col">
         <h3 className="font-display text-lg font-semibold leading-snug text-white group-hover:text-brand-100">{e.title}</h3>
@@ -138,7 +138,7 @@ export function DropArt({ d, className }: { d: DropView; className?: string }) {
 
 export function DropCardView({ d }: { d: DropView }) {
   return (
-    <Link href={`/drops/${d.slug}`} className="group flex flex-col overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 transition duration-300 hover:-translate-y-0.5 hover:border-brand-500/60">
+    <Link href={`/drops/${d.slug}`} className="hh-lift hh-press group flex flex-col overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 hover:border-brand-500/60">
       <div className="relative aspect-[16/10]">
         <DropArt d={d} className={cn("h-full w-full transition duration-700 group-hover:scale-[1.03]", d.phase === "ended" && "opacity-60 grayscale-[35%]")} />
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">

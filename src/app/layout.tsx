@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { inter, outfit } from "./fonts";
-import { INSTALL_SNIPPET } from "@/lib/csp";
+import { HEAD_SNIPPET } from "@/lib/csp";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,11 +21,12 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // The head snippet adds html.js / html.motion before React arrives, so the class list differs on purpose.
   return (
-    <html lang="en-ZA" className={`${outfit.variable} ${inter.variable}`}>
+    <html lang="en-ZA" className={`${outfit.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
-        {/* Keeps the browser's install prompt, which can fire before hydration (allowed by its hash: src/lib/csp.ts). */}
-        <script dangerouslySetInnerHTML={{ __html: INSTALL_SNIPPET }} />
+        {/* Keeps the browser's install prompt, which can fire before hydration, and sets the motion guard (allowed by its hash: src/lib/csp.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: HEAD_SNIPPET }} />
       </head>
       <body>{children}</body>
     </html>

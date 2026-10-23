@@ -65,16 +65,16 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
   return (
     <Container className="pt-8">
       {sp.welcome && (
-        <Callout tone="success" icon={<Sparkles className="h-5 w-5" />} title={`Welcome to Herbal Holland Rewards, ${m.customer.firstName}!`} className="mb-8">
+        <Callout tone="success" icon={<Sparkles className="h-5 w-5" />} title={`Welcome to Herbal Holland Rewards, ${m.customer.firstName}!`} className="hh-enter mb-8">
           {launch.preLaunch && launch.at
             ? `Your card is ready, and you're on the Founding Members list until ${fmtDate(launch.at)}. Share your link below to move up; ${fmtPoints(settings.loyalty.signupBonus)} are already on your card.`
             : `Your card is ready. Show the QR code at any till to earn points. We've added ${fmtPoints(settings.loyalty.signupBonus)} to get you started.`}
         </Callout>
       )}
-      {sp.welcome && <InstallPrompt app="rewards" priority className="mb-8" />}
+      {sp.welcome && <InstallPrompt app="rewards" priority className="hh-enter mb-8 [--hh-delay:250ms]" />}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
         <div className="space-y-4">
-          <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} firstYear={!m.customer.foundingNo && !!m.floor} floorUntil={floorUntil} />
+          <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} firstYear={!m.customer.foundingNo && !!m.floor} floorUntil={floorUntil} className={sp.welcome ? "hh-shimmer-once" : undefined} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
           <WalletButtons />
           {!sp.welcome && <InstallPrompt app="rewards" />}

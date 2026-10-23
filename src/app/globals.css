@@ -178,3 +178,72 @@
     .hh-buybar { transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.35s; }
   }
 }
+
+/*
+ * ── Motion ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+ * The shop's motion, gated twice: the media query (reduced motion off), and html.motion, which the head snippet
+ * (src/lib/csp.ts HEAD_SNIPPET) adds before the first paint on devices that can carry it (not with Save-Data or 2 GB of
+ * memory or less; the same rule as herbalholland.com). Without JavaScript nothing moves and everything is visible.
+ * Everything here animates transform and opacity only.
+ *   .hh-enter          rises in on load (the hero); .hh-stagger on the same element animates its children instead,
+ *                      60 ms apart (--i, set for the first twelve). --hh-delay holds an element back.
+ *   .hh-reveal         hidden until the Reveal component (src/components/shop/motion.tsx) sets data-in as it scrolls
+ *                      into view, then rises; with .hh-stagger the children rise one after the other.
+ *   .hh-press          a press on buttons and tiles; .hh-lift a hover lift on cards (simple feedback: not gated on
+ *                      html.motion, only on the media query).
+ *   .hh-draw           the Mark's strokes draw in (the window poster); .hh-glow one pulse of brand light around a frame.
+ *   .hh-shimmer-once   one diagonal highlight across a card (the Rewards card when it is new); .hh-skeleton a loading
+ *                      placeholder with a moving sheen.
+ */
+@layer base {
+  :root {
+    --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+    --dur-fast: 160ms;
+    --dur: 420ms;
+    --dur-slow: 900ms;
+  }
+}
+@keyframes hh-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes hh-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes hh-draw { to { stroke-dashoffset: 0; } }
+@keyframes hh-glow { 0% { opacity: 0; transform: scale(0.96); } 35% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.04); } }
+@keyframes hh-shimmer { from { transform: translateX(-120%) skewX(-12deg); } to { transform: translateX(120%) skewX(-12deg); } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .hh-press { transition: transform var(--dur-fast) var(--ease-out-expo); }
+  .hh-press:active { transform: scale(0.97); }
+  .hh-lift { transition: transform var(--dur-fast) ease-out, box-shadow var(--dur-fast) ease-out, border-color var(--dur-fast) ease-out; }
+  .hh-lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+  .hh-lift.hh-press:active { transform: scale(0.97); }
+
+  html.motion .hh-enter:not(.hh-stagger), html.motion .hh-enter.hh-stagger > * { animation: hh-rise var(--dur) var(--ease-out-expo) var(--hh-delay, 0ms) both; }
+  html.motion .hh-reveal:not(.hh-stagger):not([data-in]), html.motion .hh-reveal.hh-stagger:not([data-in]) > * { opacity: 0; }
+  html.motion .hh-reveal:not(.hh-stagger)[data-in], html.motion .hh-reveal.hh-stagger[data-in] > * { animation: hh-rise var(--dur) var(--ease-out-expo) var(--hh-delay, 0ms) both; }
+  html.motion .hh-stagger > * { animation-delay: calc(var(--hh-delay, 0ms) + var(--i, 0) * 60ms); }
+  .hh-stagger > :nth-child(2) { --i: 1; } .hh-stagger > :nth-child(3) { --i: 2; } .hh-stagger > :nth-child(4) { --i: 3; }
+  .hh-stagger > :nth-child(5) { --i: 4; } .hh-stagger > :nth-child(6) { --i: 5; } .hh-stagger > :nth-child(7) { --i: 6; }
+  .hh-stagger > :nth-child(8) { --i: 7; } .hh-stagger > :nth-child(9) { --i: 8; } .hh-stagger > :nth-child(10) { --i: 9; }
+  .hh-stagger > :nth-child(11) { --i: 10; } .hh-stagger > :nth-child(n + 12) { --i: 11; }
+
+  /* The lock-up in the window poster: strokes draw (a dash longer than any path, so each draws at its own pace), the
+     dots and the wordmark follow. */
+  html.motion .hh-draw svg path { stroke-dasharray: 260; stroke-dashoffset: 260; animation: hh-draw 1.4s var(--ease-out-expo) 0.1s both; }
+  html.motion .hh-draw svg circle { animation: hh-fade var(--dur) ease-out 0.9s both; }
+  html.motion .hh-draw > :last-child { animation: hh-rise var(--dur) var(--ease-out-expo) 0.7s both; }
+  html.motion .hh-glow::after { content: ""; position: absolute; inset: -16px; z-index: -1; border-radius: inherit; pointer-events: none; box-shadow: 0 0 80px 18px rgb(245 145 60 / 0.45); opacity: 0; animation: hh-glow 1.6s ease-out 0.4s 1 both; }
+
+  html.motion .hh-shimmer-once::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.2) 50%, transparent 62%); transform: translateX(-120%) skewX(-12deg); animation: hh-shimmer 1.2s ease-in-out 0.7s 1 both; }
+  .hh-skeleton::after { animation: hh-shimmer 1.4s ease-in-out infinite; }
+
+  /* Page swaps (React's ViewTransition in the shop and Rewards layouts): a short cross-fade, only with html.motion. */
+  html.motion::view-transition-old(.hh-page) { animation: hh-fade 220ms ease-out reverse both; }
+  html.motion::view-transition-new(.hh-page) { animation: hh-fade 220ms ease-out both; }
+}
+.hh-skeleton { position: relative; overflow: hidden; background: var(--color-ink-900); border-radius: 0.75rem; }
+.hh-skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.06) 50%, transparent 65%); transform: translateX(-120%) skewX(-12deg); }
+/* The swap itself must stay instant for everyone who should not see it move (and clicks pass through while it runs). */
+::view-transition { pointer-events: none; }
+html:not(.motion)::view-transition-old(*), html:not(.motion)::view-transition-new(*), html:not(.motion)::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
+}

@@ -5,6 +5,7 @@ import { shopPhase } from "@/server/shop/context";
 import { canBuyOnline } from "@/lib/launch-phase";
 import { ProductArt } from "@/components/product/art";
 import { ProductCardView } from "./product-card-view";
+import { Reveal } from "./motion";
 import { cn } from "@/lib/cn";
 import type { ProductCard as Card } from "@/server/shop/catalogue";
 
@@ -23,7 +24,7 @@ export async function ProductGrid({ items, buyable, className, eager = false }: 
   const customer = await getCustomer();
   const [wished, photos] = await Promise.all([customer ? wishlistVariantIds(customer.id) : null, mainImages(items.map((p) => p.id))]);
   return (
-    <div className={cn("grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4", className)}>
+    <Reveal stagger className={cn("grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4", className)}>
       {items.map((p, i) => {
         const photo = photos.get(p.id);
         return (
@@ -44,6 +45,6 @@ export async function ProductGrid({ items, buyable, className, eager = false }: 
           />
         );
       })}
-    </div>
+    </Reveal>
   );
 }

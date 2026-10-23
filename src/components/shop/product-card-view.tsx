@@ -34,7 +34,7 @@ export function StockLine({ stock, online = true, className }: { stock: Card["st
 export function ProductCardView({ p, art, buyable = true, online = true, wished = null }: { p: Card; art: React.ReactNode; buyable?: boolean; online?: boolean; wished?: boolean | null }) {
   const low = (p.stock.kind === "store" || p.stock.kind === "ships") && p.stock.low;
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 transition duration-300 hover:-translate-y-0.5 hover:border-ink-600 hover:shadow-[0_18px_40px_-20px_rgb(245_145_60/0.35)]">
+    <article className="hh-lift hh-press group relative flex flex-col overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 hover:border-ink-600">
       <div className="relative aspect-square overflow-hidden">
         {art}
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">

@@ -5,6 +5,7 @@ import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { listDrops } from "@/server/shop/launch";
 import { DropCardView } from "@/components/shop/launch-cards";
+import { Reveal } from "@/components/shop/motion";
 import { Callout, Container, Pager } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
 import { pageParam } from "@/components/ui/pagination";
@@ -73,11 +74,11 @@ export default async function DropsPage({ searchParams }: { searchParams: Promis
           <h2 id="live" className="font-display text-2xl font-semibold text-white">
             Live now
           </h2>
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Reveal stagger className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {live.map((d) => (
               <DropCardView key={d.id} d={d} />
             ))}
-          </div>
+          </Reveal>
         </section>
       )}
 
@@ -87,11 +88,11 @@ export default async function DropsPage({ searchParams }: { searchParams: Promis
             Coming up
           </h2>
           <p className="mt-1 text-sm text-ink-400">Countdowns show when each drop opens for you.</p>
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Reveal stagger className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {upcoming.map((d) => (
               <DropCardView key={d.id} d={d} />
             ))}
-          </div>
+          </Reveal>
         </section>
       )}
 
@@ -101,11 +102,11 @@ export default async function DropsPage({ searchParams }: { searchParams: Promis
             Past drops
           </h2>
           <p className="mt-1 text-sm text-ink-400">Anything left from a past drop sells at the usual price, with no limit.</p>
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Reveal stagger className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {past.map((d) => (
               <DropCardView key={d.id} d={d} />
             ))}
-          </div>
+          </Reveal>
           <Pager page={page} pageSize={PAST} total={pastTotal} href={(p) => `/drops?page=${p}#past`} noun="past drops" />
         </section>
       )}
