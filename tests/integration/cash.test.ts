@@ -9,13 +9,18 @@ import { checkShifts, raiseAlerts, runLossRules, visibleAlerts } from "@/server/
 import { approveMonth, monthCommission, releaseHeld, thisMonth } from "@/server/commission";
 import { DEFAULT_LOSS } from "@/lib/loss";
 import { vatOf } from "@/lib/money";
-import { dayKey } from "@/lib/format";
+import { addDays, dayKey, startOfDaySA } from "@/lib/format";
 import { buildWorld, resetDb, type World } from "./world";
 
 let w: World;
 let owner: { id: string; name: string; email: string | null };
 let seq = 0;
-const ago = (days: number, hours = 0) => new Date(Date.now() - days * 86_400_000 - hours * 3_600_000);
+// N days ago, then `hours` earlier but never before that day's SAST midnight: just after midnight, "an hour before" would
+// slip onto the day before and change which day (and how overdue) everything is.
+const ago = (days: number, hours = 0) => {
+  const day = addDays(new Date(), -days);
+  return new Date(Math.max(+day - hours * 3_600_000, +startOfDaySA(day)));
+};
 const actor = (u: { id: string; name: string }) => ({ type: "USER" as const, id: u.id, name: u.name });
 const jpeg = () => new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70])], "slip.jpg", { type: "image/jpeg" });
 const shift = (daysAgo: number, counted: number, expected = counted) =>

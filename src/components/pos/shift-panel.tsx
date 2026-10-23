@@ -15,6 +15,7 @@ import { api, ApiError, errorText } from "./lib/api";
 import { countCash, DENOMINATIONS, denomLabel, isNote } from "./lib/rules";
 import { usePos } from "./context";
 import { CommissionTile } from "./commission-tile";
+import { InviteTile } from "./invite-tile";
 import { DisplayCard, PrinterCard, TrainingCard } from "./hardware-panel";
 import { TrainingShiftCard } from "./training";
 import { Alert, Confirm, EmptyPanel, Field, PosButton, Spinner, TextArea } from "./ui";
@@ -62,6 +63,7 @@ export function ShiftPanel() {
         </div>
         <div className="space-y-5">
           <CommissionTile />
+          {!pos.training && <InviteTile />}
           {shift && x && !closed && !pos.training && <XReportCard x={x} onRefresh={loadX} onPrint={() => pos.print({ kind: "z", report: x })} />}
           {!shift && !closed && !pos.training && <LastShift />}
           <DeviceCard />

@@ -20,7 +20,7 @@ import { closeShift } from "@/server/pos/shift";
 import type { PosStaff } from "@/server/pos/http";
 import { countCash, DENOMINATIONS } from "@/components/pos/lib/rules";
 import { supplierParty } from "@/lib/ledger";
-import { addDays, dayKey } from "@/lib/format";
+import { addDays, dayKey, startOfDaySA } from "@/lib/format";
 import { vatOf, vatOnExcl } from "@/lib/money";
 import { makeVoucherCode, voucherExpiry } from "@/lib/vouchers";
 import { buildWorld, resetDb, type World } from "./world";
@@ -211,7 +211,7 @@ describe("cash, expenses and outside suppliers", () => {
     await drain();
     expect((await shown("shift", shift.id))[w.owner.id]).toEqual({ [`cash#${w.store.id}`]: COFFEE + short, [`cash.diff#${w.store.id}`]: -(COFFEE + short) });
 
-    await postPosSale({ id: randomUUID(), number: number(), offline: true, createdAt: new Date(Date.now() - 3_600_000).toISOString(), shiftId: shift.id, lines: [{ variantId: w.coffeeV.id, qty: 1, unitPriceCents: COFFEE }], payments: [{ method: "CASH", amountCents: COFFEE }] }, till());
+    await postPosSale({ id: randomUUID(), number: number(), offline: true, createdAt: new Date(Math.max(Date.now() - 3_600_000, +startOfDaySA(new Date()))).toISOString(), shiftId: shift.id, lines: [{ variantId: w.coffeeV.id, qty: 1, unitPriceCents: COFFEE }], payments: [{ method: "CASH", amountCents: COFFEE }] }, till());
     expect(await db.ledgerQueue.count({ where: { source: "shift", sourceId: shift.id } })).toBe(1);
     await drain();
     expect((await shiftCash(shift.id)).varianceCents).toBe(short);
