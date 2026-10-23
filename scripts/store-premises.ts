@@ -9,13 +9,15 @@ import type { Hours } from "@/server/shop/hours";
 
 const week = (weekday: [string, string], sat: [string, string], sun: [string, string]): Hours => ({ mon: weekday, tue: weekday, wed: weekday, thu: weekday, fri: weekday, sat, sun });
 
-const PREMISES = [
+const PREMISES: { code: string; addressLine: string; suburb: string; city: string; postalCode: string; hours: Hours | null }[] = [
   // Lease: Shop 14, The Hilton Village Centre, Lot 1066 Hilton, Hilton Avenue. The centre lists Mon–Fri 08h00–10h00 (a slip in
   // the lease; weekday closing time taken as 17:00 until HQ confirms), Sat 08h00–13h00, Sun 09h00–13h00.
   { code: "HLT01", addressLine: "Shop 14, Hilton Village Centre, Hilton Avenue", suburb: "Hilton", city: "Hilton", postalCode: "3245", hours: week(["08:00", "17:00"], ["08:00", "13:00"], ["09:00", "13:00"]) },
   // Lease: Shop 10B, Christians Village Shopping Centre, cnr Old Main Road and Inanda Road, Hillcrest. Centre hours Mon–Fri
   // 09h00–21h00, Sat/Sun/public holidays 09h00–22h00.
   { code: "HIL01", addressLine: "Shop 10B, Christians Village Shopping Centre, cnr Old Main Road and Inanda Road", suburb: "Hillcrest", city: "Hillcrest", postalCode: "3610", hours: week(["09:00", "21:00"], ["09:00", "22:00"], ["09:00", "22:00"]) },
+  // The Bluff store (owner's address, 23 Oct 2026); hours still to come from the store.
+  { code: "DBN01", addressLine: "208 Tara Road, Van Riebeeckpark", suburb: "Bluff", city: "Durban", postalCode: "4052", hours: null },
 ];
 
 async function main() {
@@ -27,7 +29,7 @@ async function main() {
     // Each field on its own: only what's still blank is filled, so a correction HQ made to any one of them stays.
     const data: Record<string, unknown> = {};
     for (const k of ["addressLine", "suburb", "city", "postalCode"] as const) if (!st[k]) data[k] = p[k];
-    if (st.hours == null) data.hours = p.hours;
+    if (st.hours == null && p.hours) data.hours = p.hours;
     if (!Object.keys(data).length) { console.log(`${p.code}: already filled in, left as is`); continue; }
     await db.store.update({ where: { id: st.id }, data });
     await audit(db, SYSTEM, "store.update", { entity: "Store", entityId: st.id, storeId: st.id, data: { fields: Object.keys(data), via: "scripts/store-premises.ts" } });
