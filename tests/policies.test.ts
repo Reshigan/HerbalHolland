@@ -1,7 +1,7 @@
 // The returns and delivery policies: every line passes the copy screen (no medical claims), says "members", takes its
 // fees, threshold and cut-off from the settings, states the CPA/ECTA rights, and marks the line counsel must confirm.
 import { describe, expect, it } from "vitest";
-import { LEGAL_DOCS, deliveryPolicy, returnsPolicy, type PolicyBlock, type PolicyFacts } from "@/lib/policies";
+import { LEGAL_DOCS, deliveryPolicy, referralRules, returnsPolicy, type PolicyBlock, type PolicyFacts } from "@/lib/policies";
 import { screenCopy } from "@/lib/compliance";
 
 // As the defaults in HQ → Online orders (settings.ecommerce).
@@ -12,11 +12,11 @@ const facts = (over: Partial<PolicyFacts["ecommerce"]> = {}): PolicyFacts => ({
 const lines = (blocks: PolicyBlock[]) =>
   blocks.flatMap((b) => ("h" in b ? [b.h] : "p" in b ? [b.p] : "important" in b ? b.important : b.list.flatMap((l) => (typeof l === "string" ? [l] : [l.text, l.counsel]))));
 const text = (blocks: PolicyBlock[]) => lines(blocks).join("\n");
-const both = (f = facts()) => [...lines(returnsPolicy(f)), ...lines(deliveryPolicy(f))];
+const both = (f = facts()) => [...lines(returnsPolicy(f)), ...lines(deliveryPolicy(f)), ...lines(referralRules(f, 50))];
 
 describe("shop policies", () => {
   it("are listed with the legal documents (page, footer and sitemap read this)", () => {
-    expect(Object.keys(LEGAL_DOCS)).toEqual(["terms", "privacy", "returns", "delivery"]);
+    expect(Object.keys(LEGAL_DOCS)).toEqual(["terms", "privacy", "returns", "delivery", "referrals"]);
     expect([LEGAL_DOCS.returns.title, LEGAL_DOCS.delivery.title]).toEqual(["Returns & refunds", "Delivery"]);
   });
 
@@ -77,5 +77,21 @@ describe("shop policies", () => {
     expect(d).toContain("If the second attempt fails too");
     expect(d).toContain("tell us as soon as possible");
     expect(d).toContain("by courier from our warehouse");
+  });
+});
+
+describe("referral rules", () => {
+  it("say what counts, the rungs, 18+, no medicines, no cash value and abuse", () => {
+    const r = text(referralRules(facts(), 50));
+    expect(r).toContain("you each get 50 points");
+    expect(r).toContain("Joining alone never counts");
+    expect(r).toContain("3 friends: the tier above the one you hold, for 30 days");
+    expect(r).toContain("10 friends: Windmill Crew status");
+    expect(r).toContain("goes on top of any Founding Member or First Year guarantee");
+    expect(r).not.toContain("you keep that as it is");
+    expect(r).toContain("adults 18+");
+    expect(r).toContain("never apply to licensed medicines");
+    expect(r).toContain("no cash value");
+    expect(r).toContain("fake or duplicate accounts");
   });
 });

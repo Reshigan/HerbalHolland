@@ -16,8 +16,8 @@ live, then national.
 
 ## Backlog (top first; tick when live)
 
-- [ ] **Referral ladder:** 3 friends who join, next tier for a month; 10 friends, Windmill Crew status. Monthly
-      leaderboard per town, prizes as a promotional competition with published rules (CPA s36).
+- [x] **Referral ladder:** 3 friends' first purchases, the next tier for 30 days; 10, Windmill Crew status; rules at
+      /legal/referrals. No prize leaderboard (it would be a promotional competition under CPA s36), so no draw rules needed.
 - [ ] **WhatsApp Status cards:** a 9:16 card for the welcome screen, Founding place, events, drops and specials, each
       carrying the member's referral link, one tap to share.
 - [ ] **Staff referral codes:** each staff member's code on the till; sign-ups credited to them and fed to commission.

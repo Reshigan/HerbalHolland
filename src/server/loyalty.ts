@@ -2,9 +2,11 @@
 // funds them and the redeeming store is reimbursed on the franchise statement.
 import type { Tx } from "./db";
 import { queuePosting } from "./ledger/core";
-import { heldTier, pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
+import { pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
 import { POINTS_SOURCE_KINDS } from "@/lib/ledger-hq";
 import { dayKey } from "@/lib/format";
+import { boostDue, boostFor, effectiveTier } from "@/lib/referral-ladder";
+import { audit, SYSTEM } from "./audit";
 import type { LoyaltyKind } from "@/generated/prisma/client";
 
 export class LoyaltyError extends Error {}
@@ -49,7 +51,7 @@ export async function recordPurchase(
   // The member's row first (no row locks on D1: writes are serialised, so the second of two first purchases sees the first).
   const before = await t.customer.findUniqueOrThrow({ where: { id: a.customerId } });
   const spend = await spend12m(t, a.customerId);
-  const tier = heldTier(tierFor(spend).key as TierKey, before.tierFloor, before.tierFloorUntil, a.at);
+  const tier = effectiveTier(tierFor(spend).key as TierKey, before.tierFloor, before.tierFloorUntil, before.boostTier, before.boostUntil, a.at);
   const points = pointsFor(a.paidCents, tier, a.multiplier, a.earnPer100);
   await t.customer.update({
     where: { id: a.customerId },
@@ -66,6 +68,40 @@ export async function recordPurchase(
   if (before.visits === 0 && before.referredById && a.referralBonus > 0) {
     await addPoints(t, { customerId: a.customerId, points: a.referralBonus, kind: "REFERRAL", storeId: a.storeId, note: "Welcome: you were referred" });
     await addPoints(t, { customerId: before.referredById, points: a.referralBonus, kind: "REFERRAL", storeId: a.storeId, note: `Referral: ${before.firstName}` });
+    await climbReferralLadder(t, before.referredById, a.at);
   }
   return { points, tier, tierChanged: tier !== before.tier };
+}
+
+/** Friends who joined with this member's link and have made their first purchase (joins alone never count). */
+export async function qualifiedReferrals(t: Tx, customerId: string) {
+  return t.customer.count({ where: { referredById: customerId, firstPurchaseAt: { not: null } } });
+}
+
+/**
+ * The referral ladder, right after a referrer is paid for a friend's first purchase (this friend's firstPurchaseAt is
+ * already set). From 3 qualified referrals the referrer gets the tier above the one they hold for 30 days, as a boost
+ * kept apart from any tier floor (a Founding or First Year guarantee carries on underneath it); 10 is Windmill Crew,
+ * derived from the count and never stored. Granted once per member: the audit row is the receipt, so a member already
+ * past 3 when the ladder started gets it with their next qualifying friend, and never again after that.
+ */
+async function climbReferralLadder(t: Tx, referrerId: string, at: Date) {
+  const count = await qualifiedReferrals(t, referrerId);
+  if (!boostDue(count, false)) return;
+  const granted = !!(await t.auditLog.findFirst({ where: { action: "customer.referral_ladder", entityId: referrerId }, select: { id: true } }));
+  if (!boostDue(count, granted)) return;
+  const r = await t.customer.findUnique({ where: { id: referrerId }, select: { tier: true, tierFloor: true, tierFloorUntil: true, boostTier: true, boostUntil: true } });
+  if (!r) return;
+  const spendTier = tierFor(await spend12m(t, referrerId)).key as TierKey;
+  const from = effectiveTier(spendTier, r.tierFloor, r.tierFloorUntil, r.boostTier, r.boostUntil, at);
+  const boost = boostFor(from, at);
+  // The marker goes first: if the run stops between the two writes the boost is missed (HQ can grant it), never doubled.
+  await audit(t, SYSTEM, "customer.referral_ladder", {
+    entity: "Customer", entityId: referrerId,
+    data: { qualified: count, from, boost: boost.tier, until: boost.until.toISOString() },
+  });
+  await t.customer.update({
+    where: { id: referrerId },
+    data: { boostTier: boost.tier, boostUntil: boost.until, tier: effectiveTier(spendTier, r.tierFloor, r.tierFloorUntil, boost.tier, boost.until, at) },
+  });
 }

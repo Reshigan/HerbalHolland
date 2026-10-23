@@ -5,12 +5,14 @@
 // the copy. Links are written [label](href). Every string passes screenCopy and says "members" (tests/policies.test.ts).
 import { MADE_TO_ORDER_LEAD } from "./merch";
 import { zarWhole } from "./money";
+import { BOOST_DAYS, RUNGS } from "./referral-ladder";
 
 export const LEGAL_DOCS = {
   terms: { title: "Membership terms", dek: "The agreement you accept when you become a Herbal Holland member, whether online, in the Rewards app or at the till." },
   privacy: { title: "Privacy notice", dek: "How we collect, use and protect your personal information under POPIA." },
   returns: { title: "Returns & refunds", dek: "What you can send back, how to do it and how your refund works." },
   delivery: { title: "Delivery", dek: "Where we deliver, what it costs, when it arrives and who can receive it." },
+  referrals: { title: "Referral rules", dek: "How inviting friends to Herbal Holland Rewards works, what counts and what you can earn." },
 } as const;
 export type LegalSlug = keyof typeof LEGAL_DOCS;
 
@@ -85,6 +87,48 @@ export function returnsPolicy(f: PolicyFacts): PolicyBlock[] {
     { h: "In store" },
     { p: "You may return unopened, non-consumable items within 7 days, with proof of purchase, if you change your mind. Opened consumables, and medicines once dispensed, can't be returned unless they're faulty or recalled." },
     { p: "Not happy with how we've handled a return? See “Complaints” in our [membership terms](/legal/terms)." },
+  ];
+}
+
+/** The referral ladder's rules (/legal/referrals). `bonus`: the referral points each side gets (HQ settings). */
+export function referralRules(f: PolicyFacts, bonus: number): PolicyBlock[] {
+  const rungs = RUNGS.map((r) => `${r.at} friends: ${r.kind === "BOOST" ? `the tier above the one you hold, for ${BOOST_DAYS} days (Harvest members keep Harvest for ${BOOST_DAYS} days)` : `${r.reward}, a badge on your Rewards card page. It carries no discount.`}`);
+  return [
+    { p: `Herbal Holland Rewards is run by ${f.entity} (“Herbal Holland”, “we”). These rules are part of our [membership terms](/legal/terms).` },
+    { h: "How your link works" },
+    {
+      list: [
+        `Every member has a personal invite link and code on their Rewards page. Share it only with friends who are adults (${f.minAge}+).`,
+        "Your friend joins Herbal Holland Rewards with your link or code.",
+        `When your friend makes their first purchase, in a store or online, you each get ${bonus} points.`,
+      ],
+    },
+    { h: "What counts" },
+    {
+      list: [
+        "A friend counts once they've made their first purchase. Joining alone never counts.",
+        "Each person can be referred once, and only by one member. You can't refer yourself.",
+      ],
+    },
+    { h: "The referral ladder" },
+    { list: rungs },
+    {
+      list: [
+        "A higher tier from the ladder is yours for the time shown, whatever you spend. After that, your tier goes back to what your spend over the last 12 months earns, or to a tier you hold for longer as a Founding or First Year Member.",
+        `The ladder's tier goes on top of any Founding Member or First Year guarantee you hold: for ${BOOST_DAYS} days you hold the tier above it, and your guarantee carries on as before once those days are over.`,
+        "Each step is given once per member. If 3 or more of your friends already counted before the ladder began, the tier comes with your next friend's first purchase.",
+      ],
+    },
+    { h: "Fine print" },
+    {
+      list: [
+        `Membership, and so referrals, are for adults ${f.minAge}+ only.`,
+        "Rewards never apply to licensed medicines: whatever tier you hold, they earn no points, get no member savings and can't be paid for with points (Medicines Act s18A).",
+        "Points and rewards have no cash value and can't be exchanged for cash or transferred.",
+        "We may withhold or withdraw referral rewards, and close accounts, where we find abuse: fake or duplicate accounts, referring yourself, or paying people to sign up.",
+        `Questions: ${mail(f.email)}.`,
+      ],
+    },
   ];
 }
 

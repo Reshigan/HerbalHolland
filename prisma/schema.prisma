@@ -600,6 +600,8 @@ model Customer {
   tier               Tier      @default(SEED)
   tierFloor          Tier? // guaranteed minimum tier until tierFloorUntil (founding members start at Sprout)
   tierFloorUntil     DateTime?
+  boostTier          Tier? // referral ladder: a tier held until boostUntil, apart from (and on top of) any tierFloor
+  boostUntil         DateTime?
   foundingNo         Int?      @unique // Founding Member number: waitlist place at launch
   personalisedOffers Boolean   @default(true) // POPIA: members may object to personalised offers (My Deals)
   homeStore          Store?    @relation(fields: [homeStoreId], references: [id])

@@ -9,6 +9,7 @@ import { SEGMENT_TONE, hrefWith } from "@/server/store/rules";
 import { NO_STATS, memberAtStore, statsHere } from "@/server/store/members";
 import { SEGMENTS, segmentOf } from "@/lib/rfm";
 import { fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
+import { holdingGuarantee } from "@/lib/referral-ladder";
 import { ageOn, displayPhone } from "@/lib/sa";
 import { zar } from "@/lib/money";
 import { fmtDate, fmtDateTime, timeAgo } from "@/lib/format";
@@ -65,6 +66,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const founder = c.foundingNo != null;
   const base = `/store/${store.code}`;
   const now = new Date();
+  const hold = holdingGuarantee(c.tierFloor, c.tierFloorUntil, c.boostTier, c.boostUntil, now);
   const consent: Record<MsgChannel, boolean> = { SMS: c.consentSms, WHATSAPP: c.consentWhatsapp, EMAIL: c.consentEmail, PUSH: c.consentPush };
 
   return (
@@ -92,7 +94,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         <Stat
           label={`${tier.name} tier`}
           value={`${settings.loyalty.tierSavingsPct[c.tier as TierKey] ?? 0}% off`}
-          sub={c.tierFloor && c.tierFloorUntil && c.tierFloorUntil > now ? `${founder ? "Founding Member · " : ""}at least ${tierInfo(c.tierFloor as TierKey).name} to ${fmtDate(c.tierFloorUntil)}` : "instant saving on every visit"}
+          sub={hold ? `${hold.kind === "BOOST" ? "Referral boost · " : founder ? "Founding Member · " : ""}at least ${tierInfo(hold.tier).name} to ${fmtDate(hold.until)}` : "instant saving on every visit"}
         />
       </div>
 

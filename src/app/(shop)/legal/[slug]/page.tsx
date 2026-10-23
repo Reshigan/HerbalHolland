@@ -8,7 +8,7 @@ import { MembershipTerms } from "@/components/shop/legal/membership-terms";
 import { PolicyBody } from "@/components/shop/legal/policy";
 import { Callout, Container } from "@/components/shop/ui";
 import { H2, P } from "@/components/shop/learn/bodies";
-import { LEGAL_DOCS as DOCS, deliveryPolicy, returnsPolicy, type LegalSlug as Slug } from "@/lib/policies";
+import { LEGAL_DOCS as DOCS, deliveryPolicy, referralRules, returnsPolicy, type LegalSlug as Slug } from "@/lib/policies";
 import { metaDescription, pageTitle } from "@/lib/seo";
 import { contactEmailOf, legalNameOf } from "@/lib/contact";
 
@@ -61,6 +61,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
         {slug === "terms" && <MembershipTerms c={c} s={settings} />}
         {slug === "returns" && <PolicyBody blocks={returnsPolicy(facts)} counsel={underReview} />}
         {slug === "delivery" && <PolicyBody blocks={deliveryPolicy(facts)} counsel={underReview} />}
+        {slug === "referrals" && <PolicyBody blocks={referralRules(facts, settings.loyalty.referralBonus)} counsel={underReview} />}
         {slug === "privacy" && (
           <>
             <H2>Responsible party</H2>

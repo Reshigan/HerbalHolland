@@ -81,6 +81,40 @@ describe("Founding Members list", () => {
   });
 });
 
+describe("Referral ladder boost", () => {
+  const buy = (customerId: string, cents = 1000) =>
+    tx((t) => recordPurchase(t, { customerId, storeId: w.store.id, paidCents: cents, totalCents: cents, multiplier: 1, saleId: randomUUID(), at: new Date(), earnPer100: 5, referralBonus: 10 }));
+  const get = (id: string) => db.customer.findUniqueOrThrow({ where: { id } });
+  const markers = (id: string) => db.auditLog.count({ where: { action: "customer.referral_ladder", entityId: id } });
+
+  it("boosts above a founding floor from the next friend past 3, once, and each lapses on its own", async () => {
+    const r = await member(70, { tier: "SPROUT", tierFloor: "SPROUT", tierFloorUntil: new Date(Date.now() + 200 * 86_400_000) });
+    // Three friends already counted before the ladder began (no marker): the fourth's first purchase gives the boost.
+    for (const i of [71, 72, 73]) await member(i, { referredById: r.id, firstPurchaseAt: new Date() });
+    const fourth = await member(74, { referredById: r.id });
+    await buy(fourth.id);
+    expect(await get(r.id)).toMatchObject({ tier: "BLOOM", boostTier: "BLOOM", tierFloor: "SPROUT" });
+    expect(await markers(r.id)).toBe(1);
+    // A fifth friend: no second boost.
+    await buy((await member(75, { referredById: r.id })).id);
+    expect(await markers(r.id)).toBe(1);
+    // The member's own small purchase keeps the boosted tier.
+    await buy(r.id);
+    expect((await get(r.id)).tier).toBe("BLOOM");
+
+    // The boost lapses: back to the founding floor, which carries on.
+    await db.customer.update({ where: { id: r.id }, data: { boostUntil: new Date(Date.now() - 1000) } });
+    expect(await expireTierFloors()).toMatchObject({ expired: 0, boostsExpired: 1 });
+    expect(await get(r.id)).toMatchObject({ tier: "SPROUT", boostTier: null, boostUntil: null, tierFloor: "SPROUT" });
+    expect(await expireTierFloors()).toMatchObject({ expired: 0, boostsExpired: 0 }); // idempotent
+
+    // The floor lapses while a boost runs: the boost holds.
+    await db.customer.update({ where: { id: r.id }, data: { tier: "BLOOM", boostTier: "BLOOM", boostUntil: new Date(Date.now() + 10 * 86_400_000), tierFloorUntil: new Date(Date.now() - 1000) } });
+    expect(await expireTierFloors()).toMatchObject({ expired: 1, boostsExpired: 0 });
+    expect(await get(r.id)).toMatchObject({ tier: "BLOOM", boostTier: "BLOOM", tierFloor: null, tierFloorUntil: null });
+  });
+});
+
 describe("Drops", () => {
   it("opens early for higher tiers, is members-only and limits each member", async () => {
     await db.drop.create({

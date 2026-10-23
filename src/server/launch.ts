@@ -2,7 +2,7 @@
 // shop trades as normal. A member's place is their join order, moved up `referralBoost` places for every friend who
 // joins before it closes. Then the first `foundingCap` places become numbered Founding Members who hold at least
 // `foundingTier` for `foundingMonths` (Customer.tierFloor); the rest of the list become First Year Members, holding the
-// same tier for `firstYearMonths`.
+// same tier for `firstYearMonths`. A referral boost (Customer.boostTier) is held apart and never blocks either.
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
 import { getSettings } from "./settings";
@@ -73,18 +73,35 @@ export async function assignFounding(now = new Date()) {
   return { assigned, firstYear };
 }
 
-/** When a floor lapses, members drop back to the tier their 12-month spend earns. */
+/**
+ * When a tier floor or a referral boost lapses, it is cleared and the member holds the highest of what their 12-month
+ * spend earns and whichever of the two is still running (lib/referral-ladder effectiveTier). Idempotent: a member is
+ * only touched while something of theirs has lapsed and not yet been cleared.
+ */
 export async function expireTierFloors(now = new Date()) {
-  const cases = Prisma.join(
-    [...TIERS].reverse().map((t) => Prisma.sql`WHEN coalesce(s.spend, 0) >= ${t.minCents} THEN ${t.key}`),
+  const since = new Date(now.getTime() - 365 * 86_400_000);
+  const spendRank = Prisma.sql`CASE ${Prisma.join(
+    TIERS.map((t, i) => [t, i] as const).reverse().map(([t, i]) => Prisma.sql`WHEN coalesce(s.spend, 0) >= ${t.minCents} THEN ${i}`),
     " ",
-  );
-  const expired = await db.$executeRaw`
-    UPDATE "Customer" AS c SET tier = CASE ${cases} END, "tierFloor" = NULL, "tierFloorUntil" = NULL
+  )} ELSE 0 END`;
+  const floorRank = Prisma.sql`CASE WHEN c."tierFloorUntil" > ${now} THEN ${tierRank(Prisma.sql`c."tierFloor"`)} ELSE 0 END`;
+  const boostRank = Prisma.sql`CASE WHEN c."boostUntil" > ${now} THEN ${tierRank(Prisma.sql`c."boostTier"`)} ELSE 0 END`;
+  const tierOf = (rank: Prisma.Sql) => Prisma.sql`CASE ${rank} ${Prisma.join(TIERS.map((t, i) => Prisma.sql`WHEN ${i} THEN ${t.key}`), " ")} END`;
+  const [{ floors, boosts }] = await db.$queryRaw<{ floors: number | bigint | null; boosts: number | bigint | null }[]>`
+    SELECT sum(CASE WHEN "tierFloorUntil" <= ${now} THEN 1 ELSE 0 END) AS floors, sum(CASE WHEN "boostUntil" <= ${now} THEN 1 ELSE 0 END) AS boosts
+    FROM "Customer" WHERE "tierFloorUntil" <= ${now} OR "boostUntil" <= ${now}`;
+  if (!Number(floors ?? 0) && !Number(boosts ?? 0)) return { expired: 0, boostsExpired: 0 };
+  await db.$executeRaw`
+    UPDATE "Customer" AS c SET
+      tier = ${tierOf(Prisma.sql`max(${spendRank}, ${floorRank}, ${boostRank})`)},
+      "tierFloor" = CASE WHEN c."tierFloorUntil" <= ${now} THEN NULL ELSE c."tierFloor" END,
+      "tierFloorUntil" = CASE WHEN c."tierFloorUntil" <= ${now} THEN NULL ELSE c."tierFloorUntil" END,
+      "boostTier" = CASE WHEN c."boostUntil" <= ${now} THEN NULL ELSE c."boostTier" END,
+      "boostUntil" = CASE WHEN c."boostUntil" <= ${now} THEN NULL ELSE c."boostUntil" END
     FROM (
-      SELECT x.id, (SELECT sum(sa."totalCents") FROM "Sale" sa WHERE sa."customerId" = x.id AND sa."createdAt" > ${new Date(now.getTime() - 365 * 86_400_000)}) AS spend
-      FROM "Customer" x WHERE x."tierFloorUntil" <= ${now}
+      SELECT x.id, (SELECT sum(sa."totalCents") FROM "Sale" sa WHERE sa."customerId" = x.id AND sa."createdAt" > ${since}) AS spend
+      FROM "Customer" x WHERE x."tierFloorUntil" <= ${now} OR x."boostUntil" <= ${now}
     ) s
     WHERE c.id = s.id`;
-  return { expired };
+  return { expired: Number(floors ?? 0), boostsExpired: Number(boosts ?? 0) };
 }
