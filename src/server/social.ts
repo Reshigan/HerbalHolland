@@ -5,11 +5,11 @@
 // in R2 first and served at /social/cards/<name>.jpg; the brand pictures are public/social already. A video (MP4) goes
 // to TikTok, YouTube Shorts and X; the other networks get the picture. docs/INTEGRATIONS.md → Connecting the networks.
 import { APP_URL } from "./invoices";
-import { getObject, putObject } from "./storage";
+import { deleteObject, getObject, putObject } from "./storage";
 import { db } from "./db";
 import { audit, SYSTEM } from "./audit";
 import { accounts, freshToken, PROVIDERS, type Account, type OAuthNetwork } from "./social/oauth";
-import { captionFor, SOCIAL_NETWORKS, type SocialChannel } from "@/lib/social";
+import { captionFor, SOCIAL_NETWORKS, tiktokChunkPlan, type SocialChannel } from "@/lib/social";
 import { asList } from "@/lib/json-list";
 
 export class SocialError extends Error {}
@@ -31,9 +31,16 @@ const THREADS = "https://graph.threads.net/v1.0";
 const BSKY = "https://bsky.social/xrpc";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** An upload address a network handed us must be the network's own: nothing is sent anywhere else. */
+function trusted(who: string, url: string, host: string) {
+  const h = new URL(url).hostname;
+  if (new URL(url).protocol !== "https:" || !(h === host || h.endsWith(`.${host}`))) throw new SocialError(`${who} gave an upload address outside ${host}`);
+  return url;
+}
+
 /** One HTTP call to a network: JSON back, or a SocialError saying who refused and why. */
 async function call<T>(who: string, url: string, init: RequestInit = {}): Promise<T> {
-  const r = await fetch(url, { ...init, signal: AbortSignal.timeout(30_000) }).catch((e) => {
+  const r = await fetch(url, { ...init, signal: init.signal ?? AbortSignal.timeout(30_000) }).catch((e) => {
     throw new SocialError(`Couldn't reach ${who} (${e instanceof Error ? e.message : e})`);
   });
   const text = await r.text();
@@ -135,14 +142,11 @@ async function tiktokWait(token: string, publishId: string) {
   return undefined; // still processing: the post arrives on its own
 }
 
-/** Uploads bytes in the chunks TikTok asks for (each 5–64 MB, the last one may be bigger; under 5 MB goes whole). */
-async function tiktokUpload(uploadUrl: string, bytes: Uint8Array, type: string, chunk: number) {
-  for (let start = 0; start < bytes.length; start += chunk) {
-    const last = start + chunk >= bytes.length || bytes.length - (start + chunk) < chunk; // the final chunk takes the remainder
-    const end = last ? bytes.length : start + chunk;
-    const r = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": type, "Content-Length": String(end - start), "Content-Range": `bytes ${start}-${end - 1}/${bytes.length}` }, body: body(bytes.slice(start, end)), signal: AbortSignal.timeout(120_000) });
+/** Uploads the bytes in the chunks the plan declared to TikTok at init (tiktokChunkPlan), in order. */
+async function tiktokUpload(uploadUrl: string, bytes: Uint8Array, type: string, ranges: { start: number; end: number }[]) {
+  for (const { start, end } of ranges) {
+    const r = await fetch(trusted("TikTok", uploadUrl, "tiktokapis.com"), { method: "PUT", headers: { "Content-Type": type, "Content-Length": String(end - start), "Content-Range": `bytes ${start}-${end - 1}/${bytes.length}` }, body: body(bytes.slice(start, end)), signal: AbortSignal.timeout(120_000) });
     if (!r.ok && r.status !== 206) throw new SocialError(`TikTok refused the upload (${r.status})`);
-    if (last) break;
   }
 }
 
@@ -153,12 +157,12 @@ const OAUTH_ADAPTERS: Record<OAuthNetwork, (m: Media, token: string, a: Account)
     let r: { data: { publish_id: string; upload_url?: string } };
     if (video) {
       const bytes = await video.bytes();
-      const chunk = bytes.length < 5 * 1024 * 1024 ? bytes.length : Math.min(bytes.length, 32 * 1024 * 1024);
+      const plan = tiktokChunkPlan(bytes.length);
       r = await call("TikTok", `${TIKTOK}/post/publish/video/init/`, {
-        ...json({ post_info: { ...post_info, video_cover_timestamp_ms: 1000 }, source_info: { source: "FILE_UPLOAD", video_size: bytes.length, chunk_size: chunk, total_chunk_count: Math.floor(bytes.length / chunk) } }),
+        ...json({ post_info: { ...post_info, video_cover_timestamp_ms: 1000 }, source_info: { source: "FILE_UPLOAD", video_size: bytes.length, chunk_size: plan.chunk, total_chunk_count: plan.count } }),
         headers: authed(token, { "Content-Type": "application/json; charset=UTF-8" }),
       });
-      await tiktokUpload(r.data.upload_url!, bytes, video.type, chunk);
+      await tiktokUpload(r.data.upload_url!, bytes, video.type, plan.ranges);
     } else {
       if (!image) throw new SocialError("TikTok needs a video or a picture");
       r = await call("TikTok", `${TIKTOK}/post/publish/content/init/`, {
@@ -182,7 +186,7 @@ const OAUTH_ADAPTERS: Record<OAuthNetwork, (m: Media, token: string, a: Account)
     });
     const session = start.headers.get("location");
     if (!start.ok || !session) throw new SocialError(`YouTube said ${start.status}: ${(await start.text()).slice(0, 200)}`);
-    const r = await call<{ id: string }>("YouTube", session, { method: "PUT", headers: { "Content-Type": video.type, "Content-Length": String(bytes.length) }, body: body(bytes), signal: AbortSignal.timeout(300_000) });
+    const r = await call<{ id: string }>("YouTube", trusted("YouTube", session, "googleapis.com"), { method: "PUT", headers: { "Content-Type": video.type, "Content-Length": String(bytes.length) }, body: body(bytes), signal: AbortSignal.timeout(300_000) });
     return { id: r.id, link: `https://youtube.com/shorts/${r.id}` };
   },
   // The owner's own profile (Share on LinkedIn needs no approval); the picture is uploaded first.
@@ -192,7 +196,7 @@ const OAUTH_ADAPTERS: Record<OAuthNetwork, (m: Media, token: string, a: Account)
     let media: unknown;
     if (image) {
       const init = await call<{ value: { uploadUrl: string; image: string } }>("LinkedIn", "https://api.linkedin.com/rest/images?action=initializeUpload", { ...json({ initializeUploadRequest: { owner: author } }), headers: h });
-      const up = await fetch(init.value.uploadUrl, { method: "PUT", headers: { "Content-Type": "image/jpeg" }, body: body(await image.bytes()), signal: AbortSignal.timeout(60_000) });
+      const up = await fetch(trusted("LinkedIn", init.value.uploadUrl, "linkedin.com"), { method: "PUT", headers: { "Content-Type": "image/jpeg" }, body: body(await image.bytes()), signal: AbortSignal.timeout(60_000) });
       if (!up.ok) throw new SocialError(`LinkedIn refused the picture (${up.status})`);
       media = { id: init.value.image, altText: "Herbal Holland" };
     }
@@ -263,6 +267,17 @@ export async function socialChannels(): Promise<SocialChannel[]> {
   });
   const signedIn = (await accounts()).map((a) => ({ id: a.network, name: a.name, identifier: a.network }));
   return [...bySecret, ...signedIn];
+}
+
+/** Forgets a video no post refers to any more: its Upload row and its file. */
+export async function dropVideo(uploadId: string | null | undefined) {
+  if (!uploadId) return;
+  const used = (await db.studioItem.count({ where: { videoUploadId: uploadId } })) + (await db.socialPost.count({ where: { videoUploadId: uploadId } }));
+  if (used) return;
+  const u = await db.upload.findUnique({ where: { id: uploadId }, select: { key: true } });
+  if (!u) return;
+  await deleteObject(u.key).catch((e) => console.error("[social] video delete failed", u.key, e));
+  await db.upload.delete({ where: { id: uploadId } });
 }
 
 /** A stored video as the networks take it. */

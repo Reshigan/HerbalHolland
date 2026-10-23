@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { captionFor, limitFor, needsImage, screenSocial, SOCIAL_IMAGES } from "@/lib/social";
+import { captionFor, limitFor, needsImage, screenSocial, SOCIAL_IMAGES, tiktokChunkPlan } from "@/lib/social";
 import { publishSocial, socialChannels, socialConnected } from "@/server/social";
 import { checkState, startConnect, type Account } from "@/server/social/oauth";
 import { open, seal } from "@/server/social/box";
@@ -35,6 +35,18 @@ describe("social posts", () => {
     expect(needsImage(["facebook", "instagram"])).toBe(true);
     expect(needsImage(["x"])).toBe(false);
     expect(captionFor("threads", "x".repeat(600), "Short.")).toBe("Short.");
+  });
+  it("plans TikTok's chunks the way its init fields describe them", () => {
+    const MB = 1024 * 1024;
+    expect(tiktokChunkPlan(512)).toEqual({ chunk: 512, count: 1, ranges: [{ start: 0, end: 512 }] });
+    expect(tiktokChunkPlan(40 * MB)).toEqual({ chunk: 40 * MB, count: 1, ranges: [{ start: 0, end: 40 * MB }] }); // one chunk, as declared
+    expect(tiktokChunkPlan(70 * MB)).toEqual({ chunk: 32 * MB, count: 2, ranges: [{ start: 0, end: 32 * MB }, { start: 32 * MB, end: 70 * MB }] }); // the last takes the remainder
+    for (const size of [5 * MB, 33 * MB, 90 * MB]) {
+      const p = tiktokChunkPlan(size);
+      expect(p.count).toBe(Math.floor(size / p.chunk));
+      expect(p.ranges.at(-1)!.end).toBe(size);
+      expect(p.ranges.every((r, i) => (i ? r.start === p.ranges[i - 1].end : r.start === 0))).toBe(true);
+    }
   });
   it("has a picture for every option (npx tsx scripts/merch-export.tsx --social)", () => {
     for (const i of SOCIAL_IMAGES) expect(existsSync(`public/social/${i.key}.jpg`), i.key).toBe(true);
@@ -174,8 +186,8 @@ describe("the signed-in networks", () => {
       if (url.endsWith("/social/windmill-tee.jpg")) return new Response(new Uint8Array([1, 2, 3]));
       if (url.endsWith("/post/publish/content/init/")) return reply({ data: { publish_id: "pub1" } });
       if (url.endsWith("/post/publish/status/fetch/")) return reply({ data: { status: "PUBLISH_COMPLETE", publicaly_available_post_id: ["7001"] } });
-      if (url.includes("rest/images?action=initializeUpload")) return reply({ value: { uploadUrl: "https://li-upload/1", image: "urn:li:image:1" } });
-      if (url.startsWith("https://li-upload/")) return new Response("", { status: 201 });
+      if (url.includes("rest/images?action=initializeUpload")) return reply({ value: { uploadUrl: "https://www.linkedin.com/dms-uploads/1", image: "urn:li:image:1" } });
+      if (url.startsWith("https://www.linkedin.com/dms-uploads/")) return new Response("", { status: 201 });
       if (url.endsWith("/rest/posts")) return new Response("", { status: 201, headers: { "x-restli-id": "urn:li:share:55" } });
       if (url.endsWith("/2/media/upload")) return reply({ data: { id: "m1" } });
       if (url.endsWith("/2/tweets")) return reply({ data: { id: "t1" } });
@@ -204,11 +216,11 @@ describe("the signed-in networks", () => {
     vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
       calls.push({ url, init });
       const reply = (o: unknown, headers: Record<string, string> = {}) => new Response(JSON.stringify(o), { status: 200, headers });
-      if (url.endsWith("/post/publish/video/init/")) return reply({ data: { publish_id: "pub2", upload_url: "https://tt-upload/x?sig=1" } });
-      if (url.startsWith("https://tt-upload/")) return new Response("", { status: 201 });
+      if (url.endsWith("/post/publish/video/init/")) return reply({ data: { publish_id: "pub2", upload_url: "https://open-upload.tiktokapis.com/x?sig=1" } });
+      if (url.startsWith("https://open-upload.tiktokapis.com/")) return new Response("", { status: 201 });
       if (url.endsWith("/post/publish/status/fetch/")) return reply({ data: { status: "PROCESSING_UPLOAD" } });
-      if (url.includes("upload/youtube/v3/videos?uploadType=resumable")) return new Response("", { status: 200, headers: { location: "https://yt-session/1" } });
-      if (url.startsWith("https://yt-session/")) return reply({ id: "vid1" });
+      if (url.includes("upload/youtube/v3/videos?uploadType=resumable")) return new Response("", { status: 200, headers: { location: "https://www.googleapis.com/upload/youtube/v3/videos?upload_id=1" } });
+      if (url.includes("upload_id=1")) return reply({ id: "vid1" });
       return new Response("nope", { status: 404 });
     });
     const bytes = new Uint8Array(1000);
@@ -220,8 +232,27 @@ describe("the signed-in networks", () => {
     expect(r[0]).toEqual({ network: "tiktok", name: "hh", id: "pub2", link: undefined }); // still processing: TikTok posts it when it's done
     expect(r[1]).toEqual({ network: "youtube", name: "HH", id: "vid1", link: "https://youtube.com/shorts/vid1" });
     expect(body(calls.find((c) => c.url.endsWith("/post/publish/video/init/"))!)).toMatchObject({ source_info: { source: "FILE_UPLOAD", video_size: 1000, chunk_size: 1000, total_chunk_count: 1 } });
-    const put = calls.find((c) => c.url.startsWith("https://tt-upload/"))!;
+    const put = calls.find((c) => c.url.startsWith("https://open-upload.tiktokapis.com/"))!;
     expect(put.init?.headers).toMatchObject({ "Content-Range": "bytes 0-999/1000", "Content-Type": "video/mp4" });
     expect(JSON.parse(String(calls.find((c) => c.url.includes("uploadType=resumable"))!.init?.body))).toMatchObject({ snippet: { title: "Opening day #Shorts" }, status: { privacyStatus: "public" } });
+  });
+});
+
+describe("upload addresses", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    signedIn.length = 0;
+  });
+  it("sends a video only to the network's own upload address", async () => {
+    signedIn.push({ network: "youtube", name: "HH", externalId: "UC1", extra: {} });
+    const sent: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      sent.push(url);
+      if (url.includes("uploadType=resumable")) return new Response("", { status: 200, headers: { location: "https://evil.example.com/upload" } });
+      return new Response("{}", { status: 200 });
+    });
+    const r = await publishSocial({ content: "x", picture: null, video: { bytes: async () => new Uint8Array(3), type: "video/mp4", size: 3 }, channels: await socialChannels() });
+    expect(r[0].error).toMatch(/outside googleapis.com/);
+    expect(sent.some((u) => u.includes("evil.example.com"))).toBe(false);
   });
 });

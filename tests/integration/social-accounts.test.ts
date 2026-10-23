@@ -88,9 +88,9 @@ describe("signed-in social accounts", () => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith("/post/publish/video/init/")) {
         inits.push({ url, init });
-        return Response.json({ data: { publish_id: "pub7", upload_url: "https://tt-upload/7" } });
+        return Response.json({ data: { publish_id: "pub7", upload_url: "https://open-upload.tiktokapis.com/7" } });
       }
-      if (url.startsWith("https://tt-upload/")) {
+      if (url.startsWith("https://open-upload.tiktokapis.com/")) {
         put = { url, init };
         return new Response("", { status: 201 });
       }

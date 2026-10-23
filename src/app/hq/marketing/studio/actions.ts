@@ -10,6 +10,7 @@ import { CARD_TEMPLATES, screenDraft, type Card, type CardTemplate, type StudioC
 import { SOCIAL_IMAGES } from "@/lib/social";
 import { plural } from "@/lib/plural";
 import { filesIn, storeVideo, UploadError } from "@/server/uploads";
+import { dropVideo } from "@/server/social";
 
 const path = (planId: string) => `/hq/marketing/studio/${planId}`;
 const failed = (e: unknown) => {
@@ -120,7 +121,12 @@ export async function saveStudioItem(itemId: string, _: ActionState, fd: FormDat
     const [video] = filesIn(fd, "video");
     if (video) patch.videoUploadId = await storeVideo({ file: video, folder: "studio/videos", uploadedById: g.user.id });
     else if (str(fd, "dropVideo") === "1") patch.videoUploadId = null;
-    await saveItem(itemId, patch);
+    try {
+      await saveItem(itemId, patch);
+    } catch (e) {
+      if (patch.videoUploadId) await dropVideo(patch.videoUploadId); // the file just stored, with nothing to hold it
+      throw e;
+    }
   } catch (e) {
     return failed(e);
   }

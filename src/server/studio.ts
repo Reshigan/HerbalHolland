@@ -7,7 +7,7 @@ import { db } from "./db";
 import { audit, type Actor } from "./audit";
 import { sendCampaign } from "./marketing";
 import { sendEarlyAccess } from "./early-access";
-import { publishSocial, socialChannels, socialConnected, videoOf, type PostResult } from "./social";
+import { dropVideo, publishSocial, socialChannels, socialConnected, videoOf, type PostResult } from "./social";
 import { cardJpeg } from "./studio-cards";
 import { hoursLine, parseHours } from "./shop/hours";
 import { NEW_ONLINE_DAYS, PLAYBOOKS } from "@/lib/studio-playbooks";
@@ -186,10 +186,12 @@ export async function approveItems(planId: string, ids: string[] | "all", by: st
 
 /** Edits a draft (or an approved or failed one, which goes back to draft for another look). */
 export async function saveItem(id: string, patch: { text: string; short: string | null; title: string | null; card: Card | null; at: Date; videoUploadId?: string | null }) {
-  const it = await db.studioItem.findUnique({ where: { id }, select: { status: true } });
+  const it = await db.studioItem.findUnique({ where: { id }, select: { status: true, videoUploadId: true } });
   if (!it) throw new StudioError("That post isn't there any more");
   if (!["DRAFT", "APPROVED", "FAILED"].includes(it.status)) throw new StudioError("Take it out of the schedule before you change it");
   await db.studioItem.update({ where: { id }, data: { ...patch, card: (patch.card ?? undefined) as Prisma.InputJsonValue | undefined, status: "DRAFT", approvedBy: null, note: null } });
+  // A video replaced or taken off goes with it, unless another post still has it.
+  if (patch.videoUploadId !== undefined && it.videoUploadId && it.videoUploadId !== patch.videoUploadId) await dropVideo(it.videoUploadId);
 }
 
 /**

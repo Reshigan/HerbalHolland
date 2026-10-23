@@ -24,6 +24,19 @@ export const SOCIAL_NETWORKS: Record<string, { label: string; limit: number; ima
   x: { label: "X", limit: 280, video: "optional" },
   pinterest: { label: "Pinterest", limit: 800, image: true },
 };
+/**
+ * TikTok's chunk rules for a video upload: a chunk is 5 to 64 MB (a video under 5 MB goes whole), total_chunk_count =
+ * floor(size / chunk), and the last chunk takes the remainder (TikTok allows it up to 128 MB). Up to 64 MB goes in one
+ * chunk; over that, 32 MB chunks. The init fields and the byte ranges sent come from this one plan.
+ */
+export function tiktokChunkPlan(size: number) {
+  const MB = 1024 * 1024;
+  const chunk = size <= 64 * MB ? size : 32 * MB;
+  const count = Math.floor(size / chunk);
+  const ranges = Array.from({ length: count }, (_, i) => ({ start: i * chunk, end: i === count - 1 ? size : (i + 1) * chunk }));
+  return { chunk, count, ranges };
+}
+
 /** The networks a post goes to when it has no video: everything but the video-only ones. */
 export const withoutVideo = (identifiers: string[]) => identifiers.filter((i) => SOCIAL_NETWORKS[i]?.video !== "required");
 
