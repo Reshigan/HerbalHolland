@@ -121,6 +121,7 @@ export const JOBS: Record<string, Steps> = {
   daily: {
     birthdays: birthdayPoints,
     uncollected: releaseUncollected,
+    // Founding / First Year tier floors and referral boosts that lapsed: cleared, and the member re-tiered.
     tierFloors: expireTierFloors,
     lossPrevention: runLossRules,
     // POPIA: not-a-fit franchise enquiries are deleted a year after their last change (audited as lead.purge).

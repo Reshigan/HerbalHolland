@@ -2,10 +2,10 @@
 // funds them and the redeeming store is reimbursed on the franchise statement.
 import type { Tx } from "./db";
 import { queuePosting } from "./ledger/core";
-import { heldTier, maxTier, pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
+import { pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
 import { POINTS_SOURCE_KINDS } from "@/lib/ledger-hq";
 import { dayKey } from "@/lib/format";
-import { floorFor, ladderStep } from "@/lib/referral-ladder";
+import { boostDue, boostFor, effectiveTier } from "@/lib/referral-ladder";
 import { audit, SYSTEM } from "./audit";
 import type { LoyaltyKind } from "@/generated/prisma/client";
 
@@ -51,7 +51,7 @@ export async function recordPurchase(
   // The member's row first (no row locks on D1: writes are serialised, so the second of two first purchases sees the first).
   const before = await t.customer.findUniqueOrThrow({ where: { id: a.customerId } });
   const spend = await spend12m(t, a.customerId);
-  const tier = heldTier(tierFor(spend).key as TierKey, before.tierFloor, before.tierFloorUntil, a.at);
+  const tier = effectiveTier(tierFor(spend).key as TierKey, before.tierFloor, before.tierFloorUntil, before.boostTier, before.boostUntil, a.at);
   const points = pointsFor(a.paidCents, tier, a.multiplier, a.earnPer100);
   await t.customer.update({
     where: { id: a.customerId },
@@ -80,23 +80,28 @@ export async function qualifiedReferrals(t: Tx, customerId: string) {
 
 /**
  * The referral ladder, right after a referrer is paid for a friend's first purchase (this friend's firstPurchaseAt is
- * already set). At exactly 3 qualified referrals the referrer gets the next tier up for 30 days as a tier floor; 10 is
- * Windmill Crew, derived from the count and never stored. Granted once per member (the audit row is the receipt), and
- * floorFor never lowers or shortens a floor, so a rerun or a count that dips and climbs back pays nothing twice.
+ * already set). From 3 qualified referrals the referrer gets the tier above the one they hold for 30 days, as a boost
+ * kept apart from any tier floor (a Founding or First Year guarantee carries on underneath it); 10 is Windmill Crew,
+ * derived from the count and never stored. Granted once per member: the audit row is the receipt, so a member already
+ * past 3 when the ladder started gets it with their next qualifying friend, and never again after that.
  */
 async function climbReferralLadder(t: Tx, referrerId: string, at: Date) {
   const count = await qualifiedReferrals(t, referrerId);
-  if (ladderStep(count)?.kind !== "BOOST") return;
-  if (await t.auditLog.findFirst({ where: { action: "customer.referral_ladder", entityId: referrerId }, select: { id: true } })) return;
-  const r = await t.customer.findUnique({ where: { id: referrerId }, select: { tier: true, tierFloor: true, tierFloorUntil: true } });
+  if (!boostDue(count, false)) return;
+  const granted = !!(await t.auditLog.findFirst({ where: { action: "customer.referral_ladder", entityId: referrerId }, select: { id: true } }));
+  if (!boostDue(count, granted)) return;
+  const r = await t.customer.findUnique({ where: { id: referrerId }, select: { tier: true, tierFloor: true, tierFloorUntil: true, boostTier: true, boostUntil: true } });
   if (!r) return;
-  const floor = floorFor(r.tier as TierKey, r.tierFloor as TierKey | null, r.tierFloorUntil, at);
+  const spendTier = tierFor(await spend12m(t, referrerId)).key as TierKey;
+  const from = effectiveTier(spendTier, r.tierFloor, r.tierFloorUntil, r.boostTier, r.boostUntil, at);
+  const boost = boostFor(from, at);
   // The marker goes first: if the run stops between the two writes the boost is missed (HQ can grant it), never doubled.
   await audit(t, SYSTEM, "customer.referral_ladder", {
     entity: "Customer", entityId: referrerId,
-    data: { qualified: count, from: r.tier, floor: floor?.tier ?? null, until: floor?.until.toISOString() ?? null, kept: floor ? null : `${r.tierFloor} until ${r.tierFloorUntil?.toISOString()}` },
+    data: { qualified: count, from, boost: boost.tier, until: boost.until.toISOString() },
   });
-  if (floor) {
-    await t.customer.update({ where: { id: referrerId }, data: { tierFloor: floor.tier, tierFloorUntil: floor.until, tier: maxTier(r.tier as TierKey, floor.tier) } });
-  }
+  await t.customer.update({
+    where: { id: referrerId },
+    data: { boostTier: boost.tier, boostUntil: boost.until, tier: effectiveTier(spendTier, r.tierFloor, r.tierFloorUntil, boost.tier, boost.until, at) },
+  });
 }

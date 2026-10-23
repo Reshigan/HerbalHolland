@@ -9,6 +9,7 @@ import { normalisePhone } from "@/lib/sa";
 import { maskPhone, memberNoFrom } from "@/components/pos/lib/rules";
 import { PosError } from "./http";
 import type { Prisma } from "@/generated/prisma/client";
+import { holdingGuarantee } from "@/lib/referral-ladder";
 import type { CustomerDetail, CustomerHit, TierKey, AgeCheckKind } from "./types";
 
 /** Sales at this store per member: count + most recent (refunds excluded). */
@@ -78,7 +79,7 @@ export async function customerDetail(id: string, storeId: string): Promise<Custo
   if (!c) throw new PosError("Member not found", 404);
   const home = c.homeStoreId ? await db.store.findUnique({ where: { id: c.homeStoreId }, select: { name: true } }) : null;
   const auth = "auth" in ctx ? ctx.auth : null;
-  const floorActive = !!c.tierFloor && !!c.tierFloorUntil && c.tierFloorUntil > new Date();
+  const hold = holdingGuarantee(c.tierFloor, c.tierFloorUntil, c.boostTier, c.boostUntil); // a founding floor or a referral boost
   return {
     id: c.id,
     memberNo: c.memberNo,
@@ -95,7 +96,7 @@ export async function customerDetail(id: string, storeId: string): Promise<Custo
     visitsHere: here.get(id)?.visits ?? 0,
     lastVisitHere: here.get(id)?.last ?? null,
     foundingNo: c.foundingNo,
-    tierFloor: floorActive ? { tier: c.tierFloor as TierKey, until: c.tierFloorUntil!.toISOString() } : null,
+    tierFloor: hold ? { tier: hold.tier, until: hold.until.toISOString() } : null,
     offers: offers.map((o) => ({ id: o.id, title: o.title, endsAt: o.endsAt.toISOString() })),
     patient: auth
       ? {

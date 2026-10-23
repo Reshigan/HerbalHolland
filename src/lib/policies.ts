@@ -114,9 +114,9 @@ export function referralRules(f: PolicyFacts, bonus: number): PolicyBlock[] {
     { list: rungs },
     {
       list: [
-        "A higher tier from the ladder is yours for the time shown, whatever you spend. After that, your tier goes back to what your spend over the last 12 months earns.",
-        `If you already hold a tier for a set time that runs longer than ${BOOST_DAYS} days (for example as a Founding Member), you keep that as it is.`,
-        "Each step is given once per member.",
+        "A higher tier from the ladder is yours for the time shown, whatever you spend. After that, your tier goes back to what your spend over the last 12 months earns, or to a tier you hold for longer as a Founding or First Year Member.",
+        `The ladder's tier goes on top of any Founding Member or First Year guarantee you hold: for ${BOOST_DAYS} days you hold the tier above it, and your guarantee carries on as before once those days are over.`,
+        "Each step is given once per member. If 3 or more of your friends already counted before the ladder began, the tier comes with your next friend's first purchase.",
       ],
     },
     { h: "Fine print" },

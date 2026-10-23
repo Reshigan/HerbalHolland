@@ -21,16 +21,52 @@ export const nextRung = (count: number) => {
 /** Windmill Crew: a badge (no discount), derived from the count, never stored. */
 export const windmillCrew = (count: number) => count >= RUNGS[RUNGS.length - 1].at;
 
+/** The 3-friend boost is due: at least 3 qualified referrals and not granted before (`granted`: its audit marker exists). */
+export const boostDue = (count: number, granted: boolean) => !granted && count >= RUNGS[0].at;
+
+/** A tier held until a date (a floor or a boost), or null when there is none or it has lapsed at `now`. */
+export const activeHold = (tier: TierKey | string | null | undefined, until: Date | null | undefined, now = new Date()) =>
+  tier && until && until > now ? { tier: tier as TierKey, until } : null;
+
 /**
- * The tier floor the 3-friend rung writes: one tier above the higher of the member's tier and any active floor (never
- * above the top tier), for BOOST_DAYS from `now`. Null when it would not improve the floor the member already has:
- * a floor is never lowered or shortened (a founding member's longer guarantee stays as it is).
+ * The tier a member holds: the highest of the tier their 12-month spend earns, an active tier floor (Founding Members,
+ * First Year Members) and an active referral boost. The floor and the boost are separate, so each lapses on its own.
  */
-export function floorFor(currentTier: TierKey, existingFloor: TierKey | null | undefined, existingUntil: Date | null | undefined, now = new Date()) {
-  const active = existingFloor && existingUntil && existingUntil > now ? { tier: existingFloor, until: existingUntil } : null;
-  const base = maxTier(currentTier, active?.tier);
-  const tier = TIERS[Math.min(tierRank(base) + 1, TIERS.length - 1)].key;
-  const until = new Date(now.getTime() + BOOST_DAYS * 86_400_000);
-  if (active && (tierRank(tier) < tierRank(active.tier) || until <= active.until)) return null;
-  return { tier, until, name: tierInfo(tier).name };
+export function effectiveTier(
+  spendTier: TierKey,
+  floor: TierKey | string | null | undefined,
+  floorUntil: Date | null | undefined,
+  boost: TierKey | string | null | undefined,
+  boostUntil: Date | null | undefined,
+  now = new Date(),
+): TierKey {
+  return maxTier(maxTier(spendTier, activeHold(floor, floorUntil, now)?.tier), activeHold(boost, boostUntil, now)?.tier);
+}
+
+/**
+ * The guarantee that holds a member's tier right now, for display: the higher of an active floor and an active boost
+ * (on a tie, the one that runs longer). Null when neither is active.
+ */
+export function holdingGuarantee(
+  floor: TierKey | string | null | undefined,
+  floorUntil: Date | null | undefined,
+  boost: TierKey | string | null | undefined,
+  boostUntil: Date | null | undefined,
+  now = new Date(),
+) {
+  const f = activeHold(floor, floorUntil, now);
+  const b = activeHold(boost, boostUntil, now);
+  if (!f || !b) return f ? { ...f, kind: "FLOOR" as const } : b ? { ...b, kind: "BOOST" as const } : null;
+  const d = tierRank(b.tier) - tierRank(f.tier);
+  return d > 0 || (d === 0 && b.until > f.until) ? { ...b, kind: "BOOST" as const } : { ...f, kind: "FLOOR" as const };
+}
+
+/**
+ * The boost the 3-friend rung gives: one tier above the member's effective tier (never above the top tier), for
+ * BOOST_DAYS from `now`. It is stored apart from any tier floor and applies on top of it; a floor that runs longer
+ * carries on after the boost ends.
+ */
+export function boostFor(current: TierKey, now = new Date()) {
+  const tier = TIERS[Math.min(tierRank(current) + 1, TIERS.length - 1)].key;
+  return { tier, until: new Date(now.getTime() + BOOST_DAYS * 86_400_000), name: tierInfo(tier).name };
 }

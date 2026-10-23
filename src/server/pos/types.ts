@@ -238,7 +238,7 @@ export type CustomerDetail = {
   visitsHere: number; // sales at this store only
   lastVisitHere: string | null;
   foundingNo: number | null; // Founding Member number
-  tierFloor: { tier: TierKey; until: string } | null; // active guaranteed minimum tier
+  tierFloor: { tier: TierKey; until: string } | null; // active guaranteed minimum tier (a founding floor or a referral boost, whichever holds higher)
   offers: { id: string; title: string; endsAt: string }[]; // My Deals on the card (auto-apply online)
   patient: {
     authNumber: string;

@@ -6,6 +6,7 @@ import { qualifiedReferrals, spend12m } from "@/server/loyalty";
 import { customerContext } from "@/server/compliance";
 import { invoiceUrl } from "@/server/invoices";
 import { tierFor, TIERS } from "@/lib/loyalty-rules";
+import { activeHold } from "@/lib/referral-ladder";
 
 /** Position of a tier on the ladder (driven by TIERS, so renamed tiers still resolve to a rung). */
 export function tierIndex(key: string) {
@@ -32,11 +33,15 @@ export async function memberOverview(customerId: string) {
   ]);
   // Tiers are re-assessed on every purchase against rolling 12-month spend. If spend has
   // slipped below the member's current tier, show what it takes to keep it rather than the next rung,
-  // unless a tier floor (Founding Members) guarantees it, in which case the goal is the rung above.
+  // unless a tier floor (Founding Members) or a referral boost guarantees it, in which case the goal is the rung above.
   const held = tierIndex(customer.tier);
   const earned = tierIndex(tierFor(spend).key);
-  const floor = customer.tierFloor && customer.tierFloorUntil && customer.tierFloorUntil > new Date() ? { tier: tierMeta(customer.tierFloor), until: customer.tierFloorUntil } : null;
-  const guaranteed = !!floor && tierIndex(floor.tier.key) >= held;
+  const now = new Date();
+  const f = activeHold(customer.tierFloor, customer.tierFloorUntil, now);
+  const b = activeHold(customer.boostTier, customer.boostUntil, now);
+  const floor = f ? { tier: tierMeta(f.tier), until: f.until } : null;
+  const boost = b ? { tier: tierMeta(b.tier), until: b.until } : null;
+  const guaranteed = (!!floor && tierIndex(floor.tier.key) >= held) || (!!boost && tierIndex(boost.tier.key) >= held);
   const up = TIERS[Math.max(held, earned) + 1];
   const goal =
     earned < held && !guaranteed
@@ -45,7 +50,8 @@ export async function memberOverview(customerId: string) {
         ? { mode: "reach" as const, tier: up, remainingCents: up.minCents - spend }
         : null;
   return {
-    customer, spend, goal, floor: guaranteed ? floor : null, tier: tierMeta(customer.tier), ledger, orders,
+    // `floor` (Founding / First Year) and `boost` (referral ladder): each while active, even when the other holds higher.
+    customer, spend, goal, floor, boost, tier: tierMeta(customer.tier), ledger, orders,
     auth: ctx.auth ?? null, patient: ctx.customer?.patient ?? null, referrals, qualifiedReferrals: qualified, savedCents: saved._sum.memberSavingsCents ?? 0,
   };
 }

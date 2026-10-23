@@ -67,8 +67,10 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
   const card = { referralCode: m.customer.referralCode, firstName: m.customer.firstName, tier: m.customer.tier as TierKey };
   const shareSavings = m.savedCents >= 100 ? `${base}${sharePath({ ...card, savedCents: m.savedCents })}` : null;
   const shareTier = `${base}${sharePath({ ...card, savedCents: 0 })}`;
-  // The floor line on the card only matters while it is what holds the tier.
-  const floorUntil = m.floor && m.floor.tier.key === m.customer.tier ? m.floor.until : null;
+  // The floor line on the card only matters while it is what holds the tier: a referral boost on top, or the founding floor.
+  const boostHolds = !!m.boost && m.boost.tier.key === m.customer.tier;
+  const floorHolds = !boostHolds && !!m.floor && m.floor.tier.key === m.customer.tier;
+  const floorUntil = boostHolds ? m.boost!.until : floorHolds ? m.floor!.until : null;
   // Where the balance counts up from: 0 on the welcome, below the points that just landed, or below the latest entry
   // when it is fresh (the last hour), so the count is a moment, not a replay on every visit.
   const earned = earnedParam(sp.earned);
@@ -169,11 +171,20 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                 </li>
               ))}
             </ol>
-            {m.floor && (
+            {boostHolds && (
+              <p className="mt-5 flex items-start gap-2.5 rounded-xl border border-brand-500/30 bg-brand-500/[0.07] px-3.5 py-3 text-sm text-brand-100">
+                <Users className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                <span>
+                  Thanks to your friends you hold <strong className="font-semibold text-white">{m.boost!.tier.name}</strong> until {fmtDate(m.boost!.until)}, whatever you spend.
+                  {m.floor && m.floor.until > m.boost!.until && <> After that, you keep at least {m.floor.tier.name} until {fmtDate(m.floor.until)}.</>}
+                </span>
+              </p>
+            )}
+            {floorHolds && (
               <p className="mt-5 flex items-start gap-2.5 rounded-xl border border-brand-500/30 bg-brand-500/[0.07] px-3.5 py-3 text-sm text-brand-100">
                 <Crown className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
                 <span>
-                  As a Founding Member you keep <strong className="font-semibold text-white">{m.floor.tier.name}</strong> until {fmtDate(m.floor.until)}, whatever you spend.
+                  As a Founding Member you keep <strong className="font-semibold text-white">{m.floor!.tier.name}</strong> until {fmtDate(m.floor!.until)}, whatever you spend.
                 </span>
               </p>
             )}

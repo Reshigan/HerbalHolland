@@ -87,6 +87,8 @@ describe("referral rules", () => {
     expect(r).toContain("Joining alone never counts");
     expect(r).toContain("3 friends: the tier above the one you hold, for 30 days");
     expect(r).toContain("10 friends: Windmill Crew status");
+    expect(r).toContain("goes on top of any Founding Member or First Year guarantee");
+    expect(r).not.toContain("you keep that as it is");
     expect(r).toContain("adults 18+");
     expect(r).toContain("never apply to licensed medicines");
     expect(r).toContain("no cash value");
