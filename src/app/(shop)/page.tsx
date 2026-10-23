@@ -128,7 +128,7 @@ export default async function Home() {
                   Shop the range
                 </ButtonLink>
               </div>
-              <dl className={cn("mt-12 grid max-w-lg gap-4 border-t border-ink-850 pt-6", batches > 0 ? "grid-cols-3" : "grid-cols-2")}>
+              <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-ink-850 pt-6">
                 {[
                   [num(listSize), "members on the list"],
                   [num(launch.foundingCap), "Founding spots"],
