@@ -26,6 +26,7 @@ import { fmtDate, num, timeAgo } from "@/lib/format";
 import { plural } from "@/lib/plural";
 import { fmtPoints, tierBenefits, tierInfo, TIERS, type TierKey } from "@/lib/loyalty-rules";
 import { zar, zarWhole } from "@/lib/money";
+import { BOOST_DAYS, nextRung, windmillCrew } from "@/lib/referral-ladder";
 import { cn } from "@/lib/cn";
 
 export const metadata = { title: { absolute: "Herbal Holland Rewards" } };
@@ -60,6 +61,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
   const idx = tierIndex(m.customer.tier);
   const base = APP_URL();
   const referUrl = `${base}/club/join?ref=${m.customer.referralCode}`;
+  const rung = nextRung(m.qualifiedReferrals);
   const name = [m.customer.firstName, m.customer.lastName].filter(Boolean).join(" ");
   // Signed share cards: first name, savings and tier only, never what the member bought.
   const card = { referralCode: m.customer.referralCode, firstName: m.customer.firstName, tier: m.customer.tier as TierKey };
@@ -106,7 +108,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
       )}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
         <div className="space-y-4">
-          <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} firstYear={!m.customer.foundingNo && !!m.floor} floorUntil={floorUntil} countFrom={countFrom} earned={earned} className={sp.welcome ? "hh-shimmer-once" : undefined} />
+          <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} firstYear={!m.customer.foundingNo && !!m.floor && !!launch.at && m.customer.createdAt < launch.at} floorUntil={floorUntil} countFrom={countFrom} earned={earned} className={sp.welcome ? "hh-shimmer-once" : undefined} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
           <WalletButtons />
           {!sp.welcome && <InstallPrompt app="rewards" />}
@@ -310,10 +312,27 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               When a friend (18+) joins with your link and makes their first purchase, you each get {fmtPoints(settings.loyalty.referralBonus)}.
               {m.referrals > 0 && ` You've invited ${m.referrals} member${m.referrals === 1 ? "" : "s"} so far.`}
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-ink-200">
+                <span className="tnum font-semibold text-white">{num(m.qualifiedReferrals)}</span> {m.qualifiedReferrals === 1 ? "friend has" : "friends have"} made a first purchase
+              </span>
+              {windmillCrew(m.qualifiedReferrals) && <Tag tone="solid" icon={<Trophy className="h-3 w-3" />}>Windmill Crew</Tag>}
+            </div>
+            {rung && (
+              <p className="mt-1 text-sm text-ink-300">
+                {rung.remaining} more {rung.remaining === 1 ? "friend's first purchase" : "friends' first purchases"}:{" "}
+                <span className="font-semibold text-brand-400">{rung.kind === "BOOST" ? `${TIERS[Math.min(idx + 1, TIERS.length - 1)].name} for ${BOOST_DAYS} days` : rung.reward}</span>
+              </p>
+            )}
             <div className="mt-4">
               <ShareLink url={referUrl} text={`Join me at Herbal Holland Rewards and we both get ${settings.loyalty.referralBonus} points after your first purchase. Adults 18+.`} />
             </div>
-            <p className="mt-3 text-xs text-ink-450">Your code: <span className="tnum font-semibold text-ink-300">{m.customer.referralCode}</span></p>
+            <p className="mt-3 text-xs text-ink-450">
+              Your code: <span className="tnum font-semibold text-ink-300">{m.customer.referralCode}</span> ·{" "}
+              <Link href="/legal/referrals" className="underline hover:text-ink-200">
+                Referral rules
+              </Link>
+            </p>
           </Panel>
         )}
 

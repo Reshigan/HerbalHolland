@@ -2,7 +2,7 @@
 // marketing preferences and patient-authorisation status. Always scoped to the
 // signed-in member: callers pass the id from the session, never from the client.
 import { db } from "@/server/db";
-import { spend12m } from "@/server/loyalty";
+import { qualifiedReferrals, spend12m } from "@/server/loyalty";
 import { customerContext } from "@/server/compliance";
 import { invoiceUrl } from "@/server/invoices";
 import { tierFor, TIERS } from "@/lib/loyalty-rules";
@@ -20,13 +20,14 @@ export const LEDGER_LABEL: Record<string, string> = {
 };
 
 export async function memberOverview(customerId: string) {
-  const [customer, spend, ledger, orders, ctx, referrals, saved] = await Promise.all([
+  const [customer, spend, ledger, orders, ctx, referrals, qualified, saved] = await Promise.all([
     db.customer.findUniqueOrThrow({ where: { id: customerId }, include: { homeStore: { select: { name: true, slug: true, code: true } } } }),
     spend12m(db, customerId),
     db.loyaltyEntry.findMany({ where: { customerId }, orderBy: { createdAt: "desc" }, take: 6, include: { store: { select: { name: true } } } }),
     db.order.findMany({ where: { customerId }, orderBy: { createdAt: "desc" }, take: 3, include: { store: { select: { name: true } }, _count: { select: { lines: true } } } }),
     customerContext(customerId),
     db.customer.count({ where: { referredById: customerId } }),
+    qualifiedReferrals(db, customerId),
     db.sale.aggregate({ where: { customerId }, _sum: { memberSavingsCents: true } }),
   ]);
   // Tiers are re-assessed on every purchase against rolling 12-month spend. If spend has
@@ -45,7 +46,7 @@ export async function memberOverview(customerId: string) {
         : null;
   return {
     customer, spend, goal, floor: guaranteed ? floor : null, tier: tierMeta(customer.tier), ledger, orders,
-    auth: ctx.auth ?? null, patient: ctx.customer?.patient ?? null, referrals, savedCents: saved._sum.memberSavingsCents ?? 0,
+    auth: ctx.auth ?? null, patient: ctx.customer?.patient ?? null, referrals, qualifiedReferrals: qualified, savedCents: saved._sum.memberSavingsCents ?? 0,
   };
 }
 
