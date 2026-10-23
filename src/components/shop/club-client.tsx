@@ -62,14 +62,15 @@ export function ClubNav() {
 /** Invite link: the link itself with copy, the phone's share sheet where there is one, and WhatsApp. */
 /** Shares the 9:16 Status card as a file where the phone allows it (straight into WhatsApp Status), else opens it to save. */
 async function shareStatus(src: string, text: string, url: string) {
+  const type = "image/png";
+  // Checked before any await: a browser that can't share files opens the card inside the click, past popup blockers.
+  if (!navigator.canShare?.({ files: [new File([], "card.png", { type })] })) return void window.open(src, "_blank", "noopener");
   try {
     const blob = await (await fetch(src)).blob();
-    const file = new File([blob], "herbal-holland-rewards.png", { type: "image/png" });
-    if (navigator.canShare?.({ files: [file] })) return await navigator.share({ files: [file], text: `${text} ${url}` });
+    await navigator.share({ files: [new File([blob], "herbal-holland-rewards.png", { type })], text: `${text} ${url}` });
   } catch (e) {
-    if ((e as Error).name === "AbortError") return;
+    if ((e as Error).name !== "AbortError") window.location.assign(src);
   }
-  window.open(src, "_blank", "noopener");
 }
 
 export function ShareLink({ url, text, shareLabel = "Share your invite", status }: { url: string; text: string; shareLabel?: string; status?: string }) {
