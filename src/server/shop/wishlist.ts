@@ -33,7 +33,7 @@ export type WishlistItem = { id: string; variantId: string; variantName: string;
 
 /** The member's list, newest first, as cards (a product that left the range keeps its name but can't be bought). */
 export async function listWishlist(customerId: string, who: Shopper, now = new Date()): Promise<WishlistItem[]> {
-  const rows = await db.wishlist.findMany({ where: { customerId }, orderBy: { createdAt: "desc" }, take: WISHLIST_MAX });
+  const rows = await db.wishlist.findMany({ where: { customerId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: WISHLIST_MAX });
   if (!rows.length) return [];
   const variants = await inBatches(rows.map((r) => r.variantId), (part) => db.variant.findMany({ where: { id: { in: part } }, select: { id: true, name: true, active: true, podSku: true, productId: true, product: { select: { name: true, regClass: true, status: true, _count: { select: { variants: { where: { active: true } } } } } } } }));
   const byId = new Map(variants.map((v) => [v.id, v]));

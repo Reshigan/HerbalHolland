@@ -33,7 +33,7 @@ export async function updateProfile(_: ProfileState, form: FormData): Promise<Pr
   const emailChanging = !!email && email !== (c.email ?? "");
   if (emailChanging && (await collisionsUsedUp(`member:${c.id}`))) return { fields: { email: COLLISION_REFUSED }, values };
   try {
-    await db.customer.update({ where: { id: c.id }, data: { firstName, lastName: lastName || null, email: email || null, homeStoreId: store!.id } });
+    await db.customer.update({ where: { id: c.id }, data: { firstName, lastName: lastName || null, email: email || null, ...(emailChanging || !email ? { emailVerifiedAt: null } : {}), homeStoreId: store!.id } });
   } catch (e) {
     if ((e as { code?: string }).code === "P2002") {
       const allowed = await noteCollision(`member:${c.id}`, { type: "CUSTOMER", id: c.id, name: c.firstName }, "email");

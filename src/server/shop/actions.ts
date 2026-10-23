@@ -146,8 +146,8 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
         if (next) redirect(next);
         return { step: "done" };
       }
-      jar.set(SHOP_COOKIE.phone, signPhone(r.phone), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 20 * 60 });
-      return { step: "register", phone: r.phone, email: prev.email, values: prev.email ? { email: prev.email } : undefined };
+      jar.set(SHOP_COOKIE.phone, signPhone(r.phone, 20, Date.now(), r.sentTo), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 20 * 60 });
+      return { step: "register", phone: r.phone, email: r.sentTo ?? undefined, values: r.sentTo ? { email: r.sentTo } : undefined };
     } catch (e) {
       if (e instanceof CustomerError) return { ...prev, step: "code", error: undefined, fields: { code: e.message } };
       throw e;
@@ -155,8 +155,9 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
   }
 
   if (intent === "register") {
-    const phone = readPhoneToken(jar.get(SHOP_COOKIE.phone)?.value);
-    if (!phone) return { step: "phone", error: "Your verification expired. Please confirm your number again" };
+    const proof = readPhoneToken(jar.get(SHOP_COOKIE.phone)?.value);
+    if (!proof) return { step: "phone", error: "Your verification expired. Please confirm your number again" };
+    const { phone, sentTo } = proof;
     // Three tries a day that hit someone else's ID number or email, then this number can't check any more online.
     const refused = (): AuthState => (jar.delete(SHOP_COOKIE.phone), { step: "phone", error: COLLISION_REFUSED });
     if (await collisionsUsedUp(`phone:${phone}`)) return refused();
@@ -195,6 +196,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
           joinedVia: String(form.get("src") ?? ""),
           termsAccepted: form.get("accept") === "on",
           interests: form.getAll("interest").map(String),
+          codeSentTo: sentTo,
         },
         { type: "CUSTOMER", name: v.firstName },
       );

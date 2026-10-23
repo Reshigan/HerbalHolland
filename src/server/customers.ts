@@ -8,7 +8,8 @@ import { addPoints } from "./loyalty";
 import { getSettings } from "./settings";
 import { audit, type Actor } from "./audit";
 import { nextNumber, shortCode } from "./counters";
-import { checkCode, issueCode, OtpLimitError } from "./otp";
+import { checkCodeSentTo, issueCode, OtpLimitError } from "./otp";
+import { graphConfigured } from "./graph-mail";
 import { count, hit } from "./throttle";
 import { ageOn, checkSaId, normalisePhone } from "@/lib/sa";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
@@ -36,10 +37,12 @@ export async function requestOtp(raw: string, opts?: { ip: string | null; email?
   const email = opts?.email?.trim().toLowerCase() || null;
   if (email) {
     if (!isEmail(email)) throw new CustomerError("That email address doesn't look right");
-    const member = await db.customer.findUnique({ where: { phone }, select: { email: true } });
-    if (member && member.email !== email) throw new CustomerError(member.email ? "That isn't the email on your account. Use the one you joined with, or get your code by SMS" : "There's no email on your account yet. Get your code by SMS");
+    if (!graphConfigured() && process.env.DEMO_MODE !== "true") throw new CustomerError("Codes by email aren't available right now. Get your code by SMS");
+    const member = await db.customer.findUnique({ where: { phone }, select: { email: true, emailVerifiedAt: true } });
+    // Only an email that once received this member's code can carry another: an address typed into the profile hasn't.
+    if (member && !(member.email === email && member.emailVerifiedAt)) throw new CustomerError(member.email ? "That isn't the email you joined with. Use that one, or get your code by SMS" : "There's no email on your account yet. Get your code by SMS");
   }
-  const code = await issueCode({ phone }, opts).catch((e) => {
+  const code = await issueCode({ phone }, { ip: opts?.ip ?? null, sentTo: email }).catch((e) => {
     throw e instanceof OtpLimitError ? new CustomerError(e.message) : e;
   });
   if (!code) throw new CustomerError("Too many codes requested. Try again in 10 minutes");
@@ -68,12 +71,22 @@ export async function sendWelcome(c: { id: string; firstName: string; email: str
   });
 }
 
+/**
+ * Checks the code; `sentTo` is the email it went to (null: SMS). A code to the phone itself proves the number: a member
+ * whose number was never proved (joined by email code) is claimed by whoever holds the phone, and the email that joined
+ * it is dropped, so a number registered through someone else's inbox comes back to its owner.
+ */
 export async function verifyOtp(raw: string, code: string) {
   const phone = normalisePhone(raw);
   if (!phone) throw new CustomerError("Invalid phone number");
-  const r = await checkCode({ phone }, code);
-  if (r !== "ok") throw new CustomerError(CODE_PROBLEM[r]);
-  return { phone, customer: await db.customer.findUnique({ where: { phone } }) };
+  const { result, sentTo } = await checkCodeSentTo({ phone }, code);
+  if (result !== "ok") throw new CustomerError(CODE_PROBLEM[result]);
+  let customer = await db.customer.findUnique({ where: { phone } });
+  if (customer && !sentTo && !customer.phoneVerifiedAt) {
+    customer = await db.customer.update({ where: { id: customer.id }, data: { phoneVerifiedAt: new Date(), email: null, emailVerifiedAt: null } });
+    await audit(db, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "customer.phone_claimed", { entity: "Customer", entityId: customer.id, data: { droppedEmail: true } });
+  }
+  return { phone, customer, sentTo };
 }
 
 // ── Someone else's ID number or email ──────────────────────────────────────────
@@ -111,6 +124,8 @@ export type NewCustomer = {
   joinedVia?: string | null; // raw ?src= tag; normalised by joinTag
   termsAccepted: boolean; // accepted the membership terms (TERMS_VERSION); required to join
   interests?: string[]; // what they told us they're into (INTERESTS keys), for relevant deals
+  /** The email the join code went to, when it went by email: that address is proven, the phone isn't yet. */
+  codeSentTo?: string | null;
   consentWording?: string; // what they were asked, for the consent ledger (default: the online wording)
   ageCheck?: AgeCheck; // e.g. ID_SIGHTED when a member advisor checked a passport in store
 };
@@ -154,6 +169,8 @@ export async function createCustomer(a: NewCustomer, actor: Actor) {
         memberNo: `HH${String(100000 + n).padStart(7, "0")}`,
         phone,
         email: a.email?.trim().toLowerCase() || null,
+        phoneVerifiedAt: a.codeSentTo ? null : new Date(),
+        emailVerifiedAt: a.codeSentTo && a.codeSentTo === a.email?.trim().toLowerCase() ? new Date() : null,
         firstName: a.firstName.trim(),
         lastName: a.lastName?.trim() || null,
         dob,

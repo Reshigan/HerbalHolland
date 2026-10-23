@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { db } from "@/server/db";
-import { requestOtp } from "@/server/customers";
+import { createCustomer, requestOtp, verifyOtp } from "@/server/customers";
 import { sendBulk, optOutToken } from "@/server/messaging";
 import { POST } from "@/app/api/unsubscribe/route";
 import { buildWorld, resetDb, type World } from "./world";
@@ -61,6 +61,10 @@ describe("Messaging", () => {
 describe("Sign-in codes by email", () => {
   it("emails the code to a new number's own address, or to the email already on the member's account, never elsewhere", async () => {
     vi.stubEnv("MESSAGING_PROVIDER", "log");
+    vi.unstubAllEnvs();
+    await expect(requestOtp("082 555 0400", { ip: null, email: "x@example.com" })).rejects.toThrow(/aren't available right now/); // no email transport, no demo
+    vi.stubEnv("MESSAGING_PROVIDER", "log");
+    vi.stubEnv("DEMO_MODE", "true"); // the demo shows codes on screen, so email codes need no transport
     const r = await requestOtp("082 555 0401", { ip: null, email: "New.Member@Example.com" });
     expect(r).toMatchObject({ phone: "+27825550401", email: "new.member@example.com" });
     const log = await db.messageLog.findFirstOrThrow({ orderBy: { createdAt: "desc" } });
@@ -68,11 +72,43 @@ describe("Sign-in codes by email", () => {
     expect(log.body).not.toMatch(/\d{6}/);
     expect(log.body).toContain("Your Herbal Holland code is ••••••");
 
-    const member = await db.customer.update({ where: { id: w.patient.id }, data: { email: "patient@example.co.za" }, select: { phone: true, email: true } });
-    await expect(requestOtp(member.phone, { ip: null, email: "someone.else@example.com" })).rejects.toThrow(/isn't the email on your account/);
+    // A member's own email carries codes only once a code has reached it; an address typed into the profile hasn't.
+    const member = await db.customer.update({ where: { id: w.patient.id }, data: { email: "patient@example.co.za", emailVerifiedAt: null }, select: { phone: true, email: true } });
+    await expect(requestOtp(member.phone, { ip: null, email: member.email! })).rejects.toThrow(/isn't the email you joined with/);
+    await db.customer.update({ where: { id: w.patient.id }, data: { emailVerifiedAt: new Date() } });
+    await expect(requestOtp(member.phone, { ip: null, email: "someone.else@example.com" })).rejects.toThrow(/isn't the email you joined with/);
     expect((await requestOtp(member.phone, { ip: null, email: member.email!.toUpperCase() })).email).toBe(member.email);
     const noEmail = await db.customer.update({ where: { id: w.walkIn.id }, data: { email: null }, select: { phone: true } });
     await expect(requestOtp(noEmail.phone, { ip: null, email: "x@example.com" })).rejects.toThrow(/no email on your account/);
     await expect(requestOtp("082 555 0402", { ip: null, email: "not-an-email" })).rejects.toThrow(/doesn't look right/);
+  });
+});
+
+describe("Email codes and the phone's owner", () => {
+  it("isn't stopped by the SMS ceiling, and the phone's own code claims a number joined through an inbox", async () => {
+    vi.stubEnv("MESSAGING_PROVIDER", "log");
+    vi.stubEnv("DEMO_MODE", "true");
+    vi.stubEnv("OTP_SMS_HOURLY_MAX", "1"); // the hour's texts above already fill this ceiling
+    await expect(requestOtp("082 555 0502")).rejects.toThrow(/can't send codes right now/);
+    expect((await requestOtp("082 555 0503", { ip: null, email: "by.email@example.com" })).email).toBe("by.email@example.com"); // not a text
+    vi.stubEnv("OTP_SMS_HOURLY_MAX", "500");
+
+    // Someone joins 082 555 0601 with a code to their own inbox: the email is proven, the number is not.
+    const sent = await requestOtp("082 555 0601", { ip: null, email: "joiner@example.com" });
+    const otp = await db.otp.findFirstOrThrow({ where: { phone: sent.phone }, orderBy: { createdAt: "desc" } });
+    expect(otp.sentTo).toBe("joiner@example.com");
+    const joined = await createCustomer({ phone: sent.phone, firstName: "Joiner", email: "joiner@example.com", homeStoreId: w.store.id, consents: {}, source: "WEB", termsAccepted: true, dob: new Date("1990-01-01T00:00:00Z"), codeSentTo: "joiner@example.com" }, { type: "CUSTOMER", name: "Joiner" });
+    expect(joined).toMatchObject({ phoneVerifiedAt: null, emailVerifiedAt: expect.any(Date) });
+    // The phone's holder signs in with a code to the phone: the number is theirs, and the inbox that joined it is dropped.
+    vi.stubEnv("DEMO_MODE", "true");
+    const code = (await requestOtp(sent.phone)).demoCode!;
+    const r = await verifyOtp(sent.phone, code);
+    expect(r.sentTo).toBeNull();
+    expect(r.customer).toMatchObject({ phoneVerifiedAt: expect.any(Date), email: null, emailVerifiedAt: null });
+    expect(await db.auditLog.count({ where: { action: "customer.phone_claimed", entityId: joined.id } })).toBe(1);
+    // A second SMS sign-in is an ordinary one.
+    const again = await verifyOtp(sent.phone, (await requestOtp(sent.phone)).demoCode!);
+    expect(await db.auditLog.count({ where: { action: "customer.phone_claimed", entityId: joined.id } })).toBe(1);
+    expect(again.customer?.id).toBe(joined.id);
   });
 });

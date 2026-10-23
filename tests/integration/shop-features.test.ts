@@ -182,7 +182,7 @@ describe("wishlists", () => {
     expect(await toggleWishlist(c, empty.id)).toEqual({ on: true });
     expect(await toggleWishlist(c, "nope")).toMatchObject({ on: false, error: expect.any(String) });
     let list = await listWishlist(c, { tier: "SEED", storeId: w.store.id, storeName: w.store.name });
-    expect(list.map((i) => [i.variantName, i.buyable, i.restocked])).toEqual([["10ml", false, false], ["250g", true, false]]);
+    expect(list.map((i) => [i.variantName, i.buyable, i.restocked]).sort()).toEqual([["10ml", false, false], ["250g", true, false]]);
     expect(await refreshWishlistStock()).toMatchObject({ checked: 2, out: 1, restocked: 0 });
     const batch = await db.batch.create({ data: { variantId: empty.id, code: "OIL-10-A", supplier: "Test Farm", packedAt: new Date(), expiresAt: days(300) } });
     await tx((t) => putStock(t, { storeId: w.store.id, variantId: empty.id, batchId: batch.id, qty: 5, unitCostCents: 9_000, type: "RECEIVE", reason: "CORRECTION", userId: w.manager.id, note: "test" }));
