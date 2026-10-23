@@ -12,7 +12,6 @@ import type { ActionState } from "@/server/hq/guard";
 const WHEN: { key: SocialMode; label: string }[] = [
   { key: "now", label: "Post now" },
   { key: "schedule", label: "Schedule" },
-  { key: "draft", label: "Draft in Postiz" },
 ];
 const pill = (on: boolean) =>
   cn("inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-sm transition focus-within:ring-4 focus-within:ring-brand-500/25", on ? "border-brand-500 bg-brand-50 text-ink-900" : "border-ink-200 bg-white text-ink-600 hover:border-ink-300");
@@ -112,7 +111,6 @@ export function SocialComposer({ action, channels }: { action: (s: ActionState, 
               {when === "schedule" && <Input name="at" type="datetime-local" aria-label="Date and time (SAST)" className="w-auto" />}
             </div>
             <FieldError name="at" />
-            {when === "draft" && <p className="mt-1.5 text-xs text-ink-500">Lands in Postiz as a draft. Add a video or tweak it per channel there, then schedule.</p>}
           </fieldset>
 
           <SubmitButton size="lg" disabled={flags.length > 0 || over || imageMissing || text.trim().length < 10} pendingLabel="Sending…">

@@ -1,7 +1,7 @@
 // The Founding Members social drive: six weeks on social, from the day the list opens (with the online shop) to the
 // night it closes, built to fill the list. One feed post a day, five a week; three short videos a week (Reels and
 // TikToks, each with its script in the brief: the hook line, three beats and the end card); a Story every day, by
-// hand (the rota below, LAUNCH_SOCIAL_STORIES, since Stories aren't a Postiz channel). The sequence: the hook (the
+// hand (the rota below, LAUNCH_SOCIAL_STORIES, since Stories can't be posted by API). The sequence: the hook (the
 // number 2,026), then proof (lab-tested every batch, licensed, the people), the mechanism (join in 20 seconds; a friend
 // moves you up 250 places), urgency (the closing date) and social proof (the milestones). Laid out for a store: the
 // shared posts go out once, naming every town, and each town's own posts (Fridays, 19:00) follow a week later for the

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fill, firstDayT, layout, longDate, screenDraft, spreadFeed, type Fields, type Playbook } from "@/lib/studio";
 import { marketingWindow } from "@/lib/sa";
 import { PLAYBOOKS } from "@/lib/studio-playbooks";
-import { postizPost, screenSocial, SOCIAL_IMAGES } from "@/lib/social";
+import { captionFor, screenSocial, SOCIAL_IMAGES } from "@/lib/social";
 
 const F: Fields = {
   store: "Herbal Holland Hillcrest",
@@ -113,14 +113,11 @@ describe("screenSocial: the marketing plan's rules", () => {
   });
 });
 
-describe("postizPost", () => {
+describe("captionFor", () => {
   it("sends the short version where the caption is too long for the network", () => {
     const long = "x".repeat(400);
-    const body = postizPost({
-      mode: "schedule", at: new Date("2026-11-01T08:00:00Z"), content: long, short: "Short.", image: { id: "i", path: "https://p/i.jpg" },
-      channels: [{ id: "1", name: "hh", identifier: "instagram" }, { id: "2", name: "hh", identifier: "bluesky" }, { id: "3", name: "hh", identifier: "telegram" }],
-    });
-    expect(body.posts.map((p) => [p.settings.__type, p.value[0].content])).toEqual([["instagram", long], ["bluesky", "Short."], ["telegram", long]]);
+    expect(["instagram", "bluesky", "telegram"].map((n) => captionFor(n, long, "Short."))).toEqual([long, "Short.", long]);
+    expect(captionFor("bluesky", long)).toBe(long);
   });
 });
 

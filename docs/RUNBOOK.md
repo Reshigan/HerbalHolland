@@ -66,14 +66,15 @@ buckets the first time, migrates, deploys and checks `/api/health`. Once, in thi
    - payments, when they come: `PEACH_API_KEY`, `PEACH_PAYMENT_RESPONSE_HASH_KEY` ([Peach go-live](#peach-payments-go-live-online-payments)),
      `YOCO_SECRET_KEY`, `YOCO_WEBHOOK_SECRET` ([Yoco go-live](#yoco-go-live-in-store-card-machines-online-only-with-online_gatewayyoco)),
      `HALO_API_KEY`;
-   - optional: `POSTIZ_API_KEY`, `WORKERS_AI_TOKEN`, `SITE_ENQUIRY_SECRET`, `WALLET_APPLE_KEY_PEM`,
+   - optional: the social networks' (`META_PAGE_TOKEN`, `THREADS_TOKEN`, `BLUESKY_APP_PASSWORD`, `TELEGRAM_TOKEN` and
+     their ids, [INTEGRATIONS.md](INTEGRATIONS.md) → Connecting the networks), `WORKERS_AI_TOKEN`, `SITE_ENQUIRY_SECRET`, `WALLET_APPLE_KEY_PEM`,
      `WALLET_GOOGLE_SERVICE_ACCOUNT_JSON`.
    The fast way is one file in `NAME=value` form with only the secrets in it, say `.env.shop-secrets` (gitignored by
    `.env*`; not `.env` itself, which holds laptop settings like `DATABASE_URL` and `DEMO_MODE=true` that must never
    become Worker secrets), and `npx wrangler secret bulk .env.shop-secrets`; delete the file afterwards.
    Plain settings are not secrets: `APP_URL` and `DEMO_MODE` are `vars` in `wrangler.jsonc` already, and `EMAIL_FROM`,
    `ALERT_EMAIL`, `SUPPORT_EMAIL`, `TRADE_EMAIL`, `MESSAGING_PROVIDER`, `SMS_SENDER_ID`, `WEB_PUSH_PUBLIC_KEY`,
-   `WEB_PUSH_SUBJECT`, `NEXT_PUBLIC_TAP_PROVIDER`, `ONLINE_GATEWAY`, `PEACH_ENV`, `POSTIZ_URL`, `CONTENT_REVIEWER` and
+   `WEB_PUSH_SUBJECT`, `NEXT_PUBLIC_TAP_PROVIDER`, `ONLINE_GATEWAY`, `PEACH_ENV`, `CONTENT_REVIEWER` and
    the rest of `.env.example` go in there too, committed, and take effect on the next deploy. A name is a var or a
    secret, never both.
 4. **Scripts against the live D1** run from a laptop over Cloudflare's API (`PrismaD1Http`, `scripts/_d1.ts`): set
@@ -102,9 +103,8 @@ buckets the first time, migrates, deploys and checks `/api/health`. Once, in thi
    herbalholland.com and the shop are only ever served over HTTPS, and herbalholland.com's HSTS covers its
    subdomains. `herbalholland.co.za` (and www) is a Cloudflare zone whose redirect rule sends every request to
    `https://shop.herbalholland.com` with its path and query (301), so anything printed or shared with .co.za still
-   lands in the right place: check it with `curl -sI https://herbalholland.co.za/shop | grep -i location`. Postiz
-   (`social.herbalholland.com`) is not on the Worker: it runs wherever it is hosted ([INTEGRATIONS.md](INTEGRATIONS.md))
-   and the app only needs `POSTIZ_URL` and `POSTIZ_API_KEY`.
+   lands in the right place: check it with `curl -sI https://herbalholland.co.za/shop | grep -i location`. Social
+   posts go straight from the Worker to the networks: no other host.
 7. **Smoke checks**, with `CRON_SECRET` in the shell:
    - `curl -fsS https://shop.herbalholland.com/api/health` → `{"ok":true,"db":"up",…}`;
    - `/login` as the admin of step 5: the temporary password is refused until replaced, then HQ opens;
@@ -424,7 +424,7 @@ gets their stores ranked with an exceptions column (overdue cash-ups, alerts, ne
 | Daily (owner / area manager) | Check new deposits against the bank statement (Verify, or Query with a note); work the loss-prevention alerts: investigate, then resolve or dismiss with a note | Store → Banking / Loss prevention |
 | Monthly (owner) | Approve last month's commission for payroll (people with open alerts are held until they're closed), download the CSV | Store → Commission |
 | Weekly | Replenishment orders submitted/approved/shipped; expiry report actioned | Purchasing / Distribution |
-| Weekly | Open the Studio: approve and queue what's coming (pause a campaign that has to wait), post the WhatsApp Channel and Google posts that are due by hand, and look at any that failed; answer comments and DMs in Postiz or the apps, but never take orders there | HQ → Marketing → Studio |
+| Weekly | Open the Studio: approve and queue what's coming (pause a campaign that has to wait), post the WhatsApp Channel and Google posts that are due by hand, and look at any that failed; answer comments and DMs in the apps, but never take orders there | HQ → Marketing → Studio |
 | Monthly | Cycle counts per category; franchise statements emailed; NCC opt-out registry import into Suppression; VAT201 working per store | Stock takes / HQ Statements / Marketing |
 | Quarterly | Access review (users, roles, devices); restore test from backup | HQ Team / DB |
 

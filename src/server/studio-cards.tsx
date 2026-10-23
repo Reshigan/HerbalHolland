@@ -1,7 +1,7 @@
 // Campaign Studio cards, drawn in the brand's own type (Outfit, Inter) and colours: the orange window frame on warm
 // black, the windmill, the KwaZulu-Natal hills, "Adults 18+" on every one. No stock photos and no AI pictures.
-// Square for feeds, portrait for Instagram, story for Stories and WhatsApp Status, link for link previews. Postiz gets
-// them as JPEG (Instagram takes nothing else).
+// Square for feeds, portrait for Instagram, story for Stories and WhatsApp Status, link for link previews. The networks
+// get them as JPEG (Instagram takes nothing else).
 // Each card is a small HTML page laid out with flexbox, rendered by Cloudflare Browser Rendering (`withPage`, the
 // `BROWSER` binding) and screenshotted at its exact pixel size. The fonts (public/fonts/studio) and the merch photos
 // (public/social) are fetched from the app itself over HTTP, since a Worker has no filesystem.

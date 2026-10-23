@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { limitFor, needsImage, postizPost, screenSocial, SOCIAL_IMAGES } from "@/lib/social";
-import { postizConnected, postizPosts, publishSocial, socialChannels } from "@/server/social";
+import { captionFor, limitFor, needsImage, screenSocial, SOCIAL_IMAGES } from "@/lib/social";
+import { publishSocial, socialChannels, socialConnected } from "@/server/social";
 
 describe("social copy screening", () => {
   it("passes brand posts", () => {
@@ -16,87 +16,98 @@ describe("social copy screening", () => {
   });
 });
 
-describe("Postiz posts", () => {
-  const channels = [
-    { id: "ig", name: "herbalholland", identifier: "instagram" },
-    { id: "x1", name: "@herbalholland", identifier: "x" },
-    { id: "th", name: "herbalholland", identifier: "threads" },
-  ];
+describe("social posts", () => {
   it("limits captions to the strictest network and needs a picture for Instagram", () => {
     expect(limitFor(["instagram", "x"])).toBe(280);
     expect(limitFor(["facebook"])).toBe(2200);
     expect(limitFor([])).toBe(2200);
-    expect(needsImage(["facebook", "instagram-standalone"])).toBe(true);
+    expect(needsImage(["facebook", "instagram"])).toBe(true);
     expect(needsImage(["x"])).toBe(false);
-  });
-  it("builds one post per channel with the provider settings", () => {
-    const body = postizPost({ mode: "schedule", at: new Date("2026-10-02T08:00:00Z"), content: "Hello", image: { id: "u1", path: "https://p/u1.jpg" }, channels });
-    expect(body).toMatchObject({ type: "schedule", date: "2026-10-02T08:00:00.000Z", shortLink: false, tags: [] });
-    expect(body.posts.map((p) => p.settings)).toEqual([{ __type: "instagram", post_type: "post" }, { __type: "x", who_can_reply_post: "everyone" }, { __type: "threads" }]);
-    expect(body.posts[0]).toMatchObject({ integration: { id: "ig" }, value: [{ content: "Hello", image: [{ id: "u1", path: "https://p/u1.jpg" }] }] });
+    expect(captionFor("threads", "x".repeat(600), "Short.")).toBe("Short.");
   });
   it("has a picture for every option (npx tsx scripts/merch-export.tsx --social)", () => {
     for (const i of SOCIAL_IMAGES) expect(existsSync(`public/social/${i.key}.jpg`), i.key).toBe(true);
   });
 });
 
-describe("Postiz adapter", () => {
+type Call = { url: string; init?: RequestInit };
+const NONE = ["META_PAGE_ID", "META_PAGE_TOKEN", "META_IG_USER_ID", "THREADS_USER_ID", "THREADS_TOKEN", "BLUESKY_HANDLE", "BLUESKY_APP_PASSWORD", "TELEGRAM_TOKEN", "TELEGRAM_CHAT_ID"];
+const body = (c: Call) => (c.init?.body instanceof URLSearchParams ? Object.fromEntries(c.init.body) : typeof c.init?.body === "string" ? JSON.parse(c.init.body) : c.init?.body);
+
+describe("the networks", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
-  it("does nothing until it's configured", async () => {
-    vi.stubEnv("POSTIZ_URL", "");
-    expect(postizConnected()).toBe(false);
+  it("does nothing until a network is connected", async () => {
+    for (const k of NONE) vi.stubEnv(k, "");
+    expect(socialConnected()).toBe(false);
     expect(await socialChannels()).toEqual([]);
+    await expect(publishSocial({ content: "Hello", picture: null, channels: [] })).rejects.toThrow(/No social network/);
   });
-  it("lists usable channels, uploads the picture by URL, then creates the post", async () => {
-    vi.stubEnv("POSTIZ_URL", "https://social.example.com/api/public/v1/");
-    vi.stubEnv("POSTIZ_API_KEY", "key-1");
+  it("lists the connected networks as channels", async () => {
+    for (const k of NONE) vi.stubEnv(k, "");
+    vi.stubEnv("META_PAGE_ID", "123");
+    vi.stubEnv("META_PAGE_TOKEN", "tok");
+    vi.stubEnv("BLUESKY_HANDLE", "herbalholland.com");
+    vi.stubEnv("BLUESKY_APP_PASSWORD", "app-pass");
+    expect((await socialChannels()).map((c) => [c.identifier, c.name])).toEqual([["facebook", "Page"], ["bluesky", "@herbalholland.com"]]);
+  });
+  it("posts a brand picture to Facebook, Instagram (container, then publish), Telegram and Bluesky", async () => {
+    for (const k of NONE) vi.stubEnv(k, "");
     vi.stubEnv("APP_URL", "https://shop.herbalholland.com");
-    const calls: { url: string; init?: RequestInit }[] = [];
-    const reply: Record<string, unknown> = {
-      "/integrations": [
-        { id: "ig", name: "herbalholland", identifier: "instagram", picture: "p", disabled: false },
-        { id: "tt", name: "herbalholland", identifier: "tiktok", disabled: false },
-        { id: "fb", name: "Herbal Holland", identifier: "facebook", disabled: true },
-      ],
-      "/upload-from-url": { id: "up1", path: "https://uploads/up1.jpg" },
-      "/posts": [{ postId: "p1", integration: "ig" }],
-    };
+    vi.stubEnv("META_PAGE_ID", "123");
+    vi.stubEnv("META_PAGE_TOKEN", "tok");
+    vi.stubEnv("META_IG_USER_ID", "456");
+    vi.stubEnv("TELEGRAM_TOKEN", "bot-tok");
+    vi.stubEnv("TELEGRAM_CHAT_ID", "@herbalholland");
+    vi.stubEnv("BLUESKY_HANDLE", "herbalholland.com");
+    vi.stubEnv("BLUESKY_APP_PASSWORD", "app-pass");
+    const calls: Call[] = [];
     vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
       calls.push({ url, init });
-      return new Response(JSON.stringify(reply[url.replace("https://social.example.com/api/public/v1", "")]), { status: 200 });
+      const reply = (o: unknown) => new Response(JSON.stringify(o), { status: 200 });
+      if (url.endsWith("/social/windmill-tee.jpg")) return new Response(new Uint8Array([1, 2, 3]));
+      if (url.includes("/123/photos")) return reply({ id: "ph1", post_id: "123_777" });
+      if (url.includes("/456/media?") || url.endsWith("/456/media")) return reply({ id: "c1" });
+      if (url.includes("/c1?fields=status_code")) return reply({ status_code: "FINISHED" });
+      if (url.includes("/456/media_publish")) return reply({ id: "ig9" });
+      if (url.includes("/ig9?fields=permalink")) return reply({ permalink: "https://www.instagram.com/p/x/" });
+      if (url.includes("sendPhoto")) return reply({ ok: true, result: { message_id: 42, chat: { username: "herbalholland" } } });
+      if (url.includes("createSession")) return reply({ accessJwt: "jwt", did: "did:plc:abc" });
+      if (url.includes("uploadBlob")) return reply({ blob: { $type: "blob", ref: { $link: "b1" } } });
+      if (url.includes("createRecord")) return reply({ uri: "at://did:plc:abc/app.bsky.feed.post/3k2" });
+      return new Response("nope", { status: 404 });
     });
     const channels = await socialChannels();
-    expect(channels).toEqual([{ id: "ig", name: "herbalholland", identifier: "instagram", picture: "p" }]);
-    expect(await publishSocial({ content: "Hello", picture: { image: "windmill-tee" }, channels, mode: "now", at: new Date() })).toEqual(["p1"]);
-    expect(calls.map((c) => c.url.split("/v1")[1])).toEqual(["/integrations", "/upload-from-url", "/posts"]);
-    expect((calls[1].init?.headers as Record<string, string>).Authorization).toBe("key-1");
-    expect(JSON.parse(String(calls[1].init?.body))).toEqual({ url: "https://shop.herbalholland.com/social/windmill-tee.jpg" });
-    expect(JSON.parse(String(calls[2].init?.body)).posts[0].value[0].image).toEqual([{ id: "up1", path: "https://uploads/up1.jpg" }]);
+    const r = await publishSocial({ content: "Hello", picture: { image: "windmill-tee" }, channels });
+    expect(r).toEqual([
+      { network: "facebook", name: "Page", id: "123_777", link: "https://www.facebook.com/123_777" },
+      { network: "instagram", name: "Professional account", id: "ig9", link: "https://www.instagram.com/p/x/" },
+      { network: "bluesky", name: "@herbalholland.com", id: "at://did:plc:abc/app.bsky.feed.post/3k2", link: "https://bsky.app/profile/herbalholland.com/post/3k2" },
+      { network: "telegram", name: "@herbalholland", id: "42", link: "https://t.me/herbalholland/42" },
+    ]);
+    const fb = calls.find((c) => c.url.includes("/123/photos"))!;
+    expect(body(fb)).toEqual({ url: "https://shop.herbalholland.com/social/windmill-tee.jpg", message: "Hello", access_token: "tok" });
+    expect(body(calls.find((c) => c.url.endsWith("/456/media"))!)).toEqual({ image_url: "https://shop.herbalholland.com/social/windmill-tee.jpg", caption: "Hello", access_token: "tok" });
+    expect(body(calls.find((c) => c.url.includes("createRecord"))!).record.embed.images[0].image).toEqual({ $type: "blob", ref: { $link: "b1" } });
+    expect(body(calls.find((c) => c.url.includes("sendPhoto"))!)).toEqual({ chat_id: "@herbalholland", photo: "https://shop.herbalholland.com/social/windmill-tee.jpg", caption: "Hello" });
   });
-  it("uploads a Studio card as a file, and reads back how posts went", async () => {
-    vi.stubEnv("POSTIZ_URL", "https://social.example.com/api/public/v1");
-    vi.stubEnv("POSTIZ_API_KEY", "key-1");
-    const calls: { url: string; init?: RequestInit }[] = [];
-    vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
-      calls.push({ url, init });
-      const path = url.replace("https://social.example.com/api/public/v1", "");
-      const body = path === "/upload" ? { id: "f1", path: "https://uploads/f1.jpg" } : path === "/posts" ? [{ postId: "p9" }] : { posts: [{ id: "p9", state: "PUBLISHED", releaseURL: "https://instagram.com/p/x" }] };
-      return new Response(JSON.stringify(body), { status: 200 });
-    });
-    const channels = [{ id: "ig", name: "hh", identifier: "instagram" }];
-    expect(await publishSocial({ content: "Hello", picture: { file: { data: Buffer.from([1, 2, 3]), name: "card.jpg", type: "image/jpeg" } }, channels, mode: "schedule", at: new Date("2026-11-01T08:00:00Z") })).toEqual(["p9"]);
-    expect(calls[0].init?.body).toBeInstanceOf(FormData);
-    expect(((calls[0].init?.body as FormData).get("file") as File).name).toBe("card.jpg");
-    expect(await postizPosts(new Date("2026-11-01T00:00:00Z"), new Date("2026-11-02T00:00:00Z"))).toEqual([{ id: "p9", state: "PUBLISHED", releaseURL: "https://instagram.com/p/x" }]);
-    expect(calls[2].url).toContain("/posts?startDate=2026-11-01T00%3A00%3A00.000Z&endDate=2026-11-02T00%3A00%3A00.000Z");
-  });
-  it("reports Postiz errors", async () => {
-    vi.stubEnv("POSTIZ_URL", "https://social.example.com/api/public/v1");
-    vi.stubEnv("POSTIZ_API_KEY", "bad");
-    vi.stubGlobal("fetch", async () => new Response("Unauthorized", { status: 401 }));
-    await expect(socialChannels()).rejects.toThrow(/Postiz said 401/);
+  it("one network refusing never stops the others, and says why", async () => {
+    for (const k of NONE) vi.stubEnv(k, "");
+    vi.stubEnv("META_PAGE_ID", "123");
+    vi.stubEnv("META_PAGE_TOKEN", "old");
+    vi.stubEnv("TELEGRAM_TOKEN", "bot-tok");
+    vi.stubEnv("TELEGRAM_CHAT_ID", "-100");
+    vi.stubGlobal("fetch", async (url: string) =>
+      url.includes("/123/feed")
+        ? new Response(JSON.stringify({ error: { message: "Error validating access token: Session has expired" } }), { status: 400 })
+        : new Response(JSON.stringify({ ok: true, result: { message_id: 7, chat: {} } }), { status: 200 }),
+    );
+    const r = await publishSocial({ content: "Hello", picture: null, channels: await socialChannels() });
+    expect(r).toEqual([
+      { network: "facebook", name: "Page", error: "Facebook said 400: Error validating access token: Session has expired" },
+      { network: "telegram", name: "-100", id: "7", link: undefined },
+    ]);
   });
 });

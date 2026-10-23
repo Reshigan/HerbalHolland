@@ -81,7 +81,7 @@ Always:
 | 7 | Couriers slow down and close over the festive season. | A Christmas promise we can't keep. | Merch is in stock: collect it in store any time. Confirm the courier's last dates; last merch order for Christmas delivery: to confirm with the courier (mid-December). |
 | 8 | Online orders before 1 December ship from a distribution centre. | "Online now" only works if someone packs parcels. | Confirm the DC (or a store stockroom) and the courier allow-list before the shop opens on Tue 27 Oct. |
 | 9 | Each store needs its licences captured before it sells licensed products. | A late licence means no dispensary on 1 December. | Plan B: open with CBD, merch and Learn; "dispensary opening soon" at the counter. |
-| 10 | Postiz must be running with the brand accounts connected; new cannabis-adjacent accounts get extra scrutiny. | No social launch without accounts. | Create accounts and connect them by Fri 9 Oct (the brand goes live Tue 13 Oct); post brand-only from day one. |
+| 10 | The brand accounts must be connected to the platform (docs/INTEGRATIONS.md → Connecting the networks); new cannabis-adjacent accounts get extra scrutiny. | No social launch without accounts. | Create accounts and connect them by Fri 9 Oct (the brand goes live Tue 13 Oct); post brand-only from day one. |
 | 11 | A Google Business Profile needs a verified address and visible signage. | "Near me" search is our best free local channel. | Create and verify both profiles by Mon 2 Nov, when the Studio's first Google post for each store goes up (verification can take time: start in October). |
 | 12 | STRATEGY.md §8 still describes a Gauteng pilot. | Two plans disagree. | Update §8 once this plan is approved. |
 | 13 | Addresses, hours, phone numbers and team names aren't known yet. | Store pages, profiles, posts and press need them. | You supply them; the copy uses `{address}`, `{hours}`, `{name}` placeholders. |
@@ -152,7 +152,7 @@ Every post and message below goes on the day and at the time the Studio's playbo
 
 | When (2026, SAST) | What | Notes |
 |---|---|---|
-| Before Tue 13 Oct | The launch laid out in HQ → Marketing → Studio → **The launch** (brand 13 Oct, shop 27 Oct, doors 1 Dec, Hillcrest and Hilton), then hiring (day T 30 Oct), Founding Members (6 Dec) and the merch drop (10 Dec); the first weeks approved and queued | Postiz connected; both stores **opening soon** in HQ → Stores |
+| Before Tue 13 Oct | The launch laid out in HQ → Marketing → Studio → **The launch** (brand 13 Oct, shop 27 Oct, doors 1 Dec, Hillcrest and Hilton), then hiring (day T 30 Oct), Founding Members (6 Dec) and the merch drop (10 Dec); the first weeks approved and queued | The networks connected; both stores **opening soon** in HQ → Stores |
 | **Tue 13 Oct 07:00** | **The brand goes live**: _Holland, meet the Hills_ on social, and the WhatsApp Channel's welkom at 12:30 | Two weeks of brand posts, each pointing to first access at herbalholland.com; they stop when the shop opens |
 | Thu 15 Oct | Hiring: member advisors and store managers, on the feed and LinkedIn | We never charge to apply |
 | Sat 24 Oct 09:00 | The shop's teaser: _Our online shop opens on Tuesday 27 October_ | _Open tomorrow_ on Mon 26 Oct at 19:00 |
@@ -350,7 +350,7 @@ new words. HQ → Marketing → Studio lists the packs, each with its day T and 
 ### 8.1 Weekly rhythm and slots
 
 The month packs (§9) keep the same research-led week. HQ lays each month out in the Studio before it begins and
-approves it; the Studio releases each post at its time, so Postiz only gets a post when it goes. Stories are done live
+approves it; the Studio releases each post at its time, so a network only gets a post when it goes. Stories are done live
 in the apps.
 
 | Day | The feed: Instagram, Facebook, Threads, Bluesky, Telegram | LinkedIn | WhatsApp Channel and Google |
@@ -694,14 +694,14 @@ never pay for it.
 | Merch for the team and seeding | 5% | Herbal Holland, the brand (its own P&L, not the stores') | 5% |
 | Contingency | 10% | Contingency | 5% |
 
-Known running costs: Postiz is free software on a small server; SMS is charged per message at the provider's bulk
+Known running costs: social posting is free (the networks' own APIs); SMS is charged per message at the provider's bulk
 rate; email goes through Microsoft Graph; team merch is bought at the partner's price. **Every campaign records its
 cost in HQ → Campaigns**, so return on spend shows up in the reports.
 
 ## 13. Measurement and governance
 
 - **Weekly launch dashboard** (Mondays 09:00, October 2026 to January 2027): members and the Founding Members list (by source,
-  from the join links' tags), consent rates, RSVPs and check-ins, online orders, social (Postiz analytics), press, Google
+  from the join links' tags), consent rates, RSVPs and check-ins, online orders, social (the networks' own insights), press, Google
   profile views, calls and direction requests, reviews. From 1 December: transactions, member attach at the till,
   average basket, repeat visits.
 - **Monthly marketing review** (first Monday): the KPIs against targets; next month's pack laid out and approved in the
@@ -712,7 +712,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
   new claim, the event formats and all franchise material. Store managers approve posts about their store. No photo goes
   out without a release.
 - **Where the numbers live:** HQ → Campaigns (return on spend), Reports (sales, members), HQ → Founding Members (the
-  list), HQ → Campaigns → Social (post history), Postiz analytics, Google Business Profile insights, Search Console.
+  list), HQ → Campaigns → Social (post history), the networks' own insights, Google Business Profile insights, Search Console.
 
 ## 14. Risks
 
@@ -775,7 +775,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 1. **Done (27 Sep):** plan approved; A–D built and tested.
 2. **Next, from you:** the store details (addresses, hours, phone numbers, managers), who packs online orders until
    1 December, and the launch budget.
-3. **By Fri 9 Oct:** deploy; set up Postiz and connect the brand accounts; in HQ, set the list to close Sun 6 Dec
+3. **By Fri 9 Oct:** deploy; connect the brand accounts to the platform; in HQ, set the list to close Sun 6 Dec
    23:59 (2,026 places, Sprout, 14 months, 250 places per referral); create both stores as opening soon; load the
    events and the Founding Members' Drop, and lay the launch out in the Studio (§7).
 4. **Tue 13 Oct:** the brand launches on social. **Tue 27 Oct:** the online shop opens (§6.1).

@@ -1,6 +1,6 @@
 # Social accounts: @herbalholland on Facebook, Instagram and TikTok
 
-The owner's guide to opening the three accounts, dressing them with the kit, connecting them to Postiz and posting the
+The owner's guide to opening the three accounts, dressing them with the kit, connecting them to the platform and posting the
 pinned set. Everything you upload is in `public/brand/social` (made by `npx tsx scripts/social-kit.tsx`), and the one
 link every bio carries is the link-in-bio page, **shop.herbalholland.com/go**.
 
@@ -68,7 +68,7 @@ Instagram account are owned by the company and not by whoever's personal profile
    get the link straight away). Content preference: set the account's audience to **adults 18+** when posting (each
    video's Audience controls).
 5. TikTok's API keeps posts private until an audit, and its policy bans cannabis content outright, so TikTok is
-   **posted by hand** from the Studio (copy the words, save the card) and not connected to Postiz.
+   **posted by hand** from the Studio (copy the words, save the card) and not connected to the platform.
 
 ## 4. The bios
 
@@ -118,28 +118,24 @@ WhatsApp). The Studio runs every caption through the same rules (`screenCopy`) b
 that fails is reworded, not posted. If a platform does restrict the account, don't argue in the appeal: fix the thing
 it named, appeal once with "corrected", and carry on.
 
-## 6. Connect to Postiz
+## 6. Connect to the platform
 
-Postiz (docs/INTEGRATIONS.md has the install) publishes the Studio's posts to Facebook and Instagram at their time.
-Connect each channel from the account that owns it, after the accounts above are set up and have their profile
-pictures, so the previews in Postiz look right.
+The platform posts the Studio's cards to Facebook and Instagram itself at their time (docs/INTEGRATIONS.md → Connecting
+the networks has the Meta app steps). Connect after the accounts above are set up and have their profile pictures.
 
-1. Sign in to Postiz (social.herbalholland.com) as HQ.
-2. **Settings → Add channel → Facebook Page.** Sign in with the Facebook login of the Business Portfolio admin, allow
-   the permissions, pick the *Herbal Holland* Page. Postiz lists it with the avatar.
-3. **Settings → Add channel → Instagram (Facebook Business).** The same login; pick the Instagram account linked to the
-   Page. Choose this one, not *Instagram Standalone*, so the connection is through the Page the portfolio owns.
-4. Threads, if used: **Add channel → Threads**, the same Instagram login.
-5. **TikTok: don't add it.** The API audit keeps posts private, and TikTok's policy bans our category; it's posted by
+1. In the Meta developer app HQ owns, generate a long-lived user token for the Business Portfolio admin, read the
+   *Herbal Holland* Page's token and id from `GET /me/accounts`, and the Instagram account's id from
+   `GET /{page-id}?fields=instagram_business_account`.
+2. Set `META_PAGE_ID`, `META_PAGE_TOKEN` and `META_IG_USER_ID` on the Worker (`wrangler secret bulk`, the runbook's
+   Releases section). Threads, if used: `THREADS_USER_ID` and `THREADS_TOKEN` from the same app's Threads product.
+3. **TikTok: don't connect it.** The API audit keeps posts private, and TikTok's policy bans our category; it's posted by
    hand. In the Studio, each TikTok post is marked **I'll post it by hand**.
-6. In Postiz, open each channel's **Preferences** and set the customer name to *Herbal Holland* and the time zone to
-   Africa/Johannesburg. Send one test post from Postiz (the welcome card with the words "Testing, back in a minute"),
-   check it appears on both, delete it from both.
-7. Settings → Public API → copy the key into the platform's `POSTIZ_API_KEY` (and `POSTIZ_URL`) if that isn't done
-   yet, and confirm HQ → Marketing → Social shows *Connected*.
+4. Send one test post from HQ → Marketing → Social (the window poster with the words "Testing, back in a minute"),
+   check it appears on both with its links on the Social page, delete it from both.
 
-The Meta app tokens Postiz uses expire if the admin's password changes or their 2FA is reset: when a post fails with
-"token", reconnect the channel in Postiz (Settings → the channel → Reconnect) and release the post again from the Studio.
+A Page token stops working if the admin's password changes, their 2FA is reset or they leave the Page's roles: when a
+post fails with "token" on the Social page or in the Studio, make a new token the same way, set the secret again and
+release the post again from the Studio. The daily job warns two weeks before a token's expiry.
 
 ## 7. Post the pinned set
 

@@ -4,7 +4,7 @@ import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { db } from "@/server/db";
 import { can } from "@/server/hq/guard";
 import { toLocalInput } from "@/server/hq/form";
-import { postizConnected } from "@/server/social";
+import { socialConnected } from "@/server/social";
 import { aiReady } from "@/server/studio-ai";
 import { EARLY_ACCESS, itemFlags, playbookOf } from "@/server/studio";
 import { segmentLabel } from "@/server/marketing";
@@ -43,7 +43,7 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
   const plan = await db.studioPlan.findUnique({ where: { id }, include: { store: { select: { name: true } }, items: { orderBy: { at: "asc" } } } });
   if (!plan) notFound();
   const write = can(user, "network");
-  const social = postizConnected();
+  const social = socialConnected();
   const pb = playbookOf(plan.playbook);
   const by = (s: string) => plan.items.filter((i) => i.status === s).length;
   const days = Map.groupBy(plan.items, (i) => dayKey(i.at));
@@ -86,7 +86,7 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
       )}
       <Notice tone="info" className="mb-5">
         Approved posts wait here until their time: the scheduler releases each one then (it runs every 15 minutes), so you can pause the whole campaign or take a post back until the moment it goes.{" "}
-        {social ? "Social posts go to Postiz with their card." : "Postiz isn't connected, so social posts are made by hand like WhatsApp and Google: copy the words, download the card, then mark it posted."} Email, SMS and push go
+        {social ? "Social posts go out to the networks with their card." : "No social network is connected, so social posts are made by hand like WhatsApp and Google: copy the words, download the card, then mark it posted."} Email, SMS and push go
         to {plan.store ? `${plan.store.name}'s` : "all"} members who said yes to that channel (or to the audience a post names), inside the legal send times. WhatsApp Channel and Google posts are always made by hand: their rules don&apos;t allow a cannabis brand&apos;s posts through an API.
       </Notice>
       <div className="space-y-8">
@@ -170,7 +170,7 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
                           {channel === "SOCIAL" && social && ["DRAFT", "APPROVED", "FAILED"].includes(it.status) && (
                             <ActionForm action={handStudioItem.bind(null, it.id, !it.hand)} notices="bottom">
                               <SubmitButton size="sm" variant="outline">
-                                {it.hand ? "Send the card through Postiz" : "I'll post it by hand"}
+                                {it.hand ? "Let the Studio post the card" : "I'll post it by hand"}
                               </SubmitButton>
                             </ActionForm>
                           )}

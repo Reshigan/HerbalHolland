@@ -9,6 +9,7 @@ import { SYSTEM } from "./audit";
 import { reportFailure } from "./alerts";
 import { advanceOrder } from "./orders";
 import { releaseStudio, syncStudio } from "./studio";
+import { checkSocialTokens, releaseSocialPosts } from "./social";
 import { runDueCampaigns } from "./marketing";
 import { emailSaleInvoice } from "./invoices";
 import { addPoints } from "./loyalty";
@@ -102,9 +103,10 @@ export const JOBS: Record<string, Steps> = {
   frequent: {
     campaigns: async () => (await runDueCampaigns()).length,
     // The Studio: release the queued posts whose time has come (unless their campaign is paused), then read back
-    // which campaigns and Postiz posts went out.
+    // which campaigns went out; HQ → Social's scheduled posts go out too.
     studioRelease: () => releaseStudio(),
     studio: () => syncStudio(),
+    socialPosts: () => releaseSocialPosts(),
     unpaidOrders: expireUnpaidOrders,
     invoices: retryInvoices,
     founding: assignFounding,
@@ -133,6 +135,8 @@ export const JOBS: Record<string, Steps> = {
     reminders: sendDueReminders,
     // Gift vouchers past their three years (CPA s63) expire; purchases never paid for are cancelled.
     vouchers: expireVouchers,
+    // A Meta Page token about to expire is reported (audit social.token) before social posts start failing.
+    socialTokens: checkSocialTokens,
     // Trade: EFT orders unpaid past the hold lapse; accounts with an invoice past due + grace go on hold; last
     // month's statements go out from the statement day (once per account and month).
     trade: { eftExpiry: tradeEftExpiry, overdueHolds: tradeOverdueHolds, licences: tradeLicenceExpiry, statements: tradeStatements },
