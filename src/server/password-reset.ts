@@ -6,6 +6,7 @@ import { appSecret } from "./secret";
 import { hashSecret, sha256 } from "./crypto";
 import { audit } from "./audit";
 import { emailLayout, esc, sendEmail } from "./email";
+import { background } from "./background";
 import { graphConfigured } from "./graph-mail";
 import { APP_URL } from "./invoices";
 
@@ -35,14 +36,18 @@ export async function readReset(token: string | null | undefined, now = Date.now
   return user?.active && fingerprint(user.passwordHash) === fp ? user : null;
 }
 
-/** Always answers the same way, so the form can't be used to find out which emails have accounts. */
+/**
+ * Always answers the same way, and in the same time (the email goes out in the background), so the form can't be used
+ * to find out which emails have accounts. Only an account that already signs in with a password gets a link: a till
+ * PIN account without one can't be given back-office access this way.
+ */
 export async function requestReset(rawEmail: string) {
   const email = rawEmail.trim().toLowerCase().slice(0, 254);
   const user = email ? await db.user.findUnique({ where: { email } }) : null;
-  if (!user?.active || !user.email || !graphConfigured()) return;
+  if (!user?.active || !user.email || !user.passwordHash || !graphConfigured()) return;
   const url = `${APP_URL()}/login/reset?t=${signReset(user)}`;
   const first = user.name.split(" ")[0];
-  await sendEmail({
+  background("password reset email", sendEmail({
     to: user.email,
     subject: "Reset your Herbal Holland password",
     html: emailLayout({
@@ -55,16 +60,21 @@ export async function requestReset(rawEmail: string) {
     }),
     text: `Hi ${first},\n\nSomeone asked for a password reset on your Herbal Holland account. If it was you, choose a new password here within ${RESET_MINUTES} minutes:\n${url}\n\nIf it wasn't you, ignore this email: your password stays as it is.`,
     logText: `Password reset link sent (valid ${RESET_MINUTES} minutes; the link is not kept here).`,
-  });
+  }));
   await audit(db, { type: "USER", id: user.id, name: user.name }, "auth.reset_requested", { storeId: user.storeId, entity: "User", entityId: user.id });
 }
 
-/** Sets the password from a valid link; every session is signed out. */
-export async function completeReset(user: { id: string; name: string; storeId: string | null }, password: string) {
-  await db.user.update({
-    where: { id: user.id },
+/**
+ * Sets the password from a valid link; every session is signed out. The write is conditional on the hash the link was
+ * issued against, so of two links used at once only the first takes: the second finds the hash gone and fails.
+ */
+export async function completeReset(user: { id: string; name: string; storeId: string | null; passwordHash: string | null }, password: string) {
+  const { count } = await db.user.updateMany({
+    where: { id: user.id, passwordHash: user.passwordHash },
     data: { passwordHash: await hashSecret(password), mustChangePassword: false, tempPasswordUntil: null, passwordFails: 0, passwordLockedAt: null },
   });
+  if (!count) return false;
   await db.session.deleteMany({ where: { userId: user.id } });
   await audit(db, { type: "USER", id: user.id, name: user.name }, "auth.password_reset", { storeId: user.storeId, entity: "User", entityId: user.id });
+  return true;
 }

@@ -12,6 +12,6 @@ export async function reset(_: ResetState, form: FormData): Promise<ResetState> 
   const problem = passwordProblem(next, { email: user.email, name: user.name });
   if (problem) return { error: problem, field: "next" };
   if (next !== confirm) return { error: "The two passwords don't match.", field: "confirm" };
-  await completeReset(user, next);
+  if (!(await completeReset(user, next))) redirect("/login/forgot?expired=1");
   redirect("/login?reset=1");
 }
