@@ -18,8 +18,9 @@ live, then national.
 
 - [x] **Referral ladder:** 3 friends' first purchases, the next tier for 30 days; 10, Windmill Crew status; rules at
       /legal/referrals. No prize leaderboard (it would be a promotional competition under CPA s36), so no draw rules needed.
-- [ ] **WhatsApp Status cards:** a 9:16 card for the welcome screen, Founding place, events, drops and specials, each
-      carrying the member's referral link, one tap to share.
+- [x] **WhatsApp Status cards:** a 9:16 card with the member's join QR and code ("Status card" next to every invite; Founding
+      wording while the list is open), shared as an image straight to Status where the phone allows. Events, drops and
+      specials cards follow with those pages.
 - [ ] **Staff referral codes:** each staff member's code on the till; sign-ups credited to them and fed to commission.
 - [ ] **Area pages that earn their place:** one page per store's catchment (Bluff and the south coast, Pietermaritzburg
       and the Midlands, Hillcrest and the Upper Highway, Hilton and Howick) with the store, hours, directions, local

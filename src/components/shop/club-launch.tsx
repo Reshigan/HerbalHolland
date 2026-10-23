@@ -59,7 +59,7 @@ export function WaitlistCard({ w, cap, firstYear, referUrl, shareText, firstName
         {w.referrals > 0 && ` You've brought ${w.referrals} so far. Thank you, ${firstName}.`}
       </p>
       <div className="mt-4">
-        <ShareLink url={referUrl} text={shareText} shareLabel="Share your link" />
+        <ShareLink url={referUrl} text={shareText} shareLabel="Share your link" status={`/s/${new URL(referUrl).searchParams.get("ref")}/status?v=founding`} />
       </div>
     </Panel>
   );

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
-import { Check, Copy, CreditCard, History, LifeBuoy, MessageCircle, Package, Receipt, Settings, Share2 } from "lucide-react";
+import { Check, Copy, CreditCard, History, Image as ImageIcon, LifeBuoy, MessageCircle, Package, Receipt, Settings, Share2 } from "lucide-react";
 import { copyText, whatsappUrl } from "./share";
 import { cn } from "@/lib/cn";
 
@@ -60,7 +60,20 @@ export function ClubNav() {
 }
 
 /** Invite link: the link itself with copy, the phone's share sheet where there is one, and WhatsApp. */
-export function ShareLink({ url, text, shareLabel = "Share your invite" }: { url: string; text: string; shareLabel?: string }) {
+/** Shares the 9:16 Status card as a file where the phone allows it (straight into WhatsApp Status), else opens it to save. */
+async function shareStatus(src: string, text: string, url: string) {
+  const type = "image/png";
+  // Checked before any await: a browser that can't share files opens the card inside the click, past popup blockers.
+  if (!navigator.canShare?.({ files: [new File([], "card.png", { type })] })) return void window.open(src, "_blank", "noopener");
+  try {
+    const blob = await (await fetch(src)).blob();
+    await navigator.share({ files: [new File([blob], "herbal-holland-rewards.png", { type })], text: `${text} ${url}` });
+  } catch (e) {
+    if ((e as Error).name !== "AbortError") window.location.assign(src);
+  }
+}
+
+export function ShareLink({ url, text, shareLabel = "Share your invite", status }: { url: string; text: string; shareLabel?: string; status?: string }) {
   const [copied, setCopied] = useState(false);
   const [canShare, setCanShare] = useState(false);
   useEffect(() => setCanShare(typeof navigator !== "undefined" && "share" in navigator), []);
@@ -86,6 +99,11 @@ export function ShareLink({ url, text, shareLabel = "Share your invite" }: { url
         <a href={whatsappUrl(text, url)} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center gap-2 rounded-full border border-ink-700 px-5 text-sm font-semibold text-ink-100 hover:border-leaf-500 hover:text-white">
           <MessageCircle className="h-4 w-4 text-leaf-500" /> WhatsApp
         </a>
+        {status && (
+          <button type="button" onClick={() => shareStatus(status, text, url)} className="flex h-11 items-center gap-2 rounded-full border border-ink-700 px-5 text-sm font-semibold text-ink-100 hover:border-brand-500 hover:text-white">
+            <ImageIcon className="h-4 w-4 text-brand-500" /> Status card
+          </button>
+        )}
       </div>
     </div>
   );
