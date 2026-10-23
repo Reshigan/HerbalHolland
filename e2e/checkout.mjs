@@ -21,7 +21,7 @@ await db.query(
 );
 let browser;
 try { browser = await chromium.launch(); } catch { browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" }); }
-const ctx = await browser.newContext({ viewport: { width: +w, height: +h }, reducedMotion: "reduce" });
+const ctx = await browser.newContext({ viewport: { width: +w, height: +h } });
 await ctx.addCookies([{ name: "hh_age", value: "1", url: base }]);
 const page = await ctx.newPage();
 const errors = [];

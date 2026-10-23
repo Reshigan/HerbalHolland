@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ViewTransition } from "react";
 import { getCustomer } from "@/server/auth";
 import { ShopChrome } from "@/components/shop/chrome";
 import { ClubNav } from "@/components/shop/club-client";
@@ -24,9 +23,7 @@ export default async function ClubLayout({ children }: { children: React.ReactNo
         </Container>
       )}
       <div className={customer ? "pb-20 sm:pb-0" : undefined}>
-        <ViewTransition default="hh-page">
-          <div>{children}</div>
-        </ViewTransition>
+        {children}
       </div>
     </ShopChrome>
   );

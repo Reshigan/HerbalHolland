@@ -26,9 +26,7 @@ const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 const one = async (sql, params = []) => (await q(sql, params))[0];
 
 const browser = await chromium.launch().catch(() => chromium.launch({ executablePath: "/opt/pw-browsers/chromium" }));
-// Reduced motion: the journeys click the moment an element appears, so nothing may still be rising or cross-fading under the pointer
-// (the crawl runs with motion on and reports console errors, so a broken animation still fails CI).
-const PHONE = { viewport: { width: 390, height: 844 }, reducedMotion: "reduce" };
+const PHONE = { viewport: { width: 390, height: 844 } };
 const problems = [];
 // A hydration warning's useful part is its "+ client / - server" lines.
 const diffOf = (t) => {

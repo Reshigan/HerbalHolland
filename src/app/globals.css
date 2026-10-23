@@ -256,15 +256,8 @@
   html.motion .hh-burst > i:nth-child(even) { background: var(--color-ink-50); width: 5px; height: 5px; bottom: 30%; }
   html.motion .hh-burst > i:nth-child(3n) { animation-duration: 1100ms; }
 
-  /* Page swaps (React's ViewTransition in the shop and Rewards layouts): a short cross-fade, only with html.motion. */
-  html.motion::view-transition-old(.hh-page) { animation: hh-fade 220ms ease-out reverse both; }
-  html.motion::view-transition-new(.hh-page) { animation: hh-fade 220ms ease-out both; }
 }
 .hh-skeleton { position: relative; overflow: hidden; background: var(--color-ink-900); border-radius: 0.75rem; }
 .hh-skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.06) 50%, transparent 65%); transform: translateX(-120%) skewX(-12deg); }
-/* The swap itself must stay instant for everyone who should not see it move (and clicks pass through while it runs). */
-::view-transition { pointer-events: none; }
-html:not(.motion)::view-transition-old(*), html:not(.motion)::view-transition-new(*), html:not(.motion)::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
 }
