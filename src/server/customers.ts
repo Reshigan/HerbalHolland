@@ -8,12 +8,14 @@ import { addPoints } from "./loyalty";
 import { getSettings } from "./settings";
 import { audit, type Actor } from "./audit";
 import { nextNumber, shortCode } from "./counters";
-import { checkCode, issueCode, OtpLimitError } from "./otp";
+import { checkCodeSentTo, issueCode, OtpLimitError } from "./otp";
+import { graphConfigured } from "./graph-mail";
 import { count, hit } from "./throttle";
 import { ageOn, checkSaId, normalisePhone } from "@/lib/sa";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
 import { DEALS_QUESTION, TERMS_VERSION } from "@/lib/terms";
 import { interestsFrom } from "@/lib/rfm";
+import { isEmail } from "@/lib/email";
 import { appSecret } from "./secret";
 
 export class CustomerError extends Error {}
@@ -23,26 +25,68 @@ export const CODE_PROBLEM = { wrong: "That code isn't right", expired: "That cod
 
 const idHash = (id: string) => createHmac("sha256", appSecret()).update(id).digest("hex");
 
-/** Texts a sign-in code. Requests pass the requester's IP (clientIpFrom) for the per-connection limit (src/server/otp.ts). */
-export async function requestOtp(raw: string, opts?: { ip: string | null }) {
+/**
+ * Sends a sign-in code: by SMS, or by email when asked (`email`). The number stays the member's identity, so an email
+ * code goes only to a new number's own address or to the email already on the member's account, never to an address
+ * someone types for a number that isn't theirs. Requests pass the requester's IP (clientIpFrom) for the per-connection
+ * limit (src/server/otp.ts).
+ */
+export async function requestOtp(raw: string, opts?: { ip: string | null; email?: string | null }) {
   const phone = normalisePhone(raw);
   if (!phone) throw new CustomerError("Enter a valid South African mobile number");
-  const code = await issueCode({ phone }, opts).catch((e) => {
+  const email = opts?.email?.trim().toLowerCase() || null;
+  if (email) {
+    if (!isEmail(email)) throw new CustomerError("That email address doesn't look right");
+    if (!graphConfigured() && process.env.DEMO_MODE !== "true") throw new CustomerError("Codes by email aren't available right now. Get your code by SMS");
+    const member = await db.customer.findUnique({ where: { phone }, select: { email: true, emailVerifiedAt: true } });
+    // Only an email that once received this member's code can carry another: an address typed into the profile hasn't.
+    if (member && !(member.email === email && member.emailVerifiedAt)) throw new CustomerError(member.email ? "That isn't the email you joined with. Use that one, or get your code by SMS" : "There's no email on your account yet. Get your code by SMS");
+  }
+  const code = await issueCode({ phone }, { ip: opts?.ip ?? null, sentTo: email }).catch((e) => {
     throw e instanceof OtpLimitError ? new CustomerError(e.message) : e;
   });
   if (!code) throw new CustomerError("Too many codes requested. Try again in 10 minutes");
   const text = (c: string) => `Your Herbal Holland code is ${c}. It expires in 10 minutes.`;
-  const sms = await send({ channel: "SMS", to: phone, body: `${text(code)}\n\n@${new URL(APP_URL()).hostname} #${code}`, logBody: text("••••••"), kind: "TRANSACTIONAL" });
-  if (sms.status === "FAILED") throw new CustomerError("We couldn't send your code just now. Please try again in a minute");
-  return { phone, demoCode: process.env.DEMO_MODE === "true" ? code : undefined };
+  const sent = email
+    ? await send({ channel: "EMAIL", to: email, subject: "Your Herbal Holland sign-in code", body: `${text(code)}\n\nIf you didn't ask for a code, you can ignore this email.`, logBody: text("••••••"), kind: "TRANSACTIONAL" })
+    : await send({ channel: "SMS", to: phone, body: `${text(code)}\n\n@${new URL(APP_URL()).hostname} #${code}`, logBody: text("••••••"), kind: "TRANSACTIONAL" });
+  if (sent.status === "FAILED") throw new CustomerError("We couldn't send your code just now. Please try again in a minute");
+  return { phone, email: email ?? undefined, demoCode: process.env.DEMO_MODE === "true" ? code : undefined };
 }
 
+/** The welcome to a new member who gave an email: their card, the app, and what to do first. */
+export async function sendWelcome(c: { id: string; firstName: string; email: string | null; memberNo: string }) {
+  if (!c.email) return;
+  const url = APP_URL();
+  await send({
+    channel: "EMAIL", to: c.email, customerId: c.id, kind: "TRANSACTIONAL",
+    subject: `Welcome to Herbal Holland Rewards, ${c.firstName}`,
+    body: [
+      `Hi ${c.firstName},`,
+      `You're in. Your member number is ${c.memberNo}, and your card is ready at ${url}/club. Show it in any store to earn points on every purchase.`,
+      `Keep it on your phone: open ${url}/club, then add Herbal Holland to your Home Screen (on iPhone, Share → Add to Home Screen). You can switch on notifications there too, so you hear about drops and events first.`,
+      `Sign in any time with your mobile number: we send a one-time code, no password to remember.`,
+      `See you in store.`,
+    ].join("\n\n"),
+  });
+}
+
+/**
+ * Checks the code; `sentTo` is the email it went to (null: SMS). A code to the phone itself proves the number: a member
+ * whose number was never proved (joined by email code) is claimed by whoever holds the phone, and the email that joined
+ * it is dropped, so a number registered through someone else's inbox comes back to its owner.
+ */
 export async function verifyOtp(raw: string, code: string) {
   const phone = normalisePhone(raw);
   if (!phone) throw new CustomerError("Invalid phone number");
-  const r = await checkCode({ phone }, code);
-  if (r !== "ok") throw new CustomerError(CODE_PROBLEM[r]);
-  return { phone, customer: await db.customer.findUnique({ where: { phone } }) };
+  const { result, sentTo } = await checkCodeSentTo({ phone }, code);
+  if (result !== "ok") throw new CustomerError(CODE_PROBLEM[result]);
+  let customer = await db.customer.findUnique({ where: { phone } });
+  if (customer && !sentTo && !customer.phoneVerifiedAt) {
+    customer = await db.customer.update({ where: { id: customer.id }, data: { phoneVerifiedAt: new Date(), email: null, emailVerifiedAt: null } });
+    await audit(db, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "customer.phone_claimed", { entity: "Customer", entityId: customer.id, data: { droppedEmail: true } });
+  }
+  return { phone, customer, sentTo };
 }
 
 // ── Someone else's ID number or email ──────────────────────────────────────────
@@ -80,6 +124,8 @@ export type NewCustomer = {
   joinedVia?: string | null; // raw ?src= tag; normalised by joinTag
   termsAccepted: boolean; // accepted the membership terms (TERMS_VERSION); required to join
   interests?: string[]; // what they told us they're into (INTERESTS keys), for relevant deals
+  /** The email the join code went to, when it went by email: that address is proven, the phone isn't yet. */
+  codeSentTo?: string | null;
   consentWording?: string; // what they were asked, for the consent ledger (default: the online wording)
   ageCheck?: AgeCheck; // e.g. ID_SIGHTED when a member advisor checked a passport in store
 };
@@ -123,6 +169,8 @@ export async function createCustomer(a: NewCustomer, actor: Actor) {
         memberNo: `HH${String(100000 + n).padStart(7, "0")}`,
         phone,
         email: a.email?.trim().toLowerCase() || null,
+        phoneVerifiedAt: a.codeSentTo ? null : new Date(),
+        emailVerifiedAt: a.codeSentTo && a.codeSentTo === a.email?.trim().toLowerCase() ? new Date() : null,
         firstName: a.firstName.trim(),
         lastName: a.lastName?.trim() || null,
         dob,

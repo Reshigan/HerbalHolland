@@ -70,7 +70,8 @@ describe("store hours (SAST)", () => {
 describe("verified-phone token", () => {
   it("accepts its own signature until it expires", () => {
     const t = signPhone("+27825551234", 20, 1_000);
-    expect(readPhoneToken(t, 2_000)).toBe("+27825551234");
+    expect(readPhoneToken(t, 2_000)).toEqual({ phone: "+27825551234", sentTo: null });
+    expect(readPhoneToken(signPhone("+27825551234", 20, 1_000, "a.b@example.com"), 2_000)).toEqual({ phone: "+27825551234", sentTo: "a.b@example.com" });
     expect(readPhoneToken(t, 1_000 + 21 * 60_000)).toBeNull();
   });
   it("rejects tampering", () => {

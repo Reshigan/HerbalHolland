@@ -6,12 +6,13 @@ import { appSecret } from "../secret";
 
 const mac = (body: string) => createHmac("sha256", appSecret()).update(`verified-phone:${body}`).digest("base64url");
 
-export function signPhone(phone: string, ttlMinutes = 20, now = Date.now()) {
-  const body = `${phone}.${now + ttlMinutes * 60_000}`;
+/** `sentTo`: the email the code went to when it went by email (base64url, so dots in it don't split the token). */
+export function signPhone(phone: string, ttlMinutes = 20, now = Date.now(), sentTo: string | null = null) {
+  const body = `${phone}.${now + ttlMinutes * 60_000}.${sentTo ? Buffer.from(sentTo).toString("base64url") : ""}`;
   return `${body}.${mac(body)}`;
 }
 
-export function readPhoneToken(token: string | null | undefined, now = Date.now()): string | null {
+export function readPhoneToken(token: string | null | undefined, now = Date.now()): { phone: string; sentTo: string | null } | null {
   if (!token) return null;
   const i = token.lastIndexOf(".");
   if (i < 0) return null;
@@ -19,7 +20,7 @@ export function readPhoneToken(token: string | null | undefined, now = Date.now(
   const given = Buffer.from(token.slice(i + 1));
   const expected = Buffer.from(mac(body));
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
-  const [phone, exp] = body.split(".");
+  const [phone, exp, to] = body.split(".");
   if (!phone || !(Number(exp) > now)) return null;
-  return phone;
+  return { phone, sentTo: to ? Buffer.from(to, "base64url").toString() : null };
 }

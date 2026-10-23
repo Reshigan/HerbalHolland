@@ -588,6 +588,8 @@ model Customer {
   memberNo           String    @unique
   phone              String    @unique
   email              String?   @unique
+  phoneVerifiedAt    DateTime? // a code came to the phone itself (SMS); null when the member joined by email code and nobody has proved the number yet
+  emailVerifiedAt    DateTime? // a sign-in code came to this email; only then can it carry sign-in codes. Cleared when the email changes
   firstName          String
   lastName           String?
   dob                DateTime?
@@ -733,6 +735,7 @@ model Otp {
   id        String   @id @default(cuid())
   phone     String? // members: a code by SMS
   email     String? // trade buyers: a code by email
+  sentTo    String? // a member's code sent by email instead: the address, which the code then proves
   codeHash  String
   attempts  Int      @default(0)
   expiresAt DateTime

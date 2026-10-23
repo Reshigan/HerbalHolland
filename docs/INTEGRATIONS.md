@@ -237,7 +237,12 @@ check at the door (recorded as `Order.idChecked`). Order dispatch stores `courie
 Without providers configured, messages and emails are written to `MessageLog` so every notification is visible in the
 demo. With a live provider every message is still logged with its status (`SENT` / `FAILED` + reason); sign-in codes are
 masked in the log, and a failed code send tells the customer to retry. SMS codes end with `@<host> #<code>` so phones
-can autofill them. SMSPortal keeps its own STOP-reply opt-out list; import it into `Suppression` monthly with the NCC
+can autofill them. A code can go by email instead (`requestOtp` with `email`, only while email can be sent): to a new
+number's own address, or only to the email a code has already reached on the member's account (`emailVerifiedAt`; an
+address typed into the profile hasn't been proved and is cleared of that). A number joined through an inbox is
+unproved (`phoneVerifiedAt` null): the first code to the phone itself claims it and drops that email (audit
+`customer.phone_claimed`), so nobody keeps a membership on someone else's number. Email codes don't count against the
+SMS ceiling. SMSPortal keeps its own STOP-reply opt-out list; import it into `Suppression` monthly with the NCC
 registry until an inbound webhook syncs it.
 
 ## ID verification

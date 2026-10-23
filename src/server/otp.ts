@@ -27,14 +27,14 @@ const hashOf = (a: OtpAddress, code: string) => sha256(`${value(a)}:${code}`);
  * A new six-digit code for the address, or null when five went out in the last 10 minutes. Pass the requester's IP
  * (clientIpFrom) from a request; it's only left out by scripts and tests. Throws OtpLimitError past the wider limits.
  */
-export async function issueCode(a: OtpAddress, opts?: { ip: string | null }): Promise<string | null> {
+export async function issueCode(a: OtpAddress, opts?: { ip: string | null; sentTo?: string | null }): Promise<string | null> {
   if (opts && !(await hit(`otp-ip:${ipKey(opts.ip)}`, CODES_PER_IP_HOUR, HOUR_MS))) throw new OtpLimitError("Too many codes requested. Try again in an hour");
-  if ("phone" in a) await smsCeiling();
+  if ("phone" in a && !opts?.sentTo) await smsCeiling(); // a member's code by email isn't a text
   return tx(async (t) => {
     const recent = await t.otp.count({ where: { ...a, createdAt: { gte: new Date(Date.now() - OTP_MINUTES * 60_000) } } });
     if (recent >= CODES_PER_WINDOW) return null;
     const code = String(randomInt(100_000, 1_000_000));
-    await t.otp.create({ data: { ...a, codeHash: hashOf(a, code), expiresAt: new Date(Date.now() + OTP_MINUTES * 60_000) } });
+    await t.otp.create({ data: { ...a, sentTo: opts?.sentTo ?? null, codeHash: hashOf(a, code), expiresAt: new Date(Date.now() + OTP_MINUTES * 60_000) } });
     return code;
   });
 }
@@ -53,18 +53,21 @@ async function smsCeiling() {
 export type CodeCheck = "ok" | "wrong" | "expired" | "locked";
 
 /** Checks a code against the address's latest unexpired one; a right one uses up every code the address has. */
-export function checkCode(a: OtpAddress, code: string): Promise<CodeCheck> {
+export const checkCode = async (a: OtpAddress, code: string): Promise<CodeCheck> => (await checkCodeSentTo(a, code)).result;
+
+/** checkCode, and for a right code where it was sent (`sentTo`: the email a member's code went to, else null). */
+export function checkCodeSentTo(a: OtpAddress, code: string): Promise<{ result: CodeCheck; sentTo: string | null }> {
   return tx(async (t) => {
     const now = Date.now();
     const wrong = await t.otp.aggregate({ where: { ...a, createdAt: { gte: new Date(now - 3_600_000) } }, _sum: { attempts: true } });
-    if ((wrong._sum.attempts ?? 0) >= WRONG_PER_HOUR) return "locked";
+    if ((wrong._sum.attempts ?? 0) >= WRONG_PER_HOUR) return { result: "locked", sentTo: null };
     const otp = await t.otp.findFirst({ where: { ...a, expiresAt: { gt: new Date(now) } }, orderBy: { createdAt: "desc" } });
-    if (!otp || otp.attempts >= TRIES_PER_CODE) return "expired";
+    if (!otp || otp.attempts >= TRIES_PER_CODE) return { result: "expired", sentTo: null };
     if (otp.codeHash !== hashOf(a, code.trim())) {
       await t.otp.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } });
-      return "wrong";
+      return { result: "wrong", sentTo: null };
     }
     await t.otp.deleteMany({ where: a });
-    return "ok";
+    return { result: "ok", sentTo: otp.sentTo };
   });
 }
