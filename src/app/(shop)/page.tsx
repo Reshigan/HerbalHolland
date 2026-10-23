@@ -128,7 +128,7 @@ export default async function Home() {
                   Shop the range
                 </ButtonLink>
               </div>
-              <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-ink-850 pt-6">
+              <dl className={cn("mt-12 grid max-w-lg gap-4 border-t border-ink-850 pt-6", batches > 0 ? "grid-cols-3" : "grid-cols-2")}>
                 {[
                   [num(listSize), "members on the list"],
                   [num(launch.foundingCap), "Founding spots"],
@@ -161,10 +161,11 @@ export default async function Home() {
                 {customer ? "Your Rewards card" : "Join Herbal Holland Rewards"}
               </ButtonLink>
             </div>
-            <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-ink-850 pt-6">
+            <dl className={cn("mt-12 grid max-w-lg gap-4 border-t border-ink-850 pt-6", batches > 0 ? "grid-cols-3" : "grid-cols-2")}>
+              {/* A zero is not a boast: the batch count waits until the first batch is on the shelf. */}
               {[
                 opening ? [num(footprint.total), `${footprint.total === 1 ? "store" : "stores"} opening soon`] : [num(trading), `${trading === 1 ? "store" : "stores"}${provinces.length ? ` in ${where}` : ""}`],
-                [batches.toLocaleString(), "lab-tested batches"],
+                ...(batches > 0 ? [[batches.toLocaleString(), "lab-tested batches"]] : []),
                 [String(loyalty.signupBonus), "welcome points"],
               ].map(([v, l]) => (
                 <div key={l}>

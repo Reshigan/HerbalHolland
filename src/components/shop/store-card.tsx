@@ -98,7 +98,7 @@ export function StoreCard({
         {soon ? (
           <Tag tone="amber">Opening soon</Tag>
         ) : o.unknown ? (
-          <Tag tone="green">Open</Tag>
+          <Tag tone="neutral">Hours coming soon</Tag>
         ) : (
           <Tag tone={o.open ? "green" : "neutral"}>
             {o.open ? "Open now" : "Closed"}
