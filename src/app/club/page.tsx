@@ -100,6 +100,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           </p>
           <ShareLink
             url={referUrl}
+            status={`/s/${m.customer.referralCode}/status${launch.preLaunch && launch.at ? "?v=founding" : ""}`}
             text={
               launch.preLaunch && launch.at
                 ? `I'm on the Herbal Holland Founding Members list. The first ${num(launch.foundingCap)} members get a numbered card, and it closes ${fmtDate(launch.at)}. Join free with my link (adults 18+):`
@@ -336,7 +337,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               </p>
             )}
             <div className="mt-4">
-              <ShareLink url={referUrl} text={`Join me at Herbal Holland Rewards and we both get ${settings.loyalty.referralBonus} points after your first purchase. Adults 18+.`} />
+              <ShareLink url={referUrl} status={`/s/${m.customer.referralCode}/status`} text={`Join me at Herbal Holland Rewards and we both get ${settings.loyalty.referralBonus} points after your first purchase. Adults 18+.`} />
             </div>
             <p className="mt-3 text-xs text-ink-450">
               Your code: <span className="tnum font-semibold text-ink-300">{m.customer.referralCode}</span> ·{" "}
