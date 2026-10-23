@@ -201,14 +201,17 @@ describe("Campaign Studio", () => {
   it("releases social posts to the networks with their card at their time, and records how each went", async () => {
     vi.stubEnv("META_PAGE_TOKEN", "tok");
     vi.stubEnv("META_IG_USER_ID", "456");
+    vi.stubEnv("META_PAGE_ID", "123");
     vi.stubEnv("APP_URL", "https://shop.example.com");
     const containers: string[] = [];
+    let facebook = 0;
     let n = 0;
     let refuse = false;
     const real = globalThis.fetch;
     vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       if (!url.startsWith("https://graph.facebook.com/")) return real(input, init); // next/og loads its renderer with fetch
+      if (url.endsWith("/123/photos")) return Response.json({ id: `ph${++facebook}`, post_id: `123_${facebook}` });
       if (url.endsWith("/456/media")) {
         if (refuse) return Response.json({ error: { message: "Media too small" } }, { status: 400 });
         containers.push(String((init?.body as URLSearchParams).get("image_url")));
@@ -233,21 +236,28 @@ describe("Campaign Studio", () => {
     refuse = true;
     expect(await releaseStudio(new Date(social[1].at.getTime() + 60_000))).toEqual({ released: 0, failed: 1 });
     // The card went to storage and Instagram was given its public address.
-    expect(containers).toEqual([`https://shop.example.com/social/cards/${social[0].key}.jpg`]);
+    expect(containers).toEqual([`https://shop.example.com/social/cards/${social[0].id}.jpg`]);
     const [one, two] = await db.studioItem.findMany({ where: { id: { in: social.map((s) => s.id) } }, include: { socialPost: true }, orderBy: { at: "asc" } });
-    expect(one).toMatchObject({ status: "POSTED", link: "https://instagram.com/p/1", doneBy: "Studio" });
-    expect(one.socialPost).toMatchObject({ channels: ["instagram"], results: [{ network: "instagram", id: "ig1", link: "https://instagram.com/p/1" }] });
+    expect(one).toMatchObject({ status: "POSTED", link: "https://www.facebook.com/123_1", doneBy: "Studio" });
+    expect(one.socialPost).toMatchObject({ channels: ["facebook", "instagram"], results: [{ network: "facebook", id: "123_1" }, { network: "instagram", id: "ig1", link: "https://instagram.com/p/1" }] });
+    // Facebook took the second post; Instagram refused it: the post fails for HQ to fix, Facebook's copy stays.
     expect(two).toMatchObject({ status: "FAILED", note: "Instagram: Instagram said 400: Media too small" });
+    expect(facebook).toBe(2);
 
     // Fixed and queued again, it goes out afresh: not stuck as released, not failed again by the old attempt.
     refuse = false;
     await saveItem(two.id, { text: two.text, short: two.short, title: two.title, card: two.card as Card, at: two.at });
     await approveItems(plan.id, [two.id], "Hanna HQ", actor);
     expect(await scheduleApproved(plan.id, actor)).toMatchObject({ social: 1 });
-    expect(await db.studioItem.findUniqueOrThrow({ where: { id: two.id } })).toMatchObject({ status: "SCHEDULED", releasedAt: null, socialPostId: null });
+    expect(await db.studioItem.findUniqueOrThrow({ where: { id: two.id } })).toMatchObject({ status: "SCHEDULED", releasedAt: null, socialPostId: two.socialPostId });
     await syncStudio();
     expect(await releaseStudio(new Date(two.at.getTime() + 30 * 60_000))).toEqual({ released: 1, failed: 0 });
-    expect((await db.studioItem.findUniqueOrThrow({ where: { id: two.id }, include: { socialPost: true } })).socialPost?.results).toEqual([{ network: "instagram", name: "Professional account", id: "ig2", link: "https://instagram.com/p/2" }]);
+    // Only Instagram is posted to this time; Facebook's post from the first try is kept, not made again.
+    expect(facebook).toBe(2);
+    expect((await db.studioItem.findUniqueOrThrow({ where: { id: two.id }, include: { socialPost: true } })).socialPost?.results).toEqual([
+      { network: "facebook", name: "Page", id: "123_2", link: "https://www.facebook.com/123_2" },
+      { network: "instagram", name: "Professional account", id: "ig2", link: "https://instagram.com/p/2" },
+    ]);
   });
 
   it("tells the first-access list the shop is open, once each, then deletes them", async () => {

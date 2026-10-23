@@ -1,5 +1,5 @@
 // A Studio card as the networks fetch it (Instagram and Threads take a public image URL, never bytes): the JPEG the
-// scheduler put in R2 when it released the post. Keys are the card's own name, nothing to guess into.
+// scheduler put in R2 as it released the post (named by the post's own id, nothing to guess), seconds before it's public anyway.
 import { getObject } from "@/server/storage";
 
 export async function GET(_: Request, { params }: { params: Promise<{ name: string }> }) {

@@ -7,7 +7,7 @@ import { db } from "./db";
 import { audit, type Actor } from "./audit";
 import { sendCampaign } from "./marketing";
 import { sendEarlyAccess } from "./early-access";
-import { publishSocial, socialChannels, socialConnected } from "./social";
+import { publishSocial, socialChannels, socialConnected, type PostResult } from "./social";
 import { cardJpeg } from "./studio-cards";
 import { hoursLine, parseHours } from "./shop/hours";
 import { NEW_ONLINE_DAYS, PLAYBOOKS } from "@/lib/studio-playbooks";
@@ -203,8 +203,9 @@ export async function scheduleApproved(planId: string, actor: Actor, now = new D
   const ready = { planId, status: "APPROVED" as const, hand: false, channel: { in: [...OWN_CHANNELS, ...(socialConnected() ? ["SOCIAL" as const] : [])] } };
   const late = await db.studioItem.count({ where: { ...ready, at: { lt: new Date(now.getTime() + 5 * 60_000) } } });
   const queued = await db.studioItem.findMany({ where: { ...ready, at: { gte: new Date(now.getTime() + 5 * 60_000) } }, select: { id: true, channel: true } });
-  // A post that failed at release and was fixed starts again: no release, social post or campaign from the last try.
-  if (queued.length) await db.studioItem.updateMany({ where: { id: { in: queued.map((i) => i.id) }, status: "APPROVED" }, data: { status: "SCHEDULED", releasedAt: null, socialPostId: null, campaignId: null } });
+  // A post that failed at release and was fixed starts again: no release or campaign from the last try. Its social post
+  // stays linked: the networks that took it the first time are not posted to again.
+  if (queued.length) await db.studioItem.updateMany({ where: { id: { in: queued.map((i) => i.id) }, status: "APPROVED" }, data: { status: "SCHEDULED", releasedAt: null, campaignId: null } });
   const done = { social: queued.filter((i) => i.channel === "SOCIAL").length, campaigns: queued.filter((i) => i.channel !== "SOCIAL").length, late };
   if (queued.length) await audit(db, actor, "studio.schedule", { storeId: plan.storeId, entity: "StudioPlan", entityId: planId, data: done });
   return done;
@@ -228,7 +229,7 @@ const SCHEDULER: Actor = { type: "SYSTEM", name: "Studio scheduler" };
 export async function releaseStudio(now = new Date()) {
   const due = await db.studioItem.findMany({
     where: { status: "SCHEDULED", releasedAt: null, at: { lte: now }, plan: { paused: false } },
-    include: { plan: { select: { name: true, storeId: true } } },
+    include: { plan: { select: { name: true, storeId: true } }, socialPost: { select: { results: true } } },
     orderBy: { at: "asc" },
     take: 50,
   });
@@ -256,11 +257,16 @@ export async function releaseStudio(now = new Date()) {
         if (!socialConnected()) throw new StudioError("No social network is connected any more: post it by hand");
         channels ??= await socialChannels();
         const linkedin = (c: SocialChannel) => c.identifier === "linkedin";
-        const to = channels.filter((c) => (it.linkedin === "only" ? linkedin(c) : it.linkedin === "also" || !linkedin(c)));
-        if (!to.length) throw new StudioError(it.linkedin === "only" ? "LinkedIn is posted by hand" : "No social network is connected");
-        const data = await cardJpeg(it.card as Card, "portrait");
-        const results = await publishSocial({ content: it.text, short: it.short, picture: { file: { data, name: `${it.key}.jpg`, type: "image/jpeg" } }, channels: to });
-        const post = await db.socialPost.create({ data: { content: it.text, image: null, channels: to.map((c) => c.identifier), mode: "now", postedAt: now, results, createdBy: "Studio" } });
+        // A network that took an earlier try of this post keeps that post; only the rest are posted to now.
+        const kept = asList<PostResult>(it.socialPost?.results).filter((r) => r.id);
+        const to = channels.filter((c) => (it.linkedin === "only" ? linkedin(c) : it.linkedin === "also" || !linkedin(c))).filter((c) => !kept.some((k) => k.network === c.identifier));
+        if (!to.length && !kept.length) throw new StudioError(it.linkedin === "only" ? "LinkedIn is posted by hand" : "No social network is connected");
+        let results = kept;
+        if (to.length) {
+          const data = await cardJpeg(it.card as Card, "portrait");
+          results = [...kept, ...(await publishSocial({ content: it.text, short: it.short, picture: { file: { data, name: `${it.id}.jpg`, type: "image/jpeg" } }, channels: to }))];
+        }
+        const post = await db.socialPost.create({ data: { content: it.text, image: null, channels: results.map((r) => r.network), mode: "now", postedAt: now, results, createdBy: "Studio" } });
         const failed = results.filter((r) => r.error);
         await db.studioItem.update({
           where: { id: it.id },

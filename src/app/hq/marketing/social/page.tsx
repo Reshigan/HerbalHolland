@@ -22,6 +22,7 @@ function stateOf(p: { mode: string; postedAt: Date | null; results: unknown }): 
   if (results.some((r) => r.error)) return [results.every((r) => r.error) ? "Failed" : "Partly posted", "red"];
   if (results.length) return ["Posted", "green"];
   if (p.mode === "schedule" && !p.postedAt) return ["Scheduled", "blue"];
+  if (p.mode === "schedule") return ["Unconfirmed: check the networks", "amber"]; // claimed by the scheduler, which stopped before it could record how it went
   return ["Recorded only", "amber"];
 }
 

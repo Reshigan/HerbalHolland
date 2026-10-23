@@ -154,7 +154,11 @@ export async function publishSocial(p: { content: string; short?: string | null;
   return out;
 }
 
-/** The scheduler's step: posts from HQ → Social whose time has come go out (claimed first, so never twice). */
+/**
+ * The scheduler's step: posts from HQ → Social whose time has come go out. Each is claimed first (postedAt), so two runs
+ * never post it twice; a run that stops between the claim and the networks' answers leaves the post without results,
+ * which the Social page shows as unconfirmed for HQ to check, rather than posting it again blind.
+ */
 export async function releaseSocialPosts(now = new Date()) {
   const due = await db.socialPost.findMany({ where: { mode: "schedule", postedAt: null, scheduledAt: { lte: now } }, orderBy: { scheduledAt: "asc" }, take: 20 });
   let posted = 0;
