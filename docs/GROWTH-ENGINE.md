@@ -37,7 +37,8 @@ live, then national.
 - [ ] **Counter printables:** QR stand, receipt line, neighbour swap cards from the QR maker.
 - [ ] **Claude in the Rewards app** (blocked: needs an Anthropic API key on the Worker): a guide that answers
       questions about membership, stores, events and lab results, recommends Learn and quests, never gives medical advice.
-- [ ] **National** (after online shopping is live): province pages, courier-area messaging, national referral push.
+- [ ] **National** (after online shopping is live): province pages, courier-area messaging, national referral push,
+      and the invite on the order-confirmation page (members who join at checkout land there, not on the card).
 
 ## Needs the owner
 
