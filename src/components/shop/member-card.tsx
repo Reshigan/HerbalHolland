@@ -1,28 +1,44 @@
-// The digital Rewards card: member number as a scannable QR for the till, tier colour, points.
+// The digital Rewards card: member number as a scannable QR for the till, tier colour, points. The motion (foil sheen,
+// points count-up, the burst of dots when points land) lives in client children; the card stays a server component.
 import { Mark, Wordmark } from "@/components/brand/logo";
 import { QrCode } from "./qr";
+import { CardSheen } from "./card-sheen";
+import { CountUp } from "./motion";
 import { foundingLabel } from "@/server/shop/launch-rules";
-import { fmtPoints } from "@/lib/loyalty-rules";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-export const TIER_STYLE: Record<number, { card: string; chip: string; ring: string }> = {
-  0: { card: "from-ink-800 via-ink-900 to-ink-950", chip: "bg-ink-200 text-ink-950", ring: "ring-ink-600" },
-  1: { card: "from-leaf-700 via-ink-900 to-ink-950", chip: "bg-leaf-500 text-ink-950", ring: "ring-leaf-500/60" },
-  2: { card: "from-series-4 via-ink-900 to-ink-950", chip: "bg-series-4 text-white", ring: "ring-series-4" },
-  3: { card: "from-brand-600 via-ink-900 to-ink-950", chip: "bg-brand-500 text-ink-950", ring: "ring-brand-500/70" },
+/** Per tier (SEED, SPROUT, BLOOM, HARVEST): the card wash, the tier pill, the ring and the thin accent line, in the tier's colour (the same mapping as the header's tier dot). */
+export const TIER_STYLE: Record<number, { card: string; chip: string; ring: string; line: string }> = {
+  0: { card: "from-ink-800 via-ink-900 to-ink-950", chip: "bg-ink-200 text-ink-950", ring: "ring-ink-600", line: "via-ink-300" },
+  1: { card: "from-leaf-700 via-ink-900 to-ink-950", chip: "bg-leaf-500 text-ink-950", ring: "ring-leaf-500/60", line: "via-leaf-500" },
+  2: { card: "from-series-4 via-ink-900 to-ink-950", chip: "bg-series-4 text-white", ring: "ring-series-4", line: "via-series-4" },
+  3: { card: "from-brand-600 via-ink-900 to-ink-950", chip: "bg-brand-500 text-ink-950", ring: "ring-brand-500/70", line: "via-brand-500" },
 };
 
-/** `founding` = Founding Member number; `firstYear` = on the list beyond the founding places; `floorUntil` = the date an active tier floor holds the member's tier until. */
-export function MemberCard({ name, memberNo, tierName, tierIndex, points, founding, firstYear = false, floorUntil, className }: { name: string; memberNo: string; tierName: string; tierIndex: number; points: number; founding?: number | null; firstYear?: boolean; floorUntil?: Date | null; className?: string }) {
+/**
+ * `founding` = Founding Member number; `firstYear` = on the list beyond the founding places; `floorUntil` = the date an
+ * active tier floor holds the member's tier until. `countFrom` = where the balance counts up from (default: no count);
+ * `earned` = points that just landed: a burst of dots rises from the card (the page passes it from `?earned=`).
+ */
+export function MemberCard({ name, memberNo, tierName, tierIndex, points, founding, firstYear = false, floorUntil, countFrom = points, earned = 0, className }: { name: string; memberNo: string; tierName: string; tierIndex: number; points: number; founding?: number | null; firstYear?: boolean; floorUntil?: Date | null; countFrom?: number; earned?: number; className?: string }) {
   const s = TIER_STYLE[tierIndex] ?? TIER_STYLE[0];
   return (
     <div
-      className={cn("relative isolate overflow-hidden rounded-[1.6rem] bg-gradient-to-br p-5 shadow-lift ring-1 sm:p-6", s.card, s.ring, className)}
+      className={cn("hh-card relative isolate overflow-hidden rounded-[1.6rem] bg-gradient-to-br p-5 shadow-lift ring-1 sm:p-6", s.card, s.ring, className)}
       role="group"
       aria-label={`${tierName} Rewards card for ${name}${founding ? `, Founding Member ${foundingLabel(founding)}` : ""}`}
     >
       <Mark aria-hidden className="pointer-events-none absolute -right-10 -top-12 -z-10 h-56 w-56 text-white/[0.06]" />
+      <span aria-hidden className={cn("pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent to-transparent", s.line)} />
+      <CardSheen />
+      {earned > 0 && (
+        <span aria-hidden className="hh-burst">
+          {Array.from({ length: 12 }, (_, i) => (
+            <i key={i} style={{ "--i": i } as React.CSSProperties} />
+          ))}
+        </span>
+      )}
       {founding && <span aria-hidden className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-brand-300/70 to-transparent" />}
       <div className="flex items-start justify-between gap-4">
         <span className="inline-flex items-center gap-2 text-brand-500">
@@ -50,9 +66,11 @@ export function MemberCard({ name, memberNo, tierName, tierIndex, points, foundi
           <div className="mt-1 truncate font-display text-2xl font-semibold text-white">{name}</div>
           <div className="tnum mt-0.5 text-sm tracking-[0.18em] text-ink-300">{memberNo}</div>
           <div className="mt-4 text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-ink-300">Balance</div>
-          <div className="tnum font-display text-3xl font-semibold text-white">{fmtPoints(points)}</div>
+          <div className="tnum font-display text-3xl font-semibold text-white">
+            <CountUp value={points} from={Math.max(0, countFrom)} /> pts
+          </div>
         </div>
-        <div className="w-28 shrink-0 rounded-2xl bg-white p-2 sm:w-32">
+        <div className="relative z-10 w-28 shrink-0 rounded-2xl bg-white p-2 sm:w-32">
           <QrCode value={memberNo} label={`Member number ${memberNo} as a QR code`} margin={1} />
         </div>
       </div>

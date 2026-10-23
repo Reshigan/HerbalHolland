@@ -6,7 +6,7 @@ type Size = "sm" | "md" | "lg" | "xl" | "icon";
 
 export function buttonClass(variant: Variant = "primary", size: Size = "md", className?: string) {
   return cn(
-    "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition-[background,color,box-shadow,transform] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45",
+    "hh-press inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition-[background,color,box-shadow,transform] duration-150 disabled:pointer-events-none disabled:opacity-45",
     {
       primary: "bg-brand-500 text-ink-950 hover:bg-brand-400 shadow-[inset_0_-2px_0_rgb(0_0_0/0.12)]",
       dark: "bg-ink-900 text-white hover:bg-ink-800",

@@ -33,13 +33,15 @@ async function main() {
   }
   console.log(`categories: ${cats} added, ${CATEGORIES.length - cats} already there`);
 
-  // Where each store is (the map and the store finder), from the site's facts; nothing HQ has typed is touched.
+  // Where each store is (the map and the store finder), from the site's facts: a town-centre point, so only for a store
+  // without a street address yet (one with an address is better served by "Directions" searching that address); nothing
+  // HQ has typed is touched.
   let placed = 0;
   for (const s of FACTS.stores) {
     const code = STORE_CODE[s.key];
     if (!code) continue;
-    const st = await db.store.findUnique({ where: { code }, select: { id: true, lat: true, lng: true } });
-    if (!st || (st.lat != null && st.lng != null)) continue;
+    const st = await db.store.findUnique({ where: { code }, select: { id: true, lat: true, lng: true, addressLine: true } });
+    if (!st || (st.lat != null && st.lng != null) || st.addressLine) continue;
     await db.store.update({ where: { id: st.id }, data: { lat: s.lat, lng: s.lon } });
     placed++;
   }

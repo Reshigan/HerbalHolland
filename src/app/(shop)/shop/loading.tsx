@@ -1,12 +1,17 @@
-import { Mark } from "@/components/brand/logo";
+import { Bone, ProductGridSkeleton } from "@/components/shop/skeleton";
+import { Container } from "@/components/shop/ui";
 
 export default function Loading() {
   return (
-    <div className="grid min-h-dvh place-items-center" role="status" aria-live="polite">
-      <div className="flex flex-col items-center gap-4 text-brand-500">
-        <Mark spin="fast" className="h-16 w-16" />
-        <span className="eyebrow text-ink-400">Loading</span>
+    <Container className="pt-8" role="status" aria-live="polite" aria-label="Loading">
+      <Bone className="h-3 w-24" />
+      <Bone className="mt-3 h-9 w-56" />
+      <div className="mt-6 flex gap-2">
+        {["w-20", "w-24", "w-16", "w-28"].map((w) => (
+          <Bone key={w} className={`h-9 rounded-full ${w}`} />
+        ))}
       </div>
-    </div>
+      <ProductGridSkeleton className="mt-8" />
+    </Container>
   );
 }

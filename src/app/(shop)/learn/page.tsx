@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Reveal } from "@/components/shop/motion";
 import type { Metadata } from "next";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
@@ -63,12 +64,12 @@ export default function LearnIndex() {
         </div>
       </Link>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <Reveal stagger className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {rest.map((a) => (
           <Link
             key={a.slug}
             href={`/learn/${a.slug}`}
-            className="group flex flex-col overflow-hidden rounded-3xl border border-ink-800 bg-ink-900/60 transition hover:border-brand-500/60"
+            className="hh-lift hh-press group flex flex-col overflow-hidden rounded-3xl border border-ink-800 bg-ink-900/60 hover:border-brand-500/60"
           >
             <ProductArt
               slug={a.art.slug}
@@ -91,7 +92,7 @@ export default function LearnIndex() {
             </div>
           </Link>
         ))}
-      </div>
+      </Reveal>
     </Container>
   );
 }

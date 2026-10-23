@@ -3,10 +3,10 @@
 // See src/lib/csp.ts. Static files, API routes, prefetches and the build-time /brand page are left alone.
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { INSTALL_SNIPPET, nonceCsp } from "@/lib/csp";
+import { HEAD_SNIPPET, nonceCsp } from "@/lib/csp";
 import { ensureStartupChecks } from "@/server/startup";
 
-const SNIPPET_HASH = `sha256-${createHash("sha256").update(INSTALL_SNIPPET).digest("base64")}`;
+const SNIPPET_HASH = `sha256-${createHash("sha256").update(HEAD_SNIPPET).digest("base64")}`;
 
 export function proxy(request: NextRequest) {
   const notServing = ensureStartupChecks(); // the reason is in the log (console.error), never in the response

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Check, Copy, CreditCard, History, LifeBuoy, MessageCircle, Package, Receipt, Settings, Share2 } from "lucide-react";
 import { copyText, whatsappUrl } from "./share";
 import { cn } from "@/lib/cn";
@@ -15,19 +15,34 @@ const TABS = [
   { href: "/club/settings", label: "Settings", icon: Settings },
 ];
 
-/** Rewards section nav: tabs on larger screens, an app-style bottom bar on phones. */
+/**
+ * Rewards section nav: tabs on larger screens, an app-style bottom bar on phones. On larger screens one underline
+ * slides between the tabs (a 1px bar, moved and stretched with a transform only); until it has been measured, and
+ * without html.motion, each tab underlines itself.
+ */
 export function ClubNav() {
   const path = usePathname();
-  if (path.startsWith("/club/join")) return null;
+  const bar = useRef<HTMLElement>(null);
+  const [slide, setSlide] = useState<string | null>(null);
+  const hidden = path.startsWith("/club/join");
+  useLayoutEffect(() => {
+    const nav = bar.current;
+    if (hidden || !nav || !document.documentElement.classList.contains("motion")) return;
+    const on = nav.querySelector<HTMLElement>("a[aria-current]");
+    if (!on) return setSlide(null);
+    setSlide(`translateX(${on.offsetLeft}px) scaleX(${on.offsetWidth})`);
+  }, [path, hidden]);
+  if (hidden) return null;
   const active = (href: string) => (href === "/club" ? path === "/club" : path.startsWith(href));
   return (
     <>
-      <nav aria-label="Rewards" className="scrollbar-none -mx-4 hidden gap-1 overflow-x-auto border-b border-ink-850 px-4 sm:mx-0 sm:flex sm:px-0">
+      <nav ref={bar} aria-label="Rewards" data-slide={slide ? "" : undefined} className="scrollbar-none group/nav relative -mx-4 hidden gap-1 overflow-x-auto border-b border-ink-850 px-4 sm:mx-0 sm:flex sm:px-0">
         {TABS.map((t) => (
-          <Link key={t.href} href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition", active(t.href) ? "border-brand-500 text-white" : "border-transparent text-ink-400 hover:text-white")}>
+          <Link key={t.href} href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors", active(t.href) ? "border-brand-500 text-white group-data-[slide]/nav:border-transparent" : "border-transparent text-ink-400 hover:text-white")}>
             <t.icon className="h-4 w-4" /> {t.label}
           </Link>
         ))}
+        {slide && <span aria-hidden className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-px origin-left bg-brand-500 transition-transform duration-[var(--dur)] ease-[var(--ease-out-expo)] motion-reduce:transition-none" style={{ transform: slide }} />}
       </nav>
       <nav aria-label="Rewards" className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-800 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
         <ul className="grid grid-cols-6">

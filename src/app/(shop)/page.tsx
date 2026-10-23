@@ -21,6 +21,7 @@ import { categoryImage } from "@/lib/category-images";
 import { ButtonLink } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/ui/install-prompt";
 import { ProductGrid } from "@/components/shop/product-card";
+import { CountUp, Reveal } from "@/components/shop/motion";
 import { StoreCard } from "@/components/shop/store-card";
 import { Container, Panel, SectionHead } from "@/components/shop/ui";
 import { Countdown } from "@/components/shop/countdown";
@@ -98,10 +99,10 @@ export default async function Home() {
     <>
       <JsonLd data={jsonLd} />
       {/* ── Hero: the journey's sky (herbalholland.com) over the hills, the wordmark in its window frame ─── */}
-      <Sky time={pre ? "night" : "dusk"} mill={false} className="border-b border-ink-850">
+      <Sky time={pre ? "night" : "dusk"} mill={false} drift className="border-b border-ink-850">
         <Container className="relative grid grid-cols-1 items-center gap-10 pb-20 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 lg:py-24">
           {pre ? (
-            <div className="order-2 animate-rise lg:order-1">
+            <div className="hh-enter hh-stagger order-2 lg:order-1">
               <div className="eyebrow mb-5 text-brand-500">Founding Members</div>
               <h1 className="font-display text-[2.6rem] font-semibold leading-[0.98] tracking-tight text-white sm:text-6xl xl:text-[4.6rem]">
                 Be one of the first {num(launch.foundingCap)}.
@@ -130,20 +131,20 @@ export default async function Home() {
               </div>
               <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-ink-850 pt-6">
                 {[
-                  [num(listSize), "members on the list"],
-                  [num(launch.foundingCap), "Founding spots"],
-                  opening ? [num(footprint.total), `${footprint.total === 1 ? "store" : "stores"} opening soon`] : [num(trading), `${trading === 1 ? "store" : "stores"} open`],
+                  [listSize, "members on the list"],
+                  [launch.foundingCap, "Founding spots"],
+                  opening ? [footprint.total, `${footprint.total === 1 ? "store" : "stores"} opening soon`] : [trading, `${trading === 1 ? "store" : "stores"} open`],
                 ].map(([v, l]) => (
                   <div key={l}>
                     <dt className="sr-only">{l}</dt>
-                    <dd className="tnum font-display text-3xl font-semibold text-white">{v}</dd>
+                    <dd className="tnum font-display text-3xl font-semibold text-white"><CountUp value={v as number} /></dd>
                     <dd className="mt-1 text-xs text-ink-400">{l}</dd>
                   </div>
                 ))}
               </dl>
             </div>
           ) : (
-          <div className="order-2 animate-rise lg:order-1">
+          <div className="hh-enter hh-stagger order-2 lg:order-1">
             <div className="eyebrow mb-5 text-brand-500">Herbal Holland · South Africa</div>
             <h1 className="font-display text-[2.9rem] font-semibold leading-[0.95] tracking-tight text-white sm:text-6xl xl:text-[5.2rem]">
               Dutch heritage.
@@ -164,13 +165,13 @@ export default async function Home() {
             <dl className={cn("mt-12 grid max-w-lg gap-4 border-t border-ink-850 pt-6", batches > 0 ? "grid-cols-3" : "grid-cols-2")}>
               {/* A zero is not a boast: the batch count waits until the first batch is on the shelf. */}
               {[
-                opening ? [num(footprint.total), `${footprint.total === 1 ? "store" : "stores"} opening soon`] : [num(trading), `${trading === 1 ? "store" : "stores"}${provinces.length ? ` in ${where}` : ""}`],
-                ...(batches > 0 ? [[batches.toLocaleString(), "lab-tested batches"]] : []),
-                [String(loyalty.signupBonus), "welcome points"],
+                opening ? [footprint.total, `${footprint.total === 1 ? "store" : "stores"} opening soon`] : [trading, `${trading === 1 ? "store" : "stores"}${provinces.length ? ` in ${where}` : ""}`],
+                ...(batches > 0 ? [[batches, "lab-tested batches"]] : []),
+                [loyalty.signupBonus, "welcome points"],
               ].map(([v, l]) => (
                 <div key={l}>
                   <dt className="sr-only">{l}</dt>
-                  <dd className="font-display text-3xl font-semibold text-white">{v}</dd>
+                  <dd className="font-display text-3xl font-semibold text-white"><CountUp value={v as number} /></dd>
                   <dd className="mt-1 text-xs text-ink-400">{l}</dd>
                 </div>
               ))}
@@ -178,8 +179,8 @@ export default async function Home() {
           </div>
           )}
           <div className="order-1 lg:order-2">
-            <div className="hh-bead-frame relative mx-auto flex aspect-[4/5] w-full max-w-[15rem] items-center justify-center p-6 shadow-glow sm:max-w-sm sm:p-10 lg:max-w-md">
-              <Lockup spin className="h-full w-full justify-center text-[1.6rem] sm:text-[2.6rem] lg:text-[3rem] [&>svg]:h-[54%]" />
+            <div className="hh-bead-frame hh-glow relative mx-auto flex aspect-[4/5] w-full max-w-[15rem] items-center justify-center p-6 shadow-glow sm:max-w-sm sm:p-10 lg:max-w-md">
+              <Lockup spin className="hh-draw h-full w-full justify-center text-[1.6rem] sm:text-[2.6rem] lg:text-[3rem] [&>svg]:h-[54%]" />
             </div>
           </div>
         </Container>
@@ -230,7 +231,7 @@ export default async function Home() {
               ) : null
             }
           />
-          <div className={drop && events.length ? "grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]" : "grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"}>
+          <Reveal stagger className={drop && events.length ? "grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]" : "grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"}>
             {drop && (
               <Suspense>
                 <DropCardView d={drop} />
@@ -251,7 +252,7 @@ export default async function Home() {
                 </Suspense>
               ))
             )}
-          </div>
+          </Reveal>
         </Container>
       )}
 
@@ -505,9 +506,9 @@ export default async function Home() {
       <Suspense>
       <Container className="pt-24">
         <SectionHead eyebrow="Learn" title="Know what you're buying" action={<ButtonLink href="/learn" variant="ghost-dark" size="sm">All guides <ArrowRight className="h-4 w-4" /></ButtonLink>} />
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Reveal stagger className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {ARTICLES.slice(0, 3).map((a) => (
-            <Link key={a.slug} href={`/learn/${a.slug}`} className="group overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 transition hover:border-brand-500/60">
+            <Link key={a.slug} href={`/learn/${a.slug}`} className="hh-lift hh-press group overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 hover:border-brand-500/60">
               <ProductArt slug={a.art.slug} strain={a.art.strain} regClass={a.art.regClass} label="" className="aspect-[16/9] w-full" />
               <div className="p-5">
                 <div className="eyebrow text-brand-500">{a.kicker}</div>
@@ -517,7 +518,7 @@ export default async function Home() {
               </div>
             </Link>
           ))}
-        </div>
+        </Reveal>
       </Container>
       </Suspense>
     </>

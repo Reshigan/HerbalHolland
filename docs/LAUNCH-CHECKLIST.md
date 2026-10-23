@@ -32,7 +32,7 @@ A fresh database starts in step 1 (the demo seed starts at step 3); the shop, it
 - [ ] Trade: the bank account EFT payments go to (printed on pro formas) set in HQ → Settings → Trade; `TRADE_EMAIL` set; the trade terms signed off (above)
 
 ## Stock
-- [ ] Catalogue, variants, barcodes (GS1 600-prefix) and RRPs loaded; ranging by format. The loader is ready: HQ → Catalogue → Import (CSV template, dry-run preview, create or update by SKU, every product checked against its class's rules)
+- [ ] Catalogue, variants, barcodes (GS1 600-prefix) and RRPs loaded; ranging by format. The loader is ready: HQ → Catalogue → Import (CSV template, dry-run preview, create or update by SKU, every product checked against its class's rules) · product photos shot to [PHOTOGRAPHY.md](PHOTOGRAPHY.md) and loaded through the CSV's `image_urls` column
 - [ ] Warehouse opening stock loaded with the import (stock, batch and expiry columns; received at HQ cost) and checked against a physical count
 - [ ] Opening stock counted per store (full blind stock take) and approved
 - [ ] DC replenishment cadence and lead times set; par/reorder levels reviewed

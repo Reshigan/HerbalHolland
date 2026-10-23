@@ -6,6 +6,15 @@
 
 /** Keeps the browser's install prompt, which can fire before hydration, for @/components/ui/install-prompt. */
 export const INSTALL_SNIPPET = "addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__hhInstall=e})";
+/**
+ * The motion guard, before the first paint: html.js marks that scripts run, html.motion that the page may move (not with
+ * reduced motion, Save-Data or 2 GB of memory or less: the same rule as herbalholland.com). The shop's animations key
+ * off html.motion (globals.css, "Motion"), so without it everything is simply there.
+ */
+export const MOTION_SNIPPET =
+  "(function(){var d=document.documentElement,n=navigator,c=n.connection;d.classList.add('js');if(!(matchMedia('(prefers-reduced-motion: reduce)').matches||(c&&c.saveData)||(n.deviceMemory||8)<=2))d.classList.add('motion')})()";
+/** The one inline script in <head> (allowed by its hash, so both snippets travel together). */
+export const HEAD_SNIPPET = `${INSTALL_SNIPPET};${MOTION_SNIPPET}`;
 
 const common = [
   "default-src 'self'",
