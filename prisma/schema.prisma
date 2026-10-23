@@ -1426,11 +1426,28 @@ model SocialPost {
   scheduledAt DateTime?
   postedAt    DateTime? // when it went to the networks (claimed before posting, so it never goes twice)
   results     Json @default("[]") // per network: { network, name, id, link } or { network, name, error }
+  videoUploadId String? // an MP4 for the video networks (TikTok, YouTube Shorts, X), an Upload in R2
   createdBy   String?
   createdAt   DateTime     @default(now())
   studioItems StudioItem[]
 
   @@index([createdAt])
+}
+
+// A social account HQ connected by signing in (OAuth): TikTok, YouTube, LinkedIn, X, Pinterest. One per network. The
+// tokens are sealed with the app secret (src/server/social/box.ts); Meta, Bluesky and Telegram are connected by
+// secrets on the Worker instead (src/server/social.ts).
+model SocialAccount {
+  network      String   @id // tiktok | youtube | linkedin | x | pinterest
+  name         String // the account as shown: handle, channel or page name
+  externalId   String // the network's id for the account (a person URN, channel id, open_id…)
+  accessToken  String // sealed
+  refreshToken String? // sealed
+  expiresAt    DateTime?
+  extra        Json     @default("{}") // e.g. Pinterest's board id
+  connectedBy  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // Campaign Studio (HQ → Marketing → Studio): a playbook (src/lib/studio-playbooks.ts) laid out from day T into dated
@@ -1495,6 +1512,7 @@ model StudioItem {
   doneAt       DateTime?
   socialPost   SocialPost?   @relation(fields: [socialPostId], references: [id], onDelete: SetNull)
   socialPostId String?
+  videoUploadId String? // social: an MP4 for the video networks, an Upload in R2; without one those networks are skipped
   campaign     Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   campaignId   String?
   updatedAt    DateTime      @updatedAt

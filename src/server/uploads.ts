@@ -5,7 +5,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { db } from "./db";
 import { putObject } from "./storage";
-import { extFor, PHOTO_MAX_BYTES, PHOTO_TYPES, sniffType, type UploadType } from "@/lib/files";
+import { extFor, PHOTO_MAX_BYTES, PHOTO_TYPES, sniffType, VIDEO_MAX_BYTES, VIDEO_TYPES, type UploadType } from "@/lib/files";
 import { stripImageMetadata } from "@/lib/strip-metadata";
 
 export class UploadError extends Error {}
@@ -76,5 +76,18 @@ export async function storeDocument(a: DocumentRule & { file: File; folder: stri
   const u = await db.upload.create({
     data: { key, fileName: (f.name?.trim() || `document.${extFor(type)}`).slice(0, 120), contentType: type, sizeBytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), storeId: a.storeId ?? null, uploadedById: a.uploadedById ?? null },
   });
+  return u.id;
+}
+
+/** Checks and stores one video for the social networks (MP4 or MOV by its bytes, at most 90 MB); the Upload id. */
+export async function storeVideo(a: { file: File; folder: string; uploadedById?: string | null }): Promise<string> {
+  const f = a.file;
+  if (f.size > VIDEO_MAX_BYTES) throw new UploadError(`The video is ${mb(f.size)}, but videos have to be ${mb(VIDEO_MAX_BYTES)} or less`);
+  const bytes = new Uint8Array(await f.arrayBuffer());
+  const type = sniffType(bytes);
+  if (!type || !VIDEO_TYPES.includes(type)) throw new UploadError("The video must be an MP4 or MOV file");
+  const key = `${a.folder}/${new Date().toISOString().slice(0, 7)}/${randomUUID()}.${extFor(type)}`;
+  await putObject(key, bytes, type);
+  const u = await db.upload.create({ data: { key, fileName: (f.name?.trim() || `video.${extFor(type)}`).slice(0, 120), contentType: type, sizeBytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), uploadedById: a.uploadedById ?? null } });
   return u.id;
 }

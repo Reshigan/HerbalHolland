@@ -8,16 +8,37 @@ import { MERCH } from "./merch";
 export type SocialChannel = { id: string; name: string; identifier: string; picture?: string | null };
 export type SocialMode = "now" | "schedule";
 
-/** The networks we post to: caption limit and whether a picture is required. LinkedIn and X are posted by hand; TikTok is left out (video only, and it bans cannabis content). */
-export const SOCIAL_NETWORKS: Record<string, { label: string; limit: number; image?: true }> = {
+/**
+ * The networks we post to: caption limit, whether a picture is required, and whether a video is required (YouTube
+ * Shorts) or taken when there is one (TikTok posts the card as a photo without one; X and the rest take the picture).
+ */
+export const SOCIAL_NETWORKS: Record<string, { label: string; limit: number; image?: true; video?: "required" | "optional" }> = {
   instagram: { label: "Instagram", limit: 2200, image: true },
   facebook: { label: "Facebook", limit: 63_206 },
   threads: { label: "Threads", limit: 500 },
   bluesky: { label: "Bluesky", limit: 300 },
   telegram: { label: "Telegram", limit: 1024 }, // a photo's caption
+  tiktok: { label: "TikTok", limit: 2200, image: true, video: "optional" },
+  youtube: { label: "YouTube Shorts", limit: 5000, video: "required" },
   linkedin: { label: "LinkedIn", limit: 3000 },
-  x: { label: "X", limit: 280 },
+  x: { label: "X", limit: 280, video: "optional" },
+  pinterest: { label: "Pinterest", limit: 800, image: true },
 };
+/**
+ * TikTok's chunk rules for a video upload: a chunk is 5 to 64 MB (a video under 5 MB goes whole), total_chunk_count =
+ * floor(size / chunk), and the last chunk takes the remainder (TikTok allows it up to 128 MB). Up to 64 MB goes in one
+ * chunk; over that, 32 MB chunks. The init fields and the byte ranges sent come from this one plan.
+ */
+export function tiktokChunkPlan(size: number) {
+  const MB = 1024 * 1024;
+  const chunk = size <= 64 * MB ? size : 32 * MB;
+  const count = Math.floor(size / chunk);
+  const ranges = Array.from({ length: count }, (_, i) => ({ start: i * chunk, end: i === count - 1 ? size : (i + 1) * chunk }));
+  return { chunk, count, ranges };
+}
+
+/** The networks a post goes to when it has no video: everything but the video-only ones. */
+export const withoutVideo = (identifiers: string[]) => identifiers.filter((i) => SOCIAL_NETWORKS[i]?.video !== "required");
 
 /** The caption for a network: the short version where the full one is too long for it. */
 export const captionFor = (identifier: string, content: string, short?: string | null) => (short && content.length > (SOCIAL_NETWORKS[identifier]?.limit ?? 2200) ? short : content);

@@ -24,7 +24,7 @@ const config: NextConfig = {
   // posted through server actions.
   // (experimental.inlineCss was tried and rejected: Next also copies the 130 KB stylesheet into the RSC payload, so the
   // HTML more than doubled; the external, cached stylesheet is cheaper.)
-  experimental: { serverActions: { bodySizeLimit: "16mb" } },
+  experimental: { serverActions: { bodySizeLimit: "100mb" } }, // a social video (90 MB at most) is posted through a server action
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },

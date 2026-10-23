@@ -7,7 +7,7 @@ import { db } from "./db";
 import { audit, type Actor } from "./audit";
 import { sendCampaign } from "./marketing";
 import { sendEarlyAccess } from "./early-access";
-import { publishSocial, socialChannels, socialConnected, type PostResult } from "./social";
+import { dropVideo, publishSocial, socialChannels, socialConnected, videoOf, type PostResult } from "./social";
 import { cardJpeg } from "./studio-cards";
 import { hoursLine, parseHours } from "./shop/hours";
 import { NEW_ONLINE_DAYS, PLAYBOOKS } from "@/lib/studio-playbooks";
@@ -185,11 +185,13 @@ export async function approveItems(planId: string, ids: string[] | "all", by: st
 }
 
 /** Edits a draft (or an approved or failed one, which goes back to draft for another look). */
-export async function saveItem(id: string, patch: { text: string; short: string | null; title: string | null; card: Card | null; at: Date }) {
-  const it = await db.studioItem.findUnique({ where: { id }, select: { status: true } });
+export async function saveItem(id: string, patch: { text: string; short: string | null; title: string | null; card: Card | null; at: Date; videoUploadId?: string | null }) {
+  const it = await db.studioItem.findUnique({ where: { id }, select: { status: true, videoUploadId: true } });
   if (!it) throw new StudioError("That post isn't there any more");
   if (!["DRAFT", "APPROVED", "FAILED"].includes(it.status)) throw new StudioError("Take it out of the schedule before you change it");
   await db.studioItem.update({ where: { id }, data: { ...patch, card: (patch.card ?? undefined) as Prisma.InputJsonValue | undefined, status: "DRAFT", approvedBy: null, note: null } });
+  // A video replaced or taken off goes with it, unless another post still has it.
+  if (patch.videoUploadId !== undefined && it.videoUploadId && it.videoUploadId !== patch.videoUploadId) await dropVideo(it.videoUploadId);
 }
 
 /**
@@ -200,7 +202,7 @@ export async function saveItem(id: string, patch: { text: string; short: string 
 export async function scheduleApproved(planId: string, actor: Actor, now = new Date()) {
   const plan = await db.studioPlan.findUnique({ where: { id: planId }, select: { storeId: true } });
   if (!plan) throw new StudioError("That campaign isn't there any more");
-  const ready = { planId, status: "APPROVED" as const, hand: false, channel: { in: [...OWN_CHANNELS, ...(socialConnected() ? ["SOCIAL" as const] : [])] } };
+  const ready = { planId, status: "APPROVED" as const, hand: false, channel: { in: [...OWN_CHANNELS, ...((await socialConnected()) ? ["SOCIAL" as const] : [])] } };
   const late = await db.studioItem.count({ where: { ...ready, at: { lt: new Date(now.getTime() + 5 * 60_000) } } });
   const queued = await db.studioItem.findMany({ where: { ...ready, at: { gte: new Date(now.getTime() + 5 * 60_000) } }, select: { id: true, channel: true } });
   // A post that failed at release and was fixed starts again: no release or campaign from the last try. Its social post
@@ -254,17 +256,21 @@ export async function releaseStudio(now = new Date()) {
         await db.studioItem.update({ where: { id: it.id }, data: { campaignId: c.id } });
         await sendCampaign(c.id, SCHEDULER, now);
       } else {
-        if (!socialConnected()) throw new StudioError("No social network is connected any more: post it by hand");
         channels ??= await socialChannels();
+        if (!channels.length) throw new StudioError("No social network is connected any more: post it by hand");
         const linkedin = (c: SocialChannel) => c.identifier === "linkedin";
+        const video = await videoOf(it.videoUploadId);
         // A network that took an earlier try of this post keeps that post; only the rest are posted to now.
         const kept = asList<PostResult>(it.socialPost?.results).filter((r) => r.id);
-        const to = channels.filter((c) => (it.linkedin === "only" ? linkedin(c) : it.linkedin === "also" || !linkedin(c))).filter((c) => !kept.some((k) => k.network === c.identifier));
-        if (!to.length && !kept.length) throw new StudioError(it.linkedin === "only" ? "LinkedIn is posted by hand" : "No social network is connected");
+        // Without a video, the video-only networks (YouTube Shorts) are left out rather than failed.
+        const to = channels
+          .filter((c) => (it.linkedin === "only" ? linkedin(c) : it.linkedin === "also" || !linkedin(c)))
+          .filter((c) => !kept.some((k) => k.network === c.identifier) && (video || SOCIAL_NETWORKS[c.identifier]?.video !== "required"));
+        if (!to.length && !kept.length) throw new StudioError(it.linkedin === "only" ? "LinkedIn isn't connected: post it by hand" : "No social network is connected");
         let results = kept;
         if (to.length) {
           const data = await cardJpeg(it.card as Card, "portrait");
-          results = [...kept, ...(await publishSocial({ content: it.text, short: it.short, picture: { file: { data, name: `${it.id}.jpg`, type: "image/jpeg" } }, channels: to }))];
+          results = [...kept, ...(await publishSocial({ content: it.text, short: it.short, picture: { file: { data, name: `${it.id}.jpg`, type: "image/jpeg" } }, video, channels: to }))];
         }
         const post = await db.socialPost.create({ data: { content: it.text, image: null, channels: results.map((r) => r.network), mode: "now", postedAt: now, results, createdBy: "Studio" } });
         const failed = results.filter((r) => r.error);

@@ -2,6 +2,9 @@ import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { db } from "@/server/db";
 import { can } from "@/server/hq/guard";
 import { socialChannels, socialConnected, type PostResult } from "@/server/social";
+import { accounts, connectable, OAUTH_NETWORKS, PROVIDERS } from "@/server/social/oauth";
+import { ActionButton } from "@/components/ui/action-form";
+import { ButtonLink } from "@/components/ui/button";
 import { fmtDateTime } from "@/lib/format";
 import { SOCIAL_NETWORKS, type SocialChannel } from "@/lib/social";
 import { Notice, PageHeader } from "@/components/ui/page";
@@ -11,7 +14,7 @@ import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ViewOnly } from "@/components/hq/ui";
 import { MarketingTabs } from "../tabs";
 import { SocialComposer } from "./composer";
-import { postSocial } from "./actions";
+import { disconnectSocial, postSocial } from "./actions";
 import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Social" };
@@ -26,9 +29,12 @@ function stateOf(p: { mode: string; postedAt: Date | null; results: unknown }): 
   return ["Recorded only", "amber"];
 }
 
-export default async function SocialPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+export default async function SocialPage({ searchParams }: { searchParams: Promise<{ page?: string; connected?: string; problem?: string }> }) {
   const user = await requireStaff(HQ_ROLES);
-  const page = pageParam((await searchParams).page);
+  const sp = await searchParams;
+  const page = pageParam(sp.page);
+  const connected = await socialConnected();
+  const [signedIn, canConnect] = [await accounts(), connectable()];
   let channels: SocialChannel[] = [];
   let problem = "";
   try {
@@ -43,19 +49,48 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
       <PageHeader
         overline="Members"
         title="Social"
-        description="Post to the brand's Instagram, Facebook, Threads, Bluesky and Telegram, straight from here. The platforms remove posts that sell cannabis or CBD, so social is for the brand: merch, stores, events and Learn."
+        description="Post to the brand's Instagram, Facebook, Threads, Bluesky, Telegram, TikTok, YouTube Shorts, LinkedIn, X and Pinterest, straight from here. The platforms remove posts that sell cannabis or CBD, so social is for the brand: merch, stores, events and Learn."
       />
       <MarketingTabs current="social" />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
         <div className="space-y-4 xl:col-span-3">
-          {!socialConnected() ? (
-            <Notice title="No social network is connected">Posts are recorded here only. Connect Instagram, Facebook, Threads, Bluesky or Telegram with their secrets. See docs/INTEGRATIONS.md.</Notice>
+          {sp.connected && <Notice tone="success" title="Connected">{sp.connected}</Notice>}
+          {sp.problem && <Notice tone="danger" title="Couldn't connect">{sp.problem}</Notice>}
+          {!connected ? (
+            <Notice title="No social network is connected">Posts are recorded here only. Connect Instagram, Facebook, Threads, Bluesky or Telegram with their secrets, or sign in to TikTok, YouTube, LinkedIn, X or Pinterest below. See docs/INTEGRATIONS.md.</Notice>
           ) : (
             problem && <Notice tone="danger" title="Couldn't load your channels">{problem}</Notice>
           )}
           {can(user, "network") ? <SocialComposer action={postSocial} channels={channels} /> : <ViewOnly>Social posts are made by HQ marketing.</ViewOnly>}
         </div>
-        <Card className="self-start xl:col-span-2">
+        <div className="space-y-6 xl:col-span-2">
+        <Card>
+          <CardHeader title="Signed-in accounts" description="TikTok, YouTube Shorts, LinkedIn, X and Pinterest connect by signing in as the brand. Facebook, Instagram, Threads, Bluesky and Telegram connect by their secrets on the Worker." />
+          <ul className="mt-4 divide-y divide-ink-100 border-t border-ink-100">
+            {OAUTH_NETWORKS.map((n) => {
+              const a = signedIn.find((x) => x.network === n);
+              return (
+                <li key={n} className="flex flex-wrap items-center gap-3 px-5 py-3">
+                  <span className="min-w-0 flex-1">
+                    <b className="font-semibold text-ink-900">{PROVIDERS[n].label}</b>{" "}
+                    <span className="text-sm text-ink-600">{a ? a.name : canConnect.includes(n) ? "Not connected" : `Set ${PROVIDERS[n].id} and ${PROVIDERS[n].secret} on the Worker first`}</span>
+                  </span>
+                  {can(user, "network") &&
+                    (a ? (
+                      <ActionButton action={disconnectSocial.bind(null, n)} pendingLabel="Disconnecting…">Disconnect</ActionButton>
+                    ) : (
+                      canConnect.includes(n) && (
+                        <ButtonLink href={`/api/social/connect/${n}`} prefetch={false} size="sm" variant="dark">
+                          Connect
+                        </ButtonLink>
+                      )
+                    ))}
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+        <Card>
           <CardHeader title="Posts" description="Everything sent from here. A scheduled post goes out at its time; take one down on the network itself." />
           <ul className="mt-4 divide-y divide-ink-100 border-t border-ink-100">
             {posts.length === 0 && <li className="px-5 py-10 text-center text-sm text-ink-500">Nothing posted yet.</li>}
@@ -91,6 +126,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
           </ul>
           <Pagination page={page} pageSize={10} total={total} href={(n) => `/hq/marketing/social?page=${n}`} />
         </Card>
+        </div>
       </div>
     </>
   );

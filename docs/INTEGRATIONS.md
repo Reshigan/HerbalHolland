@@ -343,8 +343,8 @@ All members", "To: Into Merch & apparel", "To: First-access list").
 
 **LinkedIn.** A social post goes to LinkedIn only when its playbook says so, and the post shows it: **LinkedIn too**
 (`also`) goes to every connected account, LinkedIn included; **LinkedIn only** (`only`) goes to the LinkedIn page
-alone. LinkedIn is posted by hand (its page API needs LinkedIn's approval), so a LinkedIn-only post fails at its time
-unless it's marked **I'll post it by hand**. Every other social post skips LinkedIn.
+alone (the connected LinkedIn profile; a company page needs LinkedIn's approval), and fails at its time when LinkedIn
+isn't connected unless it's marked **I'll post it by hand**. Every other social post skips LinkedIn.
 
 **Briefs, and posting by hand.** Many social posts carry a brief, shown as **Shoot:**: the photo or Reel that makes
 the post, with adults over 25 who've signed a release. Until someone shoots it, the card goes out. **I'll post it by
@@ -363,8 +363,11 @@ instead. Every sign-up is deleted as its message goes (POPIA: kept no longer tha
 list** clears it by hand. Until then, a member's POPIA export and erasure (`src/server/popia.ts`) include any sign-up
 with their mobile or email.
 
-**Connecting the networks.** Each network is connected by its secrets on the Worker (`wrangler secret bulk`, docs/RUNBOOK.md
-→ Releases); none set means posts are only recorded. Every account is set to adults 18+.
+**Connecting the networks.** Facebook, Instagram, Threads, Bluesky and Telegram are connected by their secrets on the
+Worker (`wrangler secret bulk`, docs/RUNBOOK.md → Releases). TikTok, YouTube, LinkedIn, X and Pinterest are connected by
+signing in: the network's app keys go on the Worker, then HQ → Marketing → Social → **Connect** signs in as the brand
+(OAuth with PKCE, `src/server/social/oauth.ts`); the account's tokens are sealed in `SocialAccount` with the app secret
+and refreshed before each post. Nothing connected means posts are only recorded. Every account is set to adults 18+.
 
 | Network | Secrets | Where they come from |
 |---|---|---|
@@ -373,10 +376,16 @@ with their mobile or email.
 | Threads | `THREADS_USER_ID`, `THREADS_TOKEN` | The same app with the **Threads API** product; a long-lived Threads token (60 days: refresh it with `GET https://graph.threads.net/refresh_access_token?grant_type=th_refresh_token&access_token=…` and set the new secret before it lapses) |
 | Bluesky | `BLUESKY_HANDLE`, `BLUESKY_APP_PASSWORD` | Settings → App passwords in Bluesky |
 | Telegram | `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID` | A bot from @BotFather made admin of the channel; the chat id is the channel's `@username` (or its numeric id for a private channel) |
-| LinkedIn, X | none | By hand: LinkedIn's page API needs their approval; X charges per API post |
+| TikTok | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, then Connect | developers.tiktok.com → an app with the **Login Kit** and **Content Posting API** products, scopes `user.info.basic`, `video.publish`, `video.upload`, redirect URI `https://shop.herbalholland.com/api/social/connect/tiktok`. Under **Manage URL properties**, verify `https://shop.herbalholland.com/` (photo posts are fetched from there). Until TikTok audits the app, everything it posts is private to the account: apply for the audit once the brand account exists. A post with a video is a video post; one without is a photo post of the card |
+| YouTube Shorts | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, then Connect | console.cloud.google.com → a project with the **YouTube Data API v3** enabled, an OAuth client (web) with redirect URI `https://shop.herbalholland.com/api/social/connect/youtube`, the brand's Google account as a test user. Only posts with a video go to YouTube; vertical, under three minutes, the first line of the words is the title. Until Google verifies the app (the `youtube.upload` scope is restricted), uploads stay private |
+| LinkedIn | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, then Connect | linkedin.com/developers → an app with the **Share on LinkedIn** and **Sign In with LinkedIn using OpenID Connect** products (no approval needed), redirect URI `https://shop.herbalholland.com/api/social/connect/linkedin`. Posts go to the profile of whoever connects, the owner's: a company page needs LinkedIn's Community Management approval. The sign-in lasts 60 days, then Connect again (the daily job warns before it lapses) |
+| X | `X_CLIENT_ID`, `X_CLIENT_SECRET`, then Connect | developer.x.com → an app with OAuth 2.0 (confidential client), scopes `tweet.read tweet.write users.read media.write offline.access`, redirect URI `https://shop.herbalholland.com/api/social/connect/x`. X charges for every API post (pay-per-use or the Basic plan): the account needs a paid developer plan |
+| Pinterest | `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET`, then Connect | developers.pinterest.com → an app with redirect URI `https://shop.herbalholland.com/api/social/connect/pinterest`. Pins go to the account's first board. Trial access shows pins only to the account itself; standard access (a review) makes them public |
 
-Instagram and Threads fetch the picture by URL, so `APP_URL` must be public HTTPS: a brand picture is
-`${APP_URL}/social/<picture>.jpg`, and a Studio card is put in R2 and served at `${APP_URL}/social/cards/<key>.jpg`.
+Instagram, Threads, TikTok and Pinterest fetch the picture by URL, so `APP_URL` must be public HTTPS: a brand picture
+is `${APP_URL}/social/<picture>.jpg`, and a Studio card is put in R2 and served at `${APP_URL}/social/cards/<id>.jpg`. A
+post can carry a video (MP4 or MOV, 90 MB at most, on the Studio post or the Social page): TikTok, YouTube Shorts and X
+post the video, the other networks the picture; without a video YouTube is left out of the post.
 Posts go out one network at a time; one refusing never stops the others, and each post keeps every network's answer
 (the post's id and link, or the error) in `SocialPost.results`, shown on the Social page and in the Studio. The `daily`
 job checks the Meta Page token (`debug_token`) and reports one about to expire (audit `social.token`, the ops log) two
@@ -476,7 +485,7 @@ the seed and scripts.
 | `YOCO_WEBHOOK_SECRET` | The `whsec_…` secret Yoco returned when the webhook (`/api/payments/yoco`) was registered with that same mode's key. Unset: the webhook answers 503 |
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
 | `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name, for a variant made to order (none in the range today); unset = production orders only logged |
-| `META_PAGE_ID`, `META_PAGE_TOKEN`, `META_IG_USER_ID`, `THREADS_USER_ID`, `THREADS_TOKEN`, `BLUESKY_HANDLE`, `BLUESKY_APP_PASSWORD`, `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID` | The social networks ([Connecting the networks](#social-posting-and-the-campaign-studio-srcserversocialts-srcserverstudiots)); unset = posts only recorded |
+| `META_PAGE_ID`, `META_PAGE_TOKEN`, `META_IG_USER_ID`, `THREADS_USER_ID`, `THREADS_TOKEN`, `BLUESKY_HANDLE`, `BLUESKY_APP_PASSWORD`, `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID`, `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `X_CLIENT_ID`, `X_CLIENT_SECRET`, `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` | The social networks ([Connecting the networks](#social-posting-and-the-campaign-studio-srcserversocialts-srcserverstudiots)); unset = posts only recorded |
 | `WORKERS_AI_ACCOUNT_ID`, `WORKERS_AI_TOKEN`, `WORKERS_AI_MODEL` | Optional: Studio rewrites in the brand's voice through Cloudflare Workers AI (free allowance); unset = no AI |
 | `CRON_SECRET` | Protects `/api/cron/*`: 32+ random characters (`openssl rand -hex 32`); the Cron Triggers in `worker.ts` send it |
 | `ALERT_EMAIL` | Ops inbox for errors and failed scheduled-job steps (by Graph, throttled: one per distinct error an hour, at most 20 an hour; addresses and long numbers left out); unset = errors are only logged |

@@ -1,7 +1,7 @@
 // Campaign Studio (HQ → Marketing → Studio), the pure parts: a playbook laid out from day T into dated drafts, the
 // {fields} filled from the store and the day, and each draft screened for the channel it goes out on. The playbooks
 // are in ./studio-playbooks/ (one file per pack); cards, scheduling and posting in src/server/studio.ts.
-//   SOCIAL     Instagram, Facebook, Threads, Bluesky, Telegram: whatever is connected (src/server/social.ts); LinkedIn by hand
+//   SOCIAL     Instagram, Facebook, Threads, Bluesky, Telegram, TikTok, YouTube Shorts, LinkedIn, X, Pinterest: whatever is connected (src/server/social.ts)
 //   WHATSAPP   the brand's WhatsApp Channel, posted by hand (WhatsApp's API can't carry a cannabis brand)
 //   GOOGLE     the store's Google Business Profile, posted by hand
 //   EMAIL, SMS, PUSH   members' own channels, sent as a campaign (consent, CPA windows and opt-out as always)
