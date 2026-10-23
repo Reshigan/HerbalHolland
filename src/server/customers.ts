@@ -55,9 +55,18 @@ export async function requestOtp(raw: string, opts?: { ip: string | null; email?
 }
 
 /** The welcome to a new member who gave an email: their card, the app, and what to do first. */
-export async function sendWelcome(c: { id: string; firstName: string; email: string | null; memberNo: string }) {
+export async function sendWelcome(c: { id: string; firstName: string; email: string | null; memberNo: string; referralCode: string; consentEmail: boolean }) {
   if (!c.email) return;
   const url = APP_URL();
+  const { loyalty, launch } = await getSettings();
+  const invite = `${url}/club/join?ref=${c.referralCode}`;
+  // The first thing a new member can do for us and for themselves: bring the people they'd shop with. It's a promotion,
+  // so only for a member who said yes to email marketing; the welcome itself stays transactional for everyone.
+  const share = !c.consentEmail
+    ? null
+    : launch.launchAt && new Date(launch.launchAt) > new Date()
+      ? `You're on the Founding Members list. The first ${launch.foundingCap.toLocaleString("en-US")} get a numbered card, and every friend who joins with your link moves you ${launch.referralBoost} places up. Share it: ${invite}`
+      : `Bring your people: when a friend (18+) joins with your link and makes their first purchase, you each get ${loyalty.referralBonus} points. Your link: ${invite}`;
   await send({
     channel: "EMAIL", to: c.email, customerId: c.id, kind: "TRANSACTIONAL",
     subject: `Welcome to Herbal Holland Rewards, ${c.firstName}`,
@@ -65,6 +74,7 @@ export async function sendWelcome(c: { id: string; firstName: string; email: str
       `Hi ${c.firstName},`,
       `You're in. Your member number is ${c.memberNo}, and your card is ready at ${url}/club. Show it in any store to earn points on every purchase.`,
       `Keep it on your phone: open ${url}/club, then add Herbal Holland to your Home Screen (on iPhone, Share → Add to Home Screen). You can switch on notifications there too, so you hear about drops and events first.`,
+      ...(share ? [share] : []),
       `Sign in any time with your mobile number: we send a one-time code, no password to remember.`,
       `See you in store.`,
     ].join("\n\n"),

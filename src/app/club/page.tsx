@@ -83,6 +83,27 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
         </Callout>
       )}
       {sp.welcome && <InstallPrompt app="rewards" priority className="hh-enter mb-8 [--hh-delay:250ms]" />}
+      {/* Right after joining is when a member is keenest to tell someone: the invite comes before anything else. */}
+      {sp.welcome && (
+        <Panel className="hh-enter mb-8 p-5 [--hh-delay:500ms]">
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+            <Users className="h-5 w-5 text-brand-500" /> {launch.preLaunch && launch.at ? "Move up the Founding Members list" : "Bring your people"}
+          </h2>
+          <p className="mb-4 mt-1 text-sm text-ink-300">
+            {launch.preLaunch && launch.at
+              ? `Every friend (18+) who joins with your link moves you ${num(launch.referralBoost)} places up. The first ${num(launch.foundingCap)} get a numbered card.`
+              : `When a friend (18+) joins with your link and makes their first purchase, you each get ${fmtPoints(settings.loyalty.referralBonus)}.`}
+          </p>
+          <ShareLink
+            url={referUrl}
+            text={
+              launch.preLaunch && launch.at
+                ? `I'm on the Herbal Holland Founding Members list. The first ${num(launch.foundingCap)} members get a numbered card, and it closes ${fmtDate(launch.at)}. Join free with my link (adults 18+):`
+                : `Join me at Herbal Holland Rewards: member prices from day one, and we both get ${settings.loyalty.referralBonus} points after your first purchase. Adults 18+:`
+            }
+          />
+        </Panel>
+      )}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
         <div className="space-y-4">
           <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} firstYear={!m.customer.foundingNo && !!m.floor} floorUntil={floorUntil} countFrom={countFrom} earned={earned} className={sp.welcome ? "hh-shimmer-once" : undefined} />
