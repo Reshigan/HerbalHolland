@@ -2,6 +2,17 @@ import { existsSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { captionFor, limitFor, needsImage, screenSocial, SOCIAL_IMAGES } from "@/lib/social";
 import { publishSocial, socialChannels, socialConnected } from "@/server/social";
+import { checkState, startConnect, type Account } from "@/server/social/oauth";
+import { open, seal } from "@/server/social/box";
+
+// The signed-in accounts live in the database: the unit tests hand them in.
+const signedIn: Account[] = [];
+vi.mock("@/server/social/oauth", async (orig) => ({
+  ...(await orig<typeof import("@/server/social/oauth")>()),
+  accounts: async () => signedIn,
+  freshToken: async (n: string) => `token-${n}`,
+}));
+vi.mock("@/server/db", () => ({ db: { socialAccount: { count: async () => signedIn.length } } }));
 
 describe("social copy screening", () => {
   it("passes brand posts", () => {
@@ -41,7 +52,7 @@ describe("the networks", () => {
   });
   it("does nothing until a network is connected", async () => {
     for (const k of NONE) vi.stubEnv(k, "");
-    expect(socialConnected()).toBe(false);
+    expect(await socialConnected()).toBe(false);
     expect(await socialChannels()).toEqual([]);
     await expect(publishSocial({ content: "Hello", picture: null, channels: [] })).rejects.toThrow(/No social network/);
   });
@@ -109,5 +120,108 @@ describe("the networks", () => {
       { network: "facebook", name: "Page", error: "Facebook said 400: Error validating access token: Session has expired" },
       { network: "telegram", name: "-100", id: "7", link: undefined },
     ]);
+  });
+});
+
+describe("the signed-in networks", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    signedIn.length = 0;
+  });
+  it("seals tokens at rest and opens them again", () => {
+    vi.stubEnv("SESSION_SECRET", "a-session-secret-of-at-least-32-characters");
+    const sealed = seal("tok-123");
+    expect(sealed.startsWith("v1.")).toBe(true);
+    expect(sealed).not.toContain("tok-123");
+    expect(open(sealed)).toBe("tok-123");
+    expect(() => open("v1.bad.bad")).toThrow();
+  });
+  it("sends the person to the network with PKCE, and only takes a code back with the matching state", () => {
+    vi.stubEnv("SESSION_SECRET", "a-session-secret-of-at-least-32-characters");
+    vi.stubEnv("TIKTOK_CLIENT_KEY", "ck");
+    vi.stubEnv("TIKTOK_CLIENT_SECRET", "cs");
+    vi.stubEnv("APP_URL", "https://shop.herbalholland.com");
+    const s = startConnect("tiktok");
+    const u = new URL(s.url);
+    expect(u.origin + u.pathname).toBe("https://www.tiktok.com/v2/auth/authorize/");
+    expect(u.searchParams.get("client_key")).toBe("ck");
+    expect(u.searchParams.get("redirect_uri")).toBe("https://shop.herbalholland.com/api/social/connect/tiktok");
+    expect(u.searchParams.get("code_challenge_method")).toBe("S256");
+    const state = u.searchParams.get("state")!;
+    expect(checkState("tiktok", state, s.cookie)).toBe(s.cookie.slice(state.length + 1));
+    expect(checkState("youtube", state, s.cookie)).toBeNull();
+    expect(checkState("tiktok", state.replace(/.$/, "x"), s.cookie)).toBeNull();
+    expect(checkState("tiktok", state, undefined)).toBeNull();
+  });
+  it("lists signed-in accounts as channels, and posts the card to TikTok (photo), LinkedIn, X and Pinterest", async () => {
+    for (const k of NONE) vi.stubEnv(k, "");
+    vi.stubEnv("APP_URL", "https://shop.herbalholland.com");
+    signedIn.push(
+      { network: "tiktok", name: "herbalholland", externalId: "open-1", extra: {} },
+      { network: "linkedin", name: "Reshigan Govender", externalId: "AbC", extra: {} },
+      { network: "x", name: "@herbalholland", externalId: "9", extra: {} },
+      { network: "pinterest", name: "@herbalholland · Windmill", externalId: "p1", extra: { boardId: "b1" } },
+      { network: "youtube", name: "Herbal Holland", externalId: "UC1", extra: {} },
+    );
+    expect(await socialConnected()).toBe(true);
+    const channels = await socialChannels();
+    expect(channels.map((c) => c.identifier)).toEqual(["tiktok", "linkedin", "x", "pinterest", "youtube"]);
+    const calls: Call[] = [];
+    vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+      calls.push({ url, init });
+      const reply = (o: unknown, headers: Record<string, string> = {}) => new Response(JSON.stringify(o), { status: 200, headers });
+      if (url.endsWith("/social/windmill-tee.jpg")) return new Response(new Uint8Array([1, 2, 3]));
+      if (url.endsWith("/post/publish/content/init/")) return reply({ data: { publish_id: "pub1" } });
+      if (url.endsWith("/post/publish/status/fetch/")) return reply({ data: { status: "PUBLISH_COMPLETE", publicaly_available_post_id: ["7001"] } });
+      if (url.includes("rest/images?action=initializeUpload")) return reply({ value: { uploadUrl: "https://li-upload/1", image: "urn:li:image:1" } });
+      if (url.startsWith("https://li-upload/")) return new Response("", { status: 201 });
+      if (url.endsWith("/rest/posts")) return new Response("", { status: 201, headers: { "x-restli-id": "urn:li:share:55" } });
+      if (url.endsWith("/2/media/upload")) return reply({ data: { id: "m1" } });
+      if (url.endsWith("/2/tweets")) return reply({ data: { id: "t1" } });
+      if (url.endsWith("/v5/pins")) return reply({ id: "pin1" });
+      return new Response("nope", { status: 404 });
+    });
+    const r = await publishSocial({ content: "Hello\nMore", picture: { image: "windmill-tee" }, channels });
+    expect(r).toEqual([
+      { network: "tiktok", name: "herbalholland", id: "7001", link: "https://www.tiktok.com/@herbalholland/video/7001" },
+      { network: "linkedin", name: "Reshigan Govender", id: "urn:li:share:55", link: "https://www.linkedin.com/feed/update/urn:li:share:55" },
+      { network: "x", name: "@herbalholland", id: "t1", link: "https://x.com/i/status/t1" },
+      { network: "pinterest", name: "@herbalholland · Windmill", id: "pin1", link: "https://www.pinterest.com/pin/pin1/" },
+      { network: "youtube", name: "Herbal Holland", error: "YouTube Shorts needs a video" },
+    ]);
+    const tiktok = body(calls.find((c) => c.url.endsWith("/post/publish/content/init/"))!);
+    expect(tiktok).toMatchObject({ post_mode: "DIRECT_POST", media_type: "PHOTO", source_info: { source: "PULL_FROM_URL", photo_images: ["https://shop.herbalholland.com/social/windmill-tee.jpg"] }, post_info: { privacy_level: "PUBLIC_TO_EVERYONE", title: "Hello\nMore" } });
+    expect((calls.find((c) => c.url.endsWith("/post/publish/content/init/"))!.init?.headers as Record<string, string>).Authorization).toBe("Bearer token-tiktok");
+    expect(body(calls.find((c) => c.url.endsWith("/rest/posts"))!)).toMatchObject({ author: "urn:li:person:AbC", commentary: "Hello\nMore", content: { media: { id: "urn:li:image:1" } } });
+    expect(body(calls.find((c) => c.url.endsWith("/2/tweets"))!)).toEqual({ text: "Hello\nMore", media: { media_ids: ["m1"] } });
+    expect(body(calls.find((c) => c.url.endsWith("/v5/pins"))!)).toMatchObject({ board_id: "b1", title: "Hello", description: "More", media_source: { source_type: "image_url", url: "https://shop.herbalholland.com/social/windmill-tee.jpg" } });
+  });
+  it("posts a video to TikTok (one chunk) and YouTube Shorts (resumable)", async () => {
+    for (const k of NONE) vi.stubEnv(k, "");
+    signedIn.push({ network: "tiktok", name: "hh", externalId: "o", extra: {} }, { network: "youtube", name: "HH", externalId: "UC1", extra: {} });
+    const calls: Call[] = [];
+    vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+      calls.push({ url, init });
+      const reply = (o: unknown, headers: Record<string, string> = {}) => new Response(JSON.stringify(o), { status: 200, headers });
+      if (url.endsWith("/post/publish/video/init/")) return reply({ data: { publish_id: "pub2", upload_url: "https://tt-upload/x?sig=1" } });
+      if (url.startsWith("https://tt-upload/")) return new Response("", { status: 201 });
+      if (url.endsWith("/post/publish/status/fetch/")) return reply({ data: { status: "PROCESSING_UPLOAD" } });
+      if (url.includes("upload/youtube/v3/videos?uploadType=resumable")) return new Response("", { status: 200, headers: { location: "https://yt-session/1" } });
+      if (url.startsWith("https://yt-session/")) return reply({ id: "vid1" });
+      return new Response("nope", { status: 404 });
+    });
+    const bytes = new Uint8Array(1000);
+    vi.useFakeTimers();
+    const pending = publishSocial({ content: "Opening day\nSee you there", picture: null, video: { bytes: async () => bytes, type: "video/mp4", size: bytes.length }, channels: await socialChannels() });
+    await vi.runAllTimersAsync(); // TikTok's status polls wait 3 s each
+    const r = await pending;
+    vi.useRealTimers();
+    expect(r[0]).toEqual({ network: "tiktok", name: "hh", id: "pub2", link: undefined }); // still processing: TikTok posts it when it's done
+    expect(r[1]).toEqual({ network: "youtube", name: "HH", id: "vid1", link: "https://youtube.com/shorts/vid1" });
+    expect(body(calls.find((c) => c.url.endsWith("/post/publish/video/init/"))!)).toMatchObject({ source_info: { source: "FILE_UPLOAD", video_size: 1000, chunk_size: 1000, total_chunk_count: 1 } });
+    const put = calls.find((c) => c.url.startsWith("https://tt-upload/"))!;
+    expect(put.init?.headers).toMatchObject({ "Content-Range": "bytes 0-999/1000", "Content-Type": "video/mp4" });
+    expect(JSON.parse(String(calls.find((c) => c.url.includes("uploadType=resumable"))!.init?.body))).toMatchObject({ snippet: { title: "Opening day #Shorts" }, status: { privacyStatus: "public" } });
   });
 });

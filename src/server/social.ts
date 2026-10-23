@@ -1,23 +1,29 @@
-// Social posting straight from the platform to the brand's accounts: Facebook Page, Instagram and Threads (Meta's Graph
-// APIs), Bluesky (AT Protocol) and Telegram (Bot API). A network is connected by its secrets (docs/INTEGRATIONS.md →
-// Connecting the networks); with none set, posts are only recorded (development and demos). LinkedIn and X are posted
-// by hand. Instagram and Threads fetch the picture by URL, so a Studio card is put in R2 first and served at
-// /social/cards/<name>.jpg; the brand pictures are public/social already.
+// Social posting straight from the platform to the brand's accounts. Facebook Page, Instagram and Threads (Meta's
+// Graph APIs), Bluesky (AT Protocol) and Telegram (Bot API) are connected by secrets on the Worker; TikTok, YouTube,
+// LinkedIn, X and Pinterest by signing in (./social/oauth.ts). With nothing connected, posts are only recorded
+// (development and demos). Instagram, Threads, TikTok and Pinterest fetch the picture by URL, so a Studio card is put
+// in R2 first and served at /social/cards/<name>.jpg; the brand pictures are public/social already. A video (MP4) goes
+// to TikTok, YouTube Shorts and X; the other networks get the picture. docs/INTEGRATIONS.md → Connecting the networks.
 import { APP_URL } from "./invoices";
-import { putObject } from "./storage";
+import { getObject, putObject } from "./storage";
 import { db } from "./db";
 import { audit, SYSTEM } from "./audit";
+import { accounts, freshToken, PROVIDERS, type Account, type OAuthNetwork } from "./social/oauth";
 import { captionFor, SOCIAL_NETWORKS, type SocialChannel } from "@/lib/social";
 import { asList } from "@/lib/json-list";
 
 export class SocialError extends Error {}
 
 export type Picture = { image: string } | { file: { data: Uint8Array; name: string; type: string } };
+/** A video for the networks that take one: an Upload (MP4 or MOV in R2). */
+export type Video = { bytes: () => Promise<Uint8Array>; type: string; size: number };
 /** How one network took the post: its id and link, or why it refused. */
 export type PostResult = { network: string; name: string; id?: string; link?: string; error?: string };
 
 type Image = { url: string; bytes: () => Promise<Uint8Array> };
-type Network = { connected: () => string | null; publish: (text: string, image: Image | null) => Promise<{ id: string; link?: string }> };
+const body = (b: Uint8Array) => new Uint8Array(b) as Uint8Array<ArrayBuffer>; // a fresh buffer the fetch body types accept
+type Media = { text: string; image: Image | null; video: Video | null; account?: Account };
+type Network = { connected: () => string | null; publish: (m: Media) => Promise<{ id: string; link?: string }> };
 
 const env = (k: string) => process.env[k]?.trim() || null;
 const GRAPH = "https://graph.facebook.com/v21.0";
@@ -61,7 +67,7 @@ async function metaContainer(who: string, base: string, user: string, token: str
 const NETWORKS: Record<string, Network> = {
   facebook: {
     connected: () => (env("META_PAGE_ID") && env("META_PAGE_TOKEN") ? "Page" : null),
-    async publish(text, image) {
+    async publish({ text, image }) {
       const page = env("META_PAGE_ID")!, token = env("META_PAGE_TOKEN")!;
       if (image) {
         const r = await call<{ id: string; post_id?: string }>("Facebook", `${GRAPH}/${page}/photos`, form({ url: image.url, message: text, access_token: token }));
@@ -73,19 +79,19 @@ const NETWORKS: Record<string, Network> = {
   },
   instagram: {
     connected: () => (env("META_IG_USER_ID") && env("META_PAGE_TOKEN") ? "Professional account" : null),
-    async publish(text, image) {
+    async publish({ text, image }) {
       if (!image) throw new SocialError("Instagram needs a picture");
       return metaContainer("Instagram", GRAPH, env("META_IG_USER_ID")!, env("META_PAGE_TOKEN")!, { image_url: image.url, caption: text }, "status_code", "media_publish");
     },
   },
   threads: {
     connected: () => (env("THREADS_USER_ID") && env("THREADS_TOKEN") ? "Profile" : null),
-    publish: (text, image) =>
+    publish: ({ text, image }) =>
       metaContainer("Threads", THREADS, env("THREADS_USER_ID")!, env("THREADS_TOKEN")!, { __path: "threads", media_type: image ? "IMAGE" : "TEXT", image_url: image?.url, text }, "status", "threads_publish"),
   },
   bluesky: {
     connected: () => (env("BLUESKY_HANDLE") && env("BLUESKY_APP_PASSWORD") ? `@${env("BLUESKY_HANDLE")}` : null),
-    async publish(text, image) {
+    async publish({ text, image }) {
       const handle = env("BLUESKY_HANDLE")!;
       const s = await call<{ accessJwt: string; did: string }>("Bluesky", `${BSKY}/com.atproto.server.createSession`, json({ identifier: handle, password: env("BLUESKY_APP_PASSWORD") }));
       const auth = { Authorization: `Bearer ${s.accessJwt}` };
@@ -104,7 +110,7 @@ const NETWORKS: Record<string, Network> = {
   },
   telegram: {
     connected: () => (env("TELEGRAM_TOKEN") && env("TELEGRAM_CHAT_ID") ? env("TELEGRAM_CHAT_ID")! : null),
-    async publish(text, image) {
+    async publish({ text, image }) {
       const chat = env("TELEGRAM_CHAT_ID")!, api = `https://api.telegram.org/bot${env("TELEGRAM_TOKEN")}`;
       const r = await call<{ result: { message_id: number; chat: { username?: string } } }>("Telegram", image ? `${api}/sendPhoto` : `${api}/sendMessage`, json(image ? { chat_id: chat, photo: image.url, caption: text } : { chat_id: chat, text }));
       const u = r.result.chat.username;
@@ -113,14 +119,159 @@ const NETWORKS: Record<string, Network> = {
   },
 };
 
-export const socialConnected = () => Object.values(NETWORKS).some((n) => n.connected());
 
-/** The networks with their secrets set, as channels to post to (the id is the network's identifier). */
+// ── The signed-in networks (./social/oauth.ts): the account's token is fetched fresh for each post ─────────────────
+const TIKTOK = "https://open.tiktokapis.com/v2";
+const authed = (token: string, extra: Record<string, string> = {}) => ({ Authorization: `Bearer ${token}`, ...extra });
+
+/** TikTok's publish is asynchronous: the status says when the post is live (or why not). */
+async function tiktokWait(token: string, publishId: string) {
+  for (let i = 0; i < 20; i++) {
+    const r = await call<{ data: { status: string; fail_reason?: string; publicaly_available_post_id?: string[] } }>("TikTok", `${TIKTOK}/post/publish/status/fetch/`, { ...json({ publish_id: publishId }), headers: authed(token, { "Content-Type": "application/json" }) });
+    if (r.data.status === "PUBLISH_COMPLETE") return r.data.publicaly_available_post_id?.[0];
+    if (r.data.status === "FAILED") throw new SocialError(`TikTok couldn't publish it: ${r.data.fail_reason ?? "no reason given"}`);
+    await sleep(3000);
+  }
+  return undefined; // still processing: the post arrives on its own
+}
+
+/** Uploads bytes in the chunks TikTok asks for (each 5–64 MB, the last one may be bigger; under 5 MB goes whole). */
+async function tiktokUpload(uploadUrl: string, bytes: Uint8Array, type: string, chunk: number) {
+  for (let start = 0; start < bytes.length; start += chunk) {
+    const last = start + chunk >= bytes.length || bytes.length - (start + chunk) < chunk; // the final chunk takes the remainder
+    const end = last ? bytes.length : start + chunk;
+    const r = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": type, "Content-Length": String(end - start), "Content-Range": `bytes ${start}-${end - 1}/${bytes.length}` }, body: body(bytes.slice(start, end)), signal: AbortSignal.timeout(120_000) });
+    if (!r.ok && r.status !== 206) throw new SocialError(`TikTok refused the upload (${r.status})`);
+    if (last) break;
+  }
+}
+
+const OAUTH_ADAPTERS: Record<OAuthNetwork, (m: Media, token: string, a: Account) => Promise<{ id: string; link?: string }>> = {
+  // A video is a direct post; without one, the card goes as a photo post (fetched by URL from our verified domain).
+  async tiktok({ text, image, video }, token, a) {
+    const post_info = { title: text.slice(0, 2200), privacy_level: "PUBLIC_TO_EVERYONE", disable_comment: false, disable_duet: false, disable_stitch: false };
+    let r: { data: { publish_id: string; upload_url?: string } };
+    if (video) {
+      const bytes = await video.bytes();
+      const chunk = bytes.length < 5 * 1024 * 1024 ? bytes.length : Math.min(bytes.length, 32 * 1024 * 1024);
+      r = await call("TikTok", `${TIKTOK}/post/publish/video/init/`, {
+        ...json({ post_info: { ...post_info, video_cover_timestamp_ms: 1000 }, source_info: { source: "FILE_UPLOAD", video_size: bytes.length, chunk_size: chunk, total_chunk_count: Math.floor(bytes.length / chunk) } }),
+        headers: authed(token, { "Content-Type": "application/json; charset=UTF-8" }),
+      });
+      await tiktokUpload(r.data.upload_url!, bytes, video.type, chunk);
+    } else {
+      if (!image) throw new SocialError("TikTok needs a video or a picture");
+      r = await call("TikTok", `${TIKTOK}/post/publish/content/init/`, {
+        ...json({ post_info: { ...post_info, description: text.slice(0, 4000) }, source_info: { source: "PULL_FROM_URL", photo_cover_index: 0, photo_images: [image.url] }, post_mode: "DIRECT_POST", media_type: "PHOTO" }),
+        headers: authed(token, { "Content-Type": "application/json; charset=UTF-8" }),
+      });
+    }
+    const id = await tiktokWait(token, r.data.publish_id);
+    return { id: id ?? r.data.publish_id, link: id ? `https://www.tiktok.com/@${a.name}/video/${id}` : undefined };
+  },
+  // A Short: a vertical video under three minutes; the first line of the words is the title.
+  async youtube({ text, video }, token) {
+    if (!video) throw new SocialError("YouTube Shorts needs a video");
+    const bytes = await video.bytes();
+    const title = text.split("\n")[0].slice(0, 90) || "Herbal Holland";
+    const start = await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
+      method: "POST",
+      headers: authed(token, { "Content-Type": "application/json; charset=UTF-8", "X-Upload-Content-Type": video.type, "X-Upload-Content-Length": String(bytes.length) }),
+      body: JSON.stringify({ snippet: { title: `${title} #Shorts`, description: text, categoryId: "22" }, status: { privacyStatus: "public", selfDeclaredMadeForKids: false } }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    const session = start.headers.get("location");
+    if (!start.ok || !session) throw new SocialError(`YouTube said ${start.status}: ${(await start.text()).slice(0, 200)}`);
+    const r = await call<{ id: string }>("YouTube", session, { method: "PUT", headers: { "Content-Type": video.type, "Content-Length": String(bytes.length) }, body: body(bytes), signal: AbortSignal.timeout(300_000) });
+    return { id: r.id, link: `https://youtube.com/shorts/${r.id}` };
+  },
+  // The owner's own profile (Share on LinkedIn needs no approval); the picture is uploaded first.
+  async linkedin({ text, image }, token, a) {
+    const author = `urn:li:person:${a.externalId}`;
+    const h = authed(token, { "Content-Type": "application/json", "LinkedIn-Version": "202510", "X-Restli-Protocol-Version": "2.0.0" });
+    let media: unknown;
+    if (image) {
+      const init = await call<{ value: { uploadUrl: string; image: string } }>("LinkedIn", "https://api.linkedin.com/rest/images?action=initializeUpload", { ...json({ initializeUploadRequest: { owner: author } }), headers: h });
+      const up = await fetch(init.value.uploadUrl, { method: "PUT", headers: { "Content-Type": "image/jpeg" }, body: body(await image.bytes()), signal: AbortSignal.timeout(60_000) });
+      if (!up.ok) throw new SocialError(`LinkedIn refused the picture (${up.status})`);
+      media = { id: init.value.image, altText: "Herbal Holland" };
+    }
+    const r = await fetch("https://api.linkedin.com/rest/posts", {
+      ...json({ author, commentary: text, visibility: "PUBLIC", distribution: { feedDistribution: "MAIN_FEED", targetEntities: [], thirdPartyDistributionChannels: [] }, lifecycleState: "PUBLISHED", isReshareDisabledByAuthor: false, ...(media ? { content: { media } } : {}) }),
+      headers: h,
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!r.ok) throw new SocialError(`LinkedIn said ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const id = r.headers.get("x-restli-id") ?? "";
+    return { id, link: id ? `https://www.linkedin.com/feed/update/${id}` : undefined };
+  },
+  // A post with the picture or the video (uploaded in 4 MB pieces, then finalised). Every API post is charged by X.
+  async x({ text, image, video }, token) {
+    const h = authed(token);
+    let mediaId: string | undefined;
+    if (video) {
+      const bytes = await video.bytes();
+      const init = await call<{ data: { id: string } }>("X", "https://api.x.com/2/media/upload", { ...json({ command: "INIT", total_bytes: bytes.length, media_type: video.type, media_category: "tweet_video" }), headers: { ...h, "Content-Type": "application/json" } });
+      mediaId = init.data.id;
+      const piece = 4 * 1024 * 1024;
+      for (let i = 0, seg = 0; i < bytes.length; i += piece, seg++) {
+        const fd = new FormData();
+        fd.append("command", "APPEND");
+        fd.append("media_id", mediaId);
+        fd.append("segment_index", String(seg));
+        fd.append("media", new Blob([body(bytes.slice(i, i + piece))]));
+        await call("X", "https://api.x.com/2/media/upload", { method: "POST", headers: h, body: fd });
+      }
+      let s = await call<{ data: { processing_info?: { state: string; check_after_secs?: number; error?: { message: string } } } }>("X", "https://api.x.com/2/media/upload", { ...json({ command: "FINALIZE", media_id: mediaId }), headers: { ...h, "Content-Type": "application/json" } });
+      for (let i = 0; i < 20 && s.data.processing_info && !["succeeded", "failed"].includes(s.data.processing_info.state); i++) {
+        await sleep((s.data.processing_info.check_after_secs ?? 3) * 1000);
+        s = await call("X", `https://api.x.com/2/media/upload?command=STATUS&media_id=${mediaId}`, { headers: h });
+      }
+      if (s.data.processing_info?.state === "failed") throw new SocialError(`X couldn't process the video: ${s.data.processing_info.error?.message ?? ""}`);
+    } else if (image) {
+      const fd = new FormData();
+      fd.append("media", new Blob([body(await image.bytes())], { type: "image/jpeg" }), "card.jpg");
+      fd.append("media_category", "tweet_image");
+      mediaId = (await call<{ data: { id: string } }>("X", "https://api.x.com/2/media/upload", { method: "POST", headers: h, body: fd })).data.id;
+    }
+    const r = await call<{ data: { id: string } }>("X", "https://api.x.com/2/tweets", { ...json({ text, ...(mediaId ? { media: { media_ids: [mediaId] } } : {}) }), headers: { ...h, "Content-Type": "application/json" } });
+    return { id: r.data.id, link: `https://x.com/i/status/${r.data.id}` };
+  },
+  // A pin on the account's first board, the picture by URL, linking to the shop.
+  async pinterest({ text, image }, token, a) {
+    if (!image) throw new SocialError("Pinterest needs a picture");
+    const [title, ...rest] = text.split("\n");
+    const r = await call<{ id: string }>("Pinterest", "https://api.pinterest.com/v5/pins", {
+      ...json({ board_id: a.extra.boardId, title: title.slice(0, 100), description: (rest.join("\n") || text).slice(0, 800), link: APP_URL(), media_source: { source_type: "image_url", url: image.url } }),
+      headers: authed(token, { "Content-Type": "application/json" }),
+    });
+    return { id: r.id, link: `https://www.pinterest.com/pin/${r.id}/` };
+  },
+};
+
+/** The networks that are connected, by secrets or by signing in. */
+export async function socialConnected() {
+  return Object.values(NETWORKS).some((n) => n.connected()) || (await db.socialAccount.count()) > 0;
+}
+
+
+/** The connected networks, as channels to post to (the id is the network's identifier). */
 export async function socialChannels(): Promise<SocialChannel[]> {
-  return Object.entries(NETWORKS).flatMap(([identifier, n]) => {
+  const bySecret = Object.entries(NETWORKS).flatMap(([identifier, n]) => {
     const name = n.connected();
     return name ? [{ id: identifier, name, identifier }] : [];
   });
+  const signedIn = (await accounts()).map((a) => ({ id: a.network, name: a.name, identifier: a.network }));
+  return [...bySecret, ...signedIn];
+}
+
+/** A stored video as the networks take it. */
+export async function videoOf(uploadId: string | null | undefined): Promise<Video | null> {
+  if (!uploadId) return null;
+  const u = await db.upload.findUnique({ where: { id: uploadId }, select: { key: true, contentType: true, sizeBytes: true } });
+  if (!u) return null;
+  let cached: Uint8Array | null = null;
+  return { type: u.contentType, size: u.sizeBytes, bytes: async () => (cached ??= await getObject(u.key)) };
 }
 
 async function imageOf(p: Picture | null): Promise<Image | null> {
@@ -138,15 +289,26 @@ async function imageOf(p: Picture | null): Promise<Image | null> {
  * Posts to each channel now and says how each one went; one network refusing never stops the others. The picture is
  * one of public/social (by name) or a file (a Studio card).
  */
-export async function publishSocial(p: { content: string; short?: string | null; picture: Picture | null; channels: SocialChannel[] }): Promise<PostResult[]> {
+export async function publishSocial(p: { content: string; short?: string | null; picture: Picture | null; video?: Video | null; channels: SocialChannel[] }): Promise<PostResult[]> {
   if (!p.channels.length) throw new SocialError("No social network is connected");
   const image = await imageOf(p.picture);
+  const video = p.video ?? null;
+  const signedIn = p.channels.some((c) => c.identifier in OAUTH_ADAPTERS) ? await accounts() : [];
   const out: PostResult[] = [];
   for (const c of p.channels) {
-    const n = NETWORKS[c.identifier];
-    if (!n) continue;
+    const text = captionFor(c.identifier, p.content, p.short);
     try {
-      out.push({ network: c.identifier, name: c.name, ...(await n.publish(captionFor(c.identifier, p.content, p.short), image)) });
+      if (c.identifier in OAUTH_ADAPTERS) {
+        const n = c.identifier as OAuthNetwork;
+        const account = signedIn.find((a) => a.network === n);
+        if (!account) throw new SocialError(`${PROVIDERS[n].label} isn't connected`);
+        if (SOCIAL_NETWORKS[n]?.video === "required" && !video) throw new SocialError(`${SOCIAL_NETWORKS[n].label} needs a video`);
+        out.push({ network: n, name: c.name, ...(await OAUTH_ADAPTERS[n]({ text, image, video, account }, await freshToken(n), account)) });
+        continue;
+      }
+      const n = NETWORKS[c.identifier];
+      if (!n) continue;
+      out.push({ network: c.identifier, name: c.name, ...(await n.publish({ text, image, video })) });
     } catch (e) {
       out.push({ network: c.identifier, name: c.name, error: (e instanceof Error ? e.message : String(e)).slice(0, 300) });
     }
@@ -168,7 +330,7 @@ export async function releaseSocialPosts(now = new Date()) {
     const to = channels.filter((c) => asList<string>(post.channels).includes(c.identifier));
     let results: PostResult[];
     try {
-      results = await publishSocial({ content: post.content, picture: post.image ? { image: post.image } : null, channels: to });
+      results = await publishSocial({ content: post.content, picture: post.image ? { image: post.image } : null, video: await videoOf(post.videoUploadId), channels: to });
     } catch (e) {
       results = asList<string>(post.channels).map((network) => ({ network, name: SOCIAL_NETWORKS[network]?.label ?? network, error: e instanceof Error ? e.message : String(e) }));
     }

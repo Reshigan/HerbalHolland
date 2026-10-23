@@ -26,6 +26,7 @@ export function SocialComposer({ action, channels }: { action: (s: ActionState, 
   const limit = limitFor(ids);
   const over = text.length > limit;
   const imageMissing = !image && needsImage(ids);
+  const videoWanted = ids.some((i) => SOCIAL_NETWORKS[i]?.video);
 
   return (
     <ActionForm action={action} onDone={(s) => s.ok && setText("")}>
@@ -98,6 +99,15 @@ export function SocialComposer({ action, channels }: { action: (s: ActionState, 
             {imageMissing && <p className="mt-1.5 text-xs font-medium text-rose-600">Instagram needs a picture.</p>}
             <FieldError name="image" />
           </fieldset>
+
+          {videoWanted && (
+            <div>
+              <Label htmlFor="video">Video (MP4, up to 90 MB)</Label>
+              <Input id="video" name="video" type="file" accept="video/mp4,video/quicktime" className="h-auto py-2" />
+              <p className="mt-1.5 text-xs text-ink-500">YouTube Shorts needs one; TikTok and X post the video when there is one, the picture when not.</p>
+              <FieldError name="video" />
+            </div>
+          )}
 
           <fieldset>
             <legend className="mb-1.5 text-sm font-medium text-ink-800">When</legend>

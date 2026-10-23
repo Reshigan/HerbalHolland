@@ -42,8 +42,10 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
   const { id } = await params;
   const plan = await db.studioPlan.findUnique({ where: { id }, include: { store: { select: { name: true } }, items: { orderBy: { at: "asc" } } } });
   if (!plan) notFound();
+  const videoIds = plan.items.map((i) => i.videoUploadId).filter((v): v is string => !!v);
+  const videos = new Map((videoIds.length ? await db.upload.findMany({ where: { id: { in: videoIds } }, select: { id: true, fileName: true } }) : []).map((u) => [u.id, u.fileName]));
   const write = can(user, "network");
-  const social = socialConnected();
+  const social = await socialConnected();
   const pb = playbookOf(plan.playbook);
   const by = (s: string) => plan.items.filter((i) => i.status === s).length;
   const days = Map.groupBy(plan.items, (i) => dayKey(i.at));
@@ -201,6 +203,7 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
                             text={it.text}
                             short={it.short}
                             card={card}
+                            video={it.videoUploadId ? (videos.get(it.videoUploadId) ?? "A video") : null}
                             images={SOCIAL_IMAGES}
                             save={saveStudioItem.bind(null, it.id)}
                             suggest={aiReady() ? suggestStudioRewrite : null}

@@ -128,8 +128,9 @@ the networks has the Meta app steps). Connect after the accounts above are set u
    `GET /{page-id}?fields=instagram_business_account`.
 2. Set `META_PAGE_ID`, `META_PAGE_TOKEN` and `META_IG_USER_ID` on the Worker (`wrangler secret bulk`, the runbook's
    Releases section). Threads, if used: `THREADS_USER_ID` and `THREADS_TOKEN` from the same app's Threads product.
-3. **TikTok: don't connect it.** The API audit keeps posts private, and TikTok's policy bans our category; it's posted by
-   hand. In the Studio, each TikTok post is marked **I'll post it by hand**.
+3. **TikTok** connects by signing in (HQ → Marketing → Social → Connect, after the app keys are on the Worker:
+   docs/INTEGRATIONS.md → Connecting the networks). Until TikTok audits the app, everything it posts is private to
+   the account, and TikTok's policy bans our category, so until the audit each TikTok post stays **I'll post it by hand**.
 4. Send one test post from HQ → Marketing → Social (the window poster with the words "Testing, back in a minute"),
    check it appears on both with its links on the Social page, delete it from both.
 

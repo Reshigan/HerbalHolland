@@ -16,12 +16,13 @@ type Props = {
   text: string;
   short: string | null;
   card: Card | null;
+  video: string | null; // the file name of the video on the post, if any
   images: { key: string; label: string }[];
   save: FormAction;
   suggest: ((id: string, text: string, note: string) => Promise<{ text?: string; flags?: string[]; error?: string }>) | null;
 };
 
-export function ItemEditor({ id, channel, at, title, text, short, card, images, save, suggest }: Props) {
+export function ItemEditor({ id, channel, at, title, text, short, card, video, images, save, suggest }: Props) {
   const [words, setWords] = useState(text);
   const [template, setTemplate] = useState(card?.template ?? "");
   const [note, setNote] = useState("");
@@ -69,9 +70,19 @@ export function ItemEditor({ id, channel, at, title, text, short, card, images, 
         </div>
       )}
       {channel === "SOCIAL" && (
-        <Field label="Short version" hint={`For Threads and Bluesky, ${LIMITS.SHORT} characters at most. Needed when the words are longer.`} htmlFor={f("short")}>
-          <Textarea id={f("short")} name="short" rows={2} defaultValue={short ?? ""} maxLength={LIMITS.SHORT} />
-        </Field>
+        <>
+          <Field label="Short version" hint={`For Threads and Bluesky, ${LIMITS.SHORT} characters at most. Needed when the words are longer.`} htmlFor={f("short")}>
+            <Textarea id={f("short")} name="short" rows={2} defaultValue={short ?? ""} maxLength={LIMITS.SHORT} />
+          </Field>
+          <Field label="Video" hint={video ? `${video} is on this post. Choose another to replace it.` : "MP4 or MOV, up to 90 MB: TikTok and X post it instead of the card; YouTube Shorts only goes out with one."} htmlFor={f("video")}>
+            <Input id={f("video")} name="video" type="file" accept="video/mp4,video/quicktime" className="h-auto py-2" />
+            {video && (
+              <label className="mt-1.5 flex items-center gap-2 text-sm text-ink-700">
+                <input type="checkbox" name="dropVideo" value="1" /> Take the video off this post
+              </label>
+            )}
+          </Field>
+        </>
       )}
       {cards && (
         <fieldset className="grid gap-3 rounded-xl border border-ink-100 p-3 sm:grid-cols-2">

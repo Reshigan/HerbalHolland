@@ -9,10 +9,11 @@ import { clearEarlyAccess, importEarlyAccess } from "@/server/early-access";
 import { CARD_TEMPLATES, screenDraft, type Card, type CardTemplate, type StudioChannel } from "@/lib/studio";
 import { SOCIAL_IMAGES } from "@/lib/social";
 import { plural } from "@/lib/plural";
+import { filesIn, storeVideo, UploadError } from "@/server/uploads";
 
 const path = (planId: string) => `/hq/marketing/studio/${planId}`;
 const failed = (e: unknown) => {
-  if (e instanceof StudioError) return fail(e.message);
+  if (e instanceof StudioError || e instanceof UploadError) return fail(e.message);
   throw e;
 };
 
@@ -113,9 +114,12 @@ export async function saveStudioItem(itemId: string, _: ActionState, fd: FormDat
         ...(template === "merch" && SOCIAL_IMAGES.some((i) => i.key === str(fd, "image")) && { image: str(fd, "image") }),
       }
     : null;
-  const patch = { text: str(fd, "text"), short: opt(fd, "short"), title: opt(fd, "title"), card, at };
+  const patch: Parameters<typeof saveItem>[1] = { text: str(fd, "text"), short: opt(fd, "short"), title: opt(fd, "title"), card, at };
   if (!patch.text) return fail("Write the post.", { text: "The words" });
   try {
+    const [video] = filesIn(fd, "video");
+    if (video) patch.videoUploadId = await storeVideo({ file: video, folder: "studio/videos", uploadedById: g.user.id });
+    else if (str(fd, "dropVideo") === "1") patch.videoUploadId = null;
     await saveItem(itemId, patch);
   } catch (e) {
     return failed(e);

@@ -53,7 +53,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
         }
       />
       <MarketingTabs current="studio" />
-      {!socialConnected() && (
+      {!(await socialConnected()) && (
         <Notice tone="info" title="No social network is connected" className="mb-5">
           Social posts wait in the list for you to post by hand (copy the words, download the card). Connect the networks and the Studio posts them for you. See docs/INTEGRATIONS.md.
         </Notice>
