@@ -79,7 +79,11 @@ function IosSteps({ className }: { className?: string }) {
   );
 }
 
-export function InstallPrompt({ app, variant = "card", once = false, className }: { app: InstallApp; variant?: "card" | "bar" | "menu" | "button"; once?: boolean; className?: string }) {
+/**
+ * `priority`: the moment right after joining. The card ignores an earlier "Not now", leads with the step, and says what
+ * comes next (notifications), because the offer is the point of the page rather than a nudge beside it.
+ */
+export function InstallPrompt({ app, variant = "card", once = false, priority = false, className }: { app: InstallApp; variant?: "card" | "bar" | "menu" | "button"; once?: boolean; priority?: boolean; className?: string }) {
   const [state, setState] = useState<InstallState | null>(null);
   const [evt, setEvt] = useState<PromptEvent | null>(null);
   const [gone, setGone] = useState(false);
@@ -89,7 +93,7 @@ export function InstallPrompt({ app, variant = "card", once = false, className }
   const passive = variant === "menu" || variant === "button"; // a menu entry is never "dismissed"; it just sits there until the app is installed
 
   useEffect(() => {
-    const dismissal = passive ? null : parseDismissal(read(installKey(app)));
+    const dismissal = passive || priority ? null : parseDismissal(read(installKey(app)));
     const seenAt = once ? Number(read(installKey(app, "seen"))) || null : null;
     const s = installState({
       ua: navigator.userAgent,
@@ -120,7 +124,7 @@ export function InstallPrompt({ app, variant = "card", once = false, className }
       window.removeEventListener("appinstalled", onInstalled);
       window.removeEventListener(SYNC, sync);
     };
-  }, [app, once, passive]);
+  }, [app, once, passive, priority]);
 
   const visible = !!state && state.show && !gone && (state.mode === "ios-steps" || (state.mode === "prompt" && !!evt));
 
@@ -230,16 +234,17 @@ export function InstallPrompt({ app, variant = "card", once = false, className }
 
   // "card"
   const till = app === "till";
+  const eyebrow = priority ? "One more step" : copy.eyebrow;
   return (
-    <section className={cn("rounded-2xl border border-ink-800 bg-ink-900/70 p-4 text-ink-100 sm:p-5", className)} aria-label={title} {...shared}>
-      {copy.eyebrow && <div className="eyebrow mb-3 text-[0.62rem] text-brand-500">{copy.eyebrow}</div>}
+    <section className={cn("rounded-2xl border border-ink-800 bg-ink-900/70 p-4 text-ink-100 sm:p-5", priority && "border-brand-500/40 bg-brand-500/[0.06]", className)} aria-label={title} {...shared}>
+      {eyebrow && <div className="eyebrow mb-3 text-[0.62rem] text-brand-500">{eyebrow}</div>}
       <div className="flex items-start gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500 text-ink-950">
           <Download className="h-5 w-5" strokeWidth={1.9} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="font-display text-base font-semibold leading-snug text-white">{title}</h2>
-          <p className="mt-0.5 text-sm text-ink-400">{copy.benefit}</p>
+          <h2 className={cn("font-display font-semibold leading-snug text-white", priority ? "text-lg" : "text-base")}>{title}</h2>
+          <p className="mt-0.5 text-sm text-ink-400">{priority ? `${copy.benefit} Then switch on notifications in Settings to hear about drops and events first.` : copy.benefit}</p>
           {ios && (
             <p className="mt-3 text-sm leading-relaxed text-ink-300">
               <IosSteps />
