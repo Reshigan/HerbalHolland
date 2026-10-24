@@ -32,6 +32,7 @@ const SITE = "https://herbalholland.com";
 export const NAV: NavItem[] = [
   { href: "/shop", label: "Shop" },
   { href: "/drops", label: "Drops" },
+  { href: "/specials", label: "Specials" },
   { href: "/dispensary", label: "Dispensary" },
   { href: "/stores", label: "Stores" },
   { href: "/learn", label: "Learn" },
