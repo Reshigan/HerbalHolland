@@ -8,7 +8,7 @@ import { APPLY } from "@/components/trade/copy";
 import { LOCALE, SITE_NAME } from "@/lib/seo";
 import { zarWhole } from "@/lib/money";
 
-const DESCRIPTION = "Apply for a Herbal Holland trade account: trade prices ex VAT, case packs and lab-tested batches for pharmacies, retailers, cafés and wellness practices. We reply within one business day.";
+const DESCRIPTION = "Apply for a Herbal Holland trade account: trade prices ex VAT and case packs for pharmacies, retailers, cafés and wellness practices. We reply within one business day.";
 
 export const metadata: Metadata = {
   title: "Apply for a trade account",

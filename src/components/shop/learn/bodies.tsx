@@ -113,11 +113,11 @@ function LabResults() {
   return (
     <>
       <P>
-        Every Herbal Holland pack carries a batch code and a QR code. Scan it and you&apos;ll land on the certificate of analysis (the COA) for that exact batch: what the laboratory measured, what it screened for, who grew it and when it was packed. Here&apos;s how to read one.
+        A certificate of analysis (a COA) is a laboratory&apos;s report on one batch of a product: what it measured and what it screened for. If you&apos;re handed one, here&apos;s how to read it.
       </P>
       <Steps
         items={[
-          { icon: <ScanLine className="h-5 w-5" />, title: "Find the batch code", body: "It's printed on the label next to the QR code, like CACB22-30ML-2604A. The last characters tell us when and which lot was packed." },
+          { icon: <ScanLine className="h-5 w-5" />, title: "Find the batch code", body: "A COA names the batch it covers. Check that code against the one printed on the label of the product in your hand." },
           { icon: <FlaskConical className="h-5 w-5" />, title: "Check the potency", body: "THC and CBD are shown as a percentage by weight. For dried flower that's the share of the flower's mass; for oils, look at the milligrams per pack and per serving on the product page." },
           { icon: <CheckCircle2 className="h-5 w-5" />, title: "Read the safety panels", body: "Each panel shows PASS, FAIL or Not applicable. PASS means the lab measured the substance below its action limit." },
         ]}
@@ -135,11 +135,11 @@ function LabResults() {
       />
       <H2>Terpenes: the aroma profile</H2>
       <P>
-        Terpenes are the aromatic compounds that give each cultivar its smell: citrusy limonene, peppery caryophyllene, piney pinene, earthy myrcene. The COA shows the main terpenes measured in the batch as a percentage by weight. Two batches of the same product can differ a little; that&apos;s a natural product, measured honestly.
+        Terpenes are the aromatic compounds that give each cultivar its smell: citrusy limonene, peppery caryophyllene, piney pinene, earthy myrcene. The COA shows the main terpenes measured in the batch as a percentage by weight. Two batches of the same product can differ a little: that&apos;s a natural product.
       </P>
       <H2>Status: released, on hold, recalled</H2>
       <P>
-        Only batches marked <strong className="text-white">Released</strong> are sold. If a batch is placed <strong className="text-white">on hold</strong> (for example while a result is re-tested) or <strong className="text-white">recalled</strong>, the batch page says so at the top in plain language, and our tills block it automatically.
+        Only batches marked <strong className="text-white">Released</strong> are sold. If a batch is placed <strong className="text-white">on hold</strong> (for example while a question about it is checked) or <strong className="text-white">recalled</strong>, the batch page says so at the top in plain language, and our tills block it automatically.
       </P>
       <Fact title="Red flags anywhere you shop" tone="warn">
         <p>No batch code, no lab name, results that are suspiciously round, or a certificate that can&apos;t be traced back to the product in your hand. If something doesn&apos;t add up, ask. A good retailer will show you.</p>
@@ -161,7 +161,7 @@ function Schedule0() {
           ["CBD per sales pack", "No more than 600 mg", "“CBD per pack” on every product page"],
           ["Daily serving", "No more than 20 mg of CBD a day", "“Maximum daily serving” on every product page"],
           ["Claims", "Only general health enhancement, health maintenance or relief of minor symptoms", "“Approved claims” and nothing else"],
-          ["THC in consumables", "No more than 0.001%", "The THC line on the product and its lab certificate"],
+          ["THC in consumables", "No more than 0.001%", "The THC line on the product page"],
         ]}
       />
       <P>

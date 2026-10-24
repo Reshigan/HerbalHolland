@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ArrowRight, Crown, FlaskConical, Gift, Leaf, Moon, QrCode, ShieldCheck, Store, Sun, Truck, Dumbbell } from "lucide-react";
+import { ArrowRight, Crown, Gift, Leaf, Moon, ShieldCheck, Store, Sun, Truck, Dumbbell } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -37,9 +37,9 @@ import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = {
   title: { absolute: "Herbal Holland · Dutch heritage. African soil." },
-  description: "Lab-tested, batch-traceable CBD wellness, accessories, grow and apparel. Click & collect in store, or delivery across South Africa. Adults 18+.",
+  description: "CBD wellness, accessories, grow and apparel for adults 18+. Click & collect in store, or delivery across South Africa. Free to join Herbal Holland Rewards.",
   alternates: { canonical: "/" },
-  openGraph: { title: "Herbal Holland · Dutch heritage. African soil.", description: "Lab-tested, batch-traceable cannabis wellness and gear. Adults 18+.", url: "/", type: "website", siteName: SITE_NAME, locale: LOCALE },
+  openGraph: { title: "Herbal Holland · Dutch heritage. African soil.", description: "CBD wellness, accessories, grow and apparel. Adults 18+.", url: "/", type: "website", siteName: SITE_NAME, locale: LOCALE },
 };
 
 // The words live in home-copy.ts (screened by tests/shop-copy.test.ts); the icon and colour are the page's.
@@ -53,13 +53,12 @@ const MOODS: Record<string, { label: string; line: string; icon: React.ReactNode
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default async function Home() {
-  const [customer, store, classes, settings, footprint, batches, launch, franchisor] = await Promise.all([
+  const [customer, store, classes, settings, footprint, launch, franchisor] = await Promise.all([
     getCustomer(),
     getPreferredStore(),
     getClasses(),
     getSettings(),
     getStoreFootprint(),
-    db.batch.count({ where: { labName: { not: null }, status: "RELEASED" } }),
     launchState(),
     getFranchisor(),
   ]);
@@ -152,7 +151,7 @@ export default async function Home() {
               <span className="text-brand-500">African soil.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300">
-              CBD wellness, accessories, grow and apparel for adults 18+. Every batch is lab-tested, and the code on each pack opens its result.
+              CBD wellness, accessories, grow and apparel for adults 18+. Free to join, with member prices and a knowledgeable team in store.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/shop" size="xl">
@@ -162,11 +161,9 @@ export default async function Home() {
                 {customer ? "Your Rewards card" : "Join Herbal Holland Rewards"}
               </ButtonLink>
             </div>
-            <dl className={cn("mt-12 grid max-w-lg gap-4 border-t border-ink-850 pt-6", batches > 0 ? "grid-cols-3" : "grid-cols-2")}>
-              {/* A zero is not a boast: the batch count waits until the first batch is on the shelf. */}
+            <dl className="mt-12 grid max-w-lg grid-cols-2 gap-4 border-t border-ink-850 pt-6">
               {[
                 opening ? [footprint.total, `${footprint.total === 1 ? "store" : "stores"} opening soon`] : [trading, `${trading === 1 ? "store" : "stores"}${provinces.length ? ` in ${where}` : ""}`],
-                ...(batches > 0 ? [[batches, "lab-tested batches"]] : []),
                 [loyalty.signupBonus, "welcome points"],
               ].map(([v, l]) => (
                 <div key={l}>
@@ -199,8 +196,8 @@ export default async function Home() {
       <section className="border-y border-ink-850 bg-ink-900/40">
         <Container className="grid grid-cols-2 gap-x-6 gap-y-5 py-6 lg:grid-cols-4">
           {[
-            [<FlaskConical key="a" className="h-5 w-5" />, "Lab-tested, every batch", "Independent COA for potency and safety"],
-            [<QrCode key="b" className="h-5 w-5" />, "Batch-traceable", "Scan the pack to see its lab result"],
+            [<ShieldCheck key="a" className="h-5 w-5" />, "Adults 18+ only", "ID checked at the till"],
+            [<Crown key="b" className="h-5 w-5" />, "Free to join Rewards", "Member prices and welcome points"],
             [<Store key="c" className="h-5 w-5" />, open ? "Click & collect" : "In store", opening ? `Soon, at ${plural(footprint.total, "store")}` : `${open ? "At " : ""}${plural(trading, "store")}${provinces.length ? ` in ${where}` : ""}${footprint.total > trading ? `, ${footprint.total - trading} opening soon` : ""}`],
             [<Truck key="d" className="h-5 w-5" />, open ? "Nationwide delivery" : "Online shopping", open ? `Free over ${zarWhole(settings.ecommerce.freeDeliveryOverCents)} · ID checked` : "Opens soon. Join Rewards to hear first"],
           ].map(([icon, title, sub]) => (
@@ -259,7 +256,7 @@ export default async function Home() {
       {/* ── New in ───────────────────────────────────────────────── */}
       {newIn.length > 0 && (
         <Container className="pt-20">
-          <SectionHead eyebrow="New in" title="Just landed" description="The newest additions to the range, every consumable with its batch certificate from day one." action={<ButtonLink href="/shop?sort=new" variant="ghost-dark" size="sm">Newest first <ArrowRight className="h-4 w-4" /></ButtonLink>} />
+          <SectionHead eyebrow="New in" title="Just landed" description="The newest additions to the range." action={<ButtonLink href="/shop?sort=new" variant="ghost-dark" size="sm">Newest first <ArrowRight className="h-4 w-4" /></ButtonLink>} />
           <ProductGrid items={newIn} />
         </Container>
       )}

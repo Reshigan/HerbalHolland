@@ -5,7 +5,7 @@
 export const HERO = {
   eyebrow: "Herbal Holland Trade",
   title: "Stock the range your customers already ask for.",
-  lead: "Trade prices ex VAT, case packs and lab-tested batches with a certificate of analysis for every lot, couriered from our distribution centre or collected at a Herbal Holland store. For pharmacies, independent retailers, cafés and wellness practices. Adults 18+.",
+  lead: "Trade prices ex VAT and case packs, couriered from our distribution centre or collected at a Herbal Holland store. For pharmacies, independent retailers, cafés and wellness practices. Adults 18+.",
   apply: "Apply for a trade account",
   signIn: "Sign in",
   note: "Licensed medicines are never part of the trade range.",
@@ -16,7 +16,7 @@ export const WHO = {
   title: "Businesses that sell to adults, properly.",
   lead: "A trade account is for a registered business with a shop floor, a counter or a consulting room, and for a buyer who is 18 or older.",
   cards: [
-    { kind: "PHARMACY", title: "Pharmacies", text: "Schedule 0 CBD supplements and skin care with the legal basis, the daily serving and the batch on every pack." },
+    { kind: "PHARMACY", title: "Pharmacies", text: "Schedule 0 CBD supplements and skin care with the legal basis and the daily serving on every pack." },
     { kind: "RETAILER", title: "Independent retailers", text: "Accessories, grow gear, apparel and the wellness range, in case packs sized for a shelf." },
     { kind: "CAFE", title: "Cafés and restaurants", text: "CBD coffee, tea and drinks with only the CBD naturally in their ingredients, plus collagen and protein." },
     { kind: "PRACTICE", title: "Wellness practices", text: "Oils, softgels and balms for the retail shelf in a studio, spa or practice, with the facts to answer questions." },
@@ -29,7 +29,6 @@ export const GET = {
   items: [
     { key: "prices", title: "Trade prices ex VAT", text: "Every line shows its ex-VAT price with VAT worked out per line, never backed out of a shelf price. Quantity breaks apply by themselves." },
     { key: "cases", title: "Case packs", text: "Order in whole cases from a minimum order value. The range shows the case size and the price per case." },
-    { key: "coa", title: "Lab-tested batches", text: "Every lot ships with its batch code and certificate of analysis, so you can show a customer exactly what they are buying." },
     { key: "delivery", title: "Courier or click & collect", text: "Couriered from our distribution centre (free over the threshold), or packed at a participating store for your driver to collect with a code." },
     { key: "terms", title: "EFT or account terms", text: "Pay each order by EFT against a pro forma, or, once approved for credit, buy on account with a monthly statement." },
     { key: "invoices", title: "Tax invoices and statements", text: "A full tax invoice for every order and a statement every month, in the portal and by email." },

@@ -155,13 +155,13 @@ export const HOME = {
   // Scene 4: what's in store, as dusk deepens. Categories only (no product names, prices or anything a product does).
   range: {
     eyebrow: "What's in store",
-    title: "Wellness, tested",
-    intro: "CBD wellness, coffee and food, skin care and supplements, every batch lab-tested and traceable to the farm, for members aged 18 and over.",
+    title: "Wellness, clearly labelled",
+    intro: "CBD wellness, coffee and food, skin care and supplements, for members aged 18 and over.",
     items: [
-      { key: "cbd", title: "CBD wellness", body: "Every batch lab-tested." },
+      { key: "cbd", title: "CBD wellness", body: "Within Schedule 0 limits." },
       { key: "food", title: "CBD coffee & food", body: "Ingredients and allergens on every pack." },
       { key: "skin", title: "CBD skin care", body: "Creams and balms." },
-      { key: "supplements", title: "Collagen & protein", body: "Clearly labelled, batch by batch." },
+      { key: "supplements", title: "Collagen & protein", body: "Clearly labelled." },
       { key: "accessories", title: "Accessories", body: "Storage, tools and everyday extras." },
       { key: "apparel", title: "Apparel", body: "Wear the windmill." },
       { key: "grow", title: "Grow", body: "Soil, pots and tools." },
@@ -173,13 +173,13 @@ export const HOME = {
   // Between dusk and night: what we stand for, in five words.
   marquee: {
     label: "What we stand for",
-    words: ["Lab-tested", "Batch-traceable", "Members only", "Adults 18+", "Good neighbours"],
+    words: ["Members only", "Adults 18+", "Free to join", "Plain English", "Good neighbours"],
   },
   // Scene 5: night under the Southern Cross. Founding Members, and the one early-access sign-up.
   founding: {
     eyebrow: "Herbal Holland Rewards",
     title: "Be one of the first {cap}",
-    body: "The first {cap} members of Herbal Holland Rewards become Founding Members, with a numbered card and our {tier} tier for {months} months. Joining is free, for adults 18+, and opens with our online shop.",
+    body: "The first {cap} members of Herbal Holland Rewards become Founding Members, with a numbered card and our {tier} tier for {months} months. Joining is free for adults 18+, in our stores or on your phone, and takes about a minute.",
     // Until Rewards opens: the early-access list is first in line.
     soon: "The early-access list is first in line.",
     cta: "Join Rewards",
@@ -303,7 +303,7 @@ export const ABOUT = {
   meta: {
     title: "Our story and standards",
     updated: "2026-10-07",
-    description: "Where Herbal Holland comes from and the standards we keep: every batch lab-tested, members only, adults 18+, and licensed medicines only through a pharmacist.",
+    description: "Where Herbal Holland comes from and the standards we keep: members only, adults 18+, CBD within Schedule 0, and licensed medicines only through a pharmacist.",
   },
   hero: {
     eyebrow: "About Herbal Holland",
@@ -316,7 +316,7 @@ export const ABOUT = {
     paragraphs: [
       "Our name nods to Amsterdam, where many of Southern Africa's landraces became famous. Our roots, and our growers, are here.",
       "Dutch heritage is the coffee-shop tradition of hospitality: a warm welcome, and knowing exactly what you're offering. African soil is the bigger half: South African growers, makers and places.",
-      "In store and online, that means CBD wellness, functional coffee and protein, skin care and collagen, all lab-tested and batch-traceable, for members aged 18 and over.",
+      "In store and online, that means CBD wellness, functional coffee and protein, skin care and collagen, for members aged 18 and over.",
     ],
     windmill: {
       label: "The Herbal Holland windmill",
@@ -342,23 +342,15 @@ export const ABOUT = {
   },
   standards: {
     eyebrow: "How we work",
-    title: "Standards you can check",
+    title: "The standards we keep",
     intro: "The same rules in every store and online, written into the platform our stores run on rather than left to memory.",
     items: [
-      {
-        key: "lab",
-        title: "Every batch lab-tested, with a public result",
-        paragraphs: [
-          "Before a batch goes on sale, an independent laboratory tests what's in it and runs safety panels for microbes, pesticides, heavy metals, mycotoxins and, for extracts, left-over solvents.",
-          "Every pack carries a batch code and a QR code that open the certificate for that exact batch: what the lab measured, who grew it and when it was packed. Only batches released after testing can be sold. If one is put on hold or recalled, its page says so in plain language and our tills block it.",
-        ],
-      },
       {
         key: "members",
         title: "Members only, and ID every time",
         paragraphs: [
           "We sell to members only, online and at the till. Joining Herbal Holland Rewards is free, and the key terms are shown in plain language before anyone accepts them.",
-          "Every member is an adult: we check ID at the till and again at every collection and delivery. Membership keeps our records straight and lets us trace a batch to the people who bought it if we ever need to recall it. It never makes anything lawful that isn't.",
+          "Every member is an adult: we check ID at the till and again at every collection and delivery. Membership keeps our records straight, and it never makes anything lawful that isn't.",
         ],
       },
       {
@@ -416,6 +408,22 @@ export const PRESS = {
     empty: "No releases yet: our first one is on its way. For news in the meantime, email",
     read: "Read the release",
     items: [
+      // The first release: the KZN stores. Held back until the owner approves it and sets the day it goes out.
+      {
+        slug: "kwazulu-natal-stores-open",
+        date: null,
+        title: "Herbal Holland opens in KwaZulu-Natal, with stores in Pietermaritzburg and on the Bluff",
+        pageTitle: "Herbal Holland opens in KwaZulu-Natal",
+        description: "Herbal Holland's first stores are open in Pietermaritzburg and on the Bluff in Durban, for members aged 18+; Hillcrest and Hilton follow on 1 December 2026.",
+        summary:
+          "Herbal Holland, a South African network of members-only cannabis wellness stores for adults 18+, has opened its first two stores in KwaZulu-Natal, in Pietermaritzburg and on the Bluff in Durban. Two more, in Hillcrest and Hilton, open on Tuesday 1 December 2026.",
+        body: [
+          "Herbal Holland's stores in Pietermaritzburg and on the Bluff in Durban are open, for members aged 18 and over. Joining Herbal Holland Rewards is free, takes about a minute in store or on a phone, and gives members their member price from the first visit.",
+          "Two more stores, in Hillcrest and Hilton, open on Tuesday 1 December 2026. Every Herbal Holland store is owned and run by a local franchisee, on one shared platform for the till, stock and membership.",
+          "The name nods to Amsterdam, where many of Southern Africa's landraces became famous; the roots are here. The stores carry CBD wellness, accessories, grow gear and Herbal Holland apparel.",
+          "ID is checked at the till. Licensed medicines are supplied only to registered patients with a SAHPRA authorisation, through a pharmacist, and are never advertised.",
+        ],
+      },
       // Held back until the online shop is live (FACTS.shop.url): set its date to that day, and check every line then.
       {
         slug: "online-shop-opens",
@@ -429,7 +437,7 @@ export const PRESS = {
           "Herbal Holland's online shop opens across South Africa today, delivering nationwide to members aged 18 and over, with ID checked at every delivery.",
           "Joining Herbal Holland Rewards is free. The first {cap} members become Founding Members, with a numbered card and the {tier} tier for {months} months.",
           "Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining the stores already open in Pietermaritzburg and on the Bluff in Durban. Every Herbal Holland store is owned and run by a local franchisee.",
-          "Every batch is tested by an independent laboratory before it's sold, and the code on each pack opens that batch's result. Licensed medicines are supplied only to registered patients with a SAHPRA authorisation, through a pharmacist, and are never advertised.",
+          "Licensed medicines are supplied only to registered patients with a SAHPRA authorisation, through a pharmacist, and are never advertised.",
         ],
       },
     ] satisfies ReleaseDraft[],
@@ -450,7 +458,6 @@ export const PRESS = {
       membership: "Membership",
       founding: "Founding Members",
       age: "Age",
-      quality: "Quality",
       medicines: "Licensed medicines",
       online: "Online shop",
       office: "Head office",
@@ -458,12 +465,11 @@ export const PRESS = {
     },
     values: {
       what: "A South African network of cannabis wellness stores and an online shop, for members aged 18 and over.",
-      range: "CBD wellness, functional coffee and protein, skin care and collagen, all lab-tested and batch-traceable.",
+      range: "CBD wellness, functional coffee and protein, skin care and collagen, accessories, grow gear and apparel.",
       model: "Franchise: each store is independently owned and run by a local franchisee, on one shared platform.",
       membership: "Members only. Herbal Holland Rewards is free to join and works in every store and online.",
       founding: "The first {cap} members of Herbal Holland Rewards get a numbered Founding Member card.",
       age: "Adults 18+ only, with ID checked at the till and at every collection and delivery.",
-      quality: "Every batch tested by an independent lab, with a public result behind the code on every pack.",
       medicines: "Only for registered patients with a SAHPRA authorisation, through a pharmacist. Never advertised.",
       storesNone: "Our stores are on their way.",
       trading: "{n} trading: {names}",
@@ -532,7 +538,7 @@ export const CAREERS = {
     eyebrow: "Why Herbal Holland",
     title: "A place to do things properly",
     items: [
-      { key: "standards", title: "Standards to be proud of", body: "Every batch lab-tested, members only, ID every time. Doing it properly is the job, not an extra." },
+      { key: "standards", title: "Standards to be proud of", body: "Members only, adults 18+, ID every time. Doing it properly is the job, not an extra." },
       { key: "training", title: "Training from day one", body: "Learn the platform, ID checks and how to explain what we do in plain English before you serve your first member." },
       { key: "tools", title: "Tools that work", body: "Tills that keep going through load-shedding, and one system for stock, orders and members." },
       { key: "local", title: "Local, with a national brand", body: "Our stores are owned by local franchisees, so the job is close to home, with the whole network behind it." },
@@ -596,7 +602,7 @@ export const CONTACT = {
     careers: { title: "Careers", body: "Jobs in our stores and at HQ.", link: "Careers" },
     members: {
       title: "Members",
-      body: "Orders, Herbal Holland Rewards and your membership. Sign in on the shop to see your orders and your card, or email us.",
+      body: "Herbal Holland Rewards and your membership. Sign in to see your card, points and orders, or email us.",
       soon: "Herbal Holland Rewards opens soon. Questions about membership in the meantime? Email us.",
       link: "Sign in to Rewards",
     },
@@ -936,7 +942,7 @@ export const PAIA = {
       body: [
         "These records are available without a PAIA request (section 52):",
         ["On this website.", "Information about Herbal Holland, careers and our stores; press releases and our logos; and our Privacy Policy, Terms of Use and this manual."],
-        ["In the online shop, once it opens.", "Product information and labels, laboratory results for each product batch, store locations and trading hours, our articles, and the membership terms and privacy notice."],
+        ["In the online shop, once it opens.", "Product information and labels, store locations and trading hours, our articles, and the membership terms and privacy notice."],
       ],
     },
     {

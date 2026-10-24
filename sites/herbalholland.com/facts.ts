@@ -55,6 +55,8 @@ export const FACTS = {
   },
 
   shop: { url: null, opensLabel: "Opening soon" } as Shop,
+  /** Herbal Holland Rewards, which opens before the online shop: its "Join Rewards" doors link here once set. */
+  rewards: { url: "https://shop.herbalholland.com" as string | null },
 
   /** Herbal Holland's own profiles elsewhere (Instagram, Facebook, LinkedIn…), for the Organization's sameAs. Empty until the owner supplies the URLs. */
   social: [] as readonly string[],
@@ -115,7 +117,10 @@ export const FACTS = {
 export const shopLink = (path = "/") => (FACTS.shop.url ? `${FACTS.shop.url.replace(/\/$/, "")}${path}` : null);
 
 /** Joining Herbal Holland Rewards from this site, tagged so these sign-ups show in the platform's reports. */
-export const joinLink = () => shopLink("/club/join?src=site");
+export const joinLink = () => {
+  const base = FACTS.rewards.url ?? FACTS.shop.url;
+  return base ? `${base.replace(/\/$/, "")}/club/join?src=site` : null;
+};
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];

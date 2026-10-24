@@ -39,7 +39,6 @@ export type DisplaySnapshot = {
 export const BRAND_MESSAGES = [
   "Welcome to Herbal Holland. Adults 18+.",
   "Herbal Holland Rewards: members earn points and tier prices on every visit. Ask us to sign you up. It takes 20 seconds.",
-  "Every batch is lab-tested and traceable. Scan the code on your pack to see its certificate.",
   "Dutch heritage, African soil.",
   "Questions about a product? Our team is happy to help.",
 ];

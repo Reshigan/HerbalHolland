@@ -33,7 +33,7 @@ export default async function OpenGraphImage({ params }: { params: Promise<{ slu
                 {open ? "OPEN" : "OPENING SOON"}
               </div>
             </div>
-            <div style={{ marginTop: 22, fontSize: 24, color: "#968a80" }}>Lab-tested · batch-traceable · adults 18+</div>
+            <div style={{ marginTop: 22, fontSize: 24, color: "#968a80" }}>CBD wellness · accessories · adults 18+</div>
           </div>
         </div>
       </div>

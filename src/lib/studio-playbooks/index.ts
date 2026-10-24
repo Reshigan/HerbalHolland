@@ -15,6 +15,7 @@ import { LAUNCH_SOCIAL } from "./launch-social";
 import { NEW_ONLINE } from "./new-online";
 import { GOOGLE } from "./google";
 import { GIFTS } from "./gifts";
+import { FIRST_LOOK } from "./first-look";
 import { FESTIVE } from "./festive";
 import { JANUARY } from "./january";
 import { FEBRUARY } from "./february";
@@ -23,4 +24,4 @@ import { MARCH } from "./march";
 export { NEW_ONLINE_DAYS } from "./new-online";
 export { LAUNCH_SOCIAL_HASHTAGS, LAUNCH_SOCIAL_STORIES, LAUNCH_SOCIAL_TIMES } from "./launch-social";
 
-export const PLAYBOOKS: Playbook[] = [...LAUNCH, ...LAUNCH_SOCIAL, ...NEW_ONLINE, ...GOOGLE, ...GIFTS, ...FESTIVE, ...JANUARY, ...FEBRUARY, ...MARCH];
+export const PLAYBOOKS: Playbook[] = [...LAUNCH, ...LAUNCH_SOCIAL, ...NEW_ONLINE, ...GOOGLE, ...FIRST_LOOK, ...GIFTS, ...FESTIVE, ...JANUARY, ...FEBRUARY, ...MARCH];

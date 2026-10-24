@@ -13,7 +13,7 @@ export const isSupportCategory = (v: unknown): v is SupportCategoryKey => typeof
 export const SUPPORT_CATEGORY: Record<SupportCategoryKey, { label: string; hint: string }> = {
   ORDER: { label: "An order", hint: "Something about an order you placed" },
   DELIVERY: { label: "Delivery or collection", hint: "Where it is, when it's coming, who can collect" },
-  PRODUCT: { label: "A product", hint: "A question, a fault or a lab result" },
+  PRODUCT: { label: "A product", hint: "A question or a fault" },
   REWARDS: { label: "Rewards & points", hint: "Points, your tier, your card" },
   ACCOUNT: { label: "My account", hint: "Your details, sign-in, privacy" },
   OTHER: { label: "Something else", hint: "Anything we haven't listed" },

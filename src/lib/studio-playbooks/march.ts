@@ -32,7 +32,7 @@ export const MARCH: Playbook[] = [
           "Hi {{firstName}},",
           "On Wednesday 10 March, our stores in Hillcrest and Hilton are 100 days old. We opened the doors on 1 December, and we'd like to say thank you properly.",
           "The thank-you week. From Monday 8 to Saturday 13 March we're saying siyabonga, and this month's Gezellig evenings come a week early to be part of it: Herbal Holland Hillcrest on Thursday 11 March and Herbal Holland Hilton on Friday 12 March, 18:00–20:00. RSVP in the Rewards app, and bring your ID.",
-          "What you ask us. A few questions come up at the counter again and again: why we check ID every time, whether you need to be a member, and what the QR on the pack shows. We've answered them, and more, in a new Learn read, 100 days of your questions, from Tuesday 9 March.",
+          "What you ask us. A few questions come up at the counter again and again: why we check ID every time, whether you need to be a member, and how points work. We've answered them, and more, in a new Learn read, 100 days of your questions, from Tuesday 9 March.",
           "Learn picks. The law in 2027: where things stand. A plain-English overview of what's allowed and what isn't, dated so you know when it was written. It's general information, not legal advice.",
           "Siyabonga for the first 100 days,\nThe Herbal Holland team",
         ),
@@ -50,8 +50,8 @@ export const MARCH: Playbook[] = [
       },
       {
         key: "advisor", day: 2, time: "19:00", channel: "SOCIAL",
-        text: "Meet a member advisor: the first person you'll see at our door. They welcome you, check your ID, and answer your questions in plain English, from how points work to what's on a lab page.\n\nNext time you're in, say sawubona. Adults 18+, bring your ID.\n#HerbalHolland #HollandMeetsTheHills",
-        short: "Meet a member advisor: the first person you'll see at our door, with a welcome, an ID check and plain-English answers, from how points work to what's on a lab page. Next time you're in, say sawubona. Adults 18+. #HerbalHolland",
+        text: "Meet a member advisor: the first person you'll see at our door. They welcome you, check your ID, and answer your questions in plain English, from how points work to what's on a label.\n\nNext time you're in, say sawubona. Adults 18+, bring your ID.\n#HerbalHolland #HollandMeetsTheHills",
+        short: "Meet a member advisor: the first person you'll see at our door, with a welcome, an ID check and plain-English answers, from how points work to what's on a label. Next time you're in, say sawubona. Adults 18+. #HerbalHolland",
         card: { template: "headline", eyebrow: "Meet the team", headline: "The first hello at our door.", sub: "Member advisors: a warm welcome, an ID check and straight answers." },
         brief: "A portrait of a member advisor (adult over 25, signed release) at the store door in a Windmill Tee, morning light; add their first name and store to the caption if they'd like. No products in shot.",
       },
@@ -85,14 +85,14 @@ export const MARCH: Playbook[] = [
       },
       {
         key: "learn-questions", day: 8, time: "07:00", channel: "SOCIAL",
-        text: "100 days of your questions, answered.\n\nWhy do you check my ID every time? Everything we do is for adults 18+, so we check at the door and the till, on every visit.\nDo I need to be a member? Yes: everyone who shops with us is a member of Herbal Holland Rewards, and joining is free for adults 18+.\nWhat does the QR on the pack show? The lab page for that exact batch: the potency, the terpene list and the safety tests.\nHow do points work? You earn points on every rand, and climb from Seed to Harvest.\nCan I bring a friend? Yes, if they're 18 or over and bring their ID.\n\nMore answers in Learn: link in bio. Adults 18+.\n#HerbalHolland",
-        short: "100 days of your questions, answered: why we check ID every time, whether you need to be a member, what the QR on the pack shows, how points work, and whether you can bring a friend. Learn: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Learn", headline: "100 days of your questions.", sub: "ID, membership, lab pages, points and friends, answered in plain English." },
+        text: "100 days of your questions, answered.\n\nWhy do you check my ID every time? Everything we do is for adults 18+, so we check at the door and the till, on every visit.\nDo I need to be a member? Yes: everyone who shops with us is a member of Herbal Holland Rewards, and joining is free for adults 18+.\nHow do points work? You earn points on every rand, and climb from Seed to Harvest.\nCan I bring a friend? Yes, if they're 18 or over and bring their ID.\n\nMore answers in Learn: link in bio. Adults 18+.\n#HerbalHolland",
+        short: "100 days of your questions, answered: why we check ID every time, whether you need to be a member, how points work, and whether you can bring a friend. Learn: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "Learn", headline: "100 days of your questions.", sub: "ID, membership, points and friends, answered in plain English." },
         brief: "A 5-slide carousel, one question and its answer a slide, in plain type on the brand dark. No products in shot.",
       },
       {
         key: "day-100", day: 9, time: "07:00", channel: "SOCIAL", pinned: true, linkedin: "also",
-        text: "Today is day 100. We opened our doors in Hillcrest and Hilton on 1 December, and this is what 100 days in the hills have taught us.\n\nWhat we learnt: a good question deserves a plain answer, and you ask good questions. The ones we hear most now have their own Learn read.\nWhat you read: Learn, from lab results to the law.\nWhat you wore: the windmill, from the Tee to the Tote.\n\nSiyabonga for 100 days. Our thank-you evenings are on Thursday in Hillcrest and Friday in Hilton, for members who RSVP in the Rewards app. Adults 18+.\n#HerbalHolland #HollandMeetsTheHills",
+        text: "Today is day 100. We opened our doors in Hillcrest and Hilton on 1 December, and this is what 100 days in the hills have taught us.\n\nWhat we learnt: a good question deserves a plain answer, and you ask good questions. The ones we hear most now have their own Learn read.\nWhat you read: Learn, from labels to the law.\nWhat you wore: the windmill, from the Tee to the Tote.\n\nSiyabonga for 100 days. Our thank-you evenings are on Thursday in Hillcrest and Friday in Hilton, for members who RSVP in the Rewards app. Adults 18+.\n#HerbalHolland #HollandMeetsTheHills",
         short: "Today is day 100. We opened in Hillcrest and Hilton on 1 December, and the lesson is simple: a good question deserves a plain answer. Siyabonga for 100 days. Thank-you evenings Thursday and Friday: RSVP in the Rewards app. Adults 18+. #HerbalHolland",
         card: { template: "countdown", headline: "100 days", sub: "in the hills, since 1 December. Siyabonga, Hillcrest and Hilton." },
         brief: "A 5-slide carousel: 1 day 100 over the hills; 2 what we learnt; 3 what you read (the most-read Learn read, from Reports); 4 what you wore (the merch members chose most, from Reports); 5 siyabonga and the thank-you evenings. HQ adds the true figures to the slides and the caption before approving, and leaves out any it can't check.",
@@ -144,8 +144,8 @@ export const MARCH: Playbook[] = [
       },
       {
         key: "reel-questions", day: 17, time: "19:00", channel: "SOCIAL",
-        text: "Three questions we hear at the counter, answered by the team in 30 seconds: why ID every time, do I need to be a member, and what does the QR on the pack show?\n\nMore answers in Learn: link in bio. Adults 18+, bring your ID.\n#HerbalHolland #HollandMeetsTheHills",
-        card: { template: "headline", eyebrow: "Store life", headline: "Three questions, answered at the counter.", sub: "ID every time, membership, and the QR on the pack." },
+        text: "Three questions we hear at the counter, answered by the team in 30 seconds: why ID every time, do I need to be a member, and how do points work?\n\nMore answers in Learn: link in bio. Adults 18+, bring your ID.\n#HerbalHolland #HollandMeetsTheHills",
+        card: { template: "headline", eyebrow: "Store life", headline: "Three questions, answered at the counter.", sub: "ID every time, membership, and how points work." },
         brief: "A 30-second Reel: three team members (adults over 25, signed releases) each answer one question to camera, in their own words, in front of the windmill. No products in shot.",
       },
       {
@@ -160,14 +160,14 @@ export const MARCH: Playbook[] = [
       // post on Wednesday 24: the product launched on Tuesday 23 has its Learn carousel then (LinkedIn-only is fine) ──
       {
         key: "learn-safety", day: 22, time: "07:00", channel: "SOCIAL",
-        text: "The safety tests on a lab page, one by one.\n\nMicrobes: moulds, yeasts and bacteria such as E. coli and Salmonella, picked up while growing, drying or in storage.\nPesticides: residues of what's sprayed on a crop, which can stay on it.\nHeavy metals: lead, cadmium, arsenic and mercury, taken up from soil and water.\nMycotoxins: toxins from moulds, which grow when material is stored damp.\nSolvents: what's left over from extraction, so only extracts are tested for them.\n\nPASS means the lab measured it below its limit. Every one of our batches has a public lab page. Learn: link in bio. Adults 18+.\n#HerbalHolland",
-        short: "The safety tests on a lab page: microbes, pesticides, heavy metals, mycotoxins, and solvents for extracts. PASS means the lab measured it below its limit. Every one of our batches has a public lab page. Learn: link in bio. Adults 18+. #HerbalHolland",
+        text: "Storage, simply.\n\nAirtight and opaque: a sealed, opaque container keeps out air, light and moisture, which are what make things go stale.\nCool, dry and steady: away from windows, stoves and the car's dashboard, because heat and sunlight age everything faster.\nOut of reach: locked or on a top shelf, and clearly labelled.\n\nThe full guide is in Learn: link in bio. Adults 18+.\n#HerbalHolland",
+        short: "Storage, simply: airtight and opaque, to keep out air, light and moisture; cool, dry and steady, away from windows and the car's dashboard; and locked away and out of reach. Learn: link in bio. Adults 18+. #HerbalHolland",
         card: {
           template: "promise",
-          headline: "The safety tests, one by one",
-          lines: ["Microbes: moulds, yeasts and bacteria", "Pesticides: what's sprayed can stay", "Heavy metals: taken up from soil and water", "Mycotoxins: from moulds, in damp storage", "Solvents: tested in extracts only"],
+          headline: "Storage, simply",
+          lines: ["Airtight and opaque: no air, light or moisture", "Cool, dry and steady: away from heat and sun", "Locked away and out of reach", "Clearly labelled"],
         },
-        brief: "A 5-slide carousel, one test a slide, each with the PASS mark from a demo lab page. No products in shot.",
+        brief: "A 4-slide carousel: a title slide, then one rule a slide, on brand artwork (a plain tin, a cool shelf, a lock). No products in shot.",
       },
       {
         key: "sms-easter", day: 22, time: "10:00", channel: "SMS",
@@ -203,14 +203,14 @@ export const MARCH: Playbook[] = [
       // ── Week 5 (Family Day, Monday 29 March, stays quiet) and The Windmill No. 6 ───────────────────────────────────
       {
         key: "learn-status", day: 29, time: "07:00", channel: "SOCIAL",
-        text: "Released, on hold, recalled: what a batch's status means.\n\nEvery lab page shows its batch's status at the top. Released means it passed its tests and can go out to members. On hold means it's paused, for example while a result is re-tested. Recalled means it's been called back, and the page says so in plain language.\n\nOur tills block anything on hold or recalled, automatically. Learn: link in bio. Adults 18+.\n#HerbalHolland",
-        short: "Every lab page shows its batch's status: Released (passed its tests), On hold (paused, say while a result is re-tested) or Recalled (called back). Our tills block anything on hold or recalled, automatically. Learn: link in bio. Adults 18+. #HerbalHolland",
+        text: "Spending your points, simply.\n\nEvery point is worth R1 off a future purchase. At the till, just say you'd like to use them; online, tick Use my points at checkout. Points are personal and can't be exchanged for cash, and they work the same in every store and online.\n\nThe full guide is in Learn: link in bio. Adults 18+.\n#HerbalHolland",
+        short: "Spending your points, simply: every point is worth R1 off a future purchase. At the till, just ask; online, tick Use my points at checkout. The same in every store and online. Learn: link in bio. Adults 18+. #HerbalHolland",
         card: {
           template: "promise",
-          headline: "Released, on hold, recalled",
-          lines: ["Released: it passed its tests", "On hold: paused, say for a re-test", "Recalled: called back, and the page says so", "Our tills block on hold and recalled batches"],
+          headline: "Spending your points",
+          lines: ["Every point is worth R1 off a future purchase", "At the till: just say you'd like to use them", "Online: tick Use my points at checkout", "The same in every store and online"],
         },
-        brief: "A 5-slide carousel: the status at the top of a demo lab page, then one status a slide, then a slide on the tills. No products in shot.",
+        brief: "A 5-slide carousel: a title slide, then one line a slide, with the Rewards app's points screen (a demo account, no real member's details). No products in shot.",
       },
       {
         key: "autumn", day: 30, time: "19:00", channel: "SOCIAL",
@@ -237,10 +237,10 @@ export const MARCH: Playbook[] = [
       },
       {
         key: "learn-terpenes", day: 36, time: "07:00", channel: "SOCIAL",
-        text: "Terpenes, without the hype.\n\nTerpenes are aroma compounds made by many plants: they're why citrus peel, pine needles, lavender and black pepper smell the way they do. On a lab page, the terpene list shows the main ones measured in that batch, as a percentage by weight: limonene (citrusy), pinene (piney), myrcene (earthy), caryophyllene (peppery) and others.\n\nTwo batches of the same product can differ a little: it's a natural product, measured honestly. And the hype? Claims that a terpene will make you feel a particular way go further than the evidence. We stick to what's measured.\n\nLearn: link in bio. Adults 18+.\n#HerbalHolland",
-        short: "Terpenes, without the hype: aroma compounds made by many plants, from citrus peel to pine. A lab page lists the main ones in each batch, as a percentage. Claims about how they make you feel go further than the evidence. Learn: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Learn", headline: "Terpenes, without the hype.", sub: "What they are, what a lab page shows, and what the evidence doesn't say." },
-        brief: "A 5-slide carousel: what terpenes are; where else you smell them (citrus peel, pine, lavender and black pepper on a dark surface); the terpene list on a demo lab page; why batches differ; what the evidence doesn't say. No products in shot.",
+        text: "Terpenes, without the hype.\n\nTerpenes are aroma compounds made by many plants: they're why citrus peel, pine needles, lavender and black pepper smell the way they do. On our product pages, the terpene list shows the main ones, as a percentage by weight: limonene (citrusy), pinene (piney), myrcene (earthy), caryophyllene (peppery) and others.\n\nTwo batches of the same product can differ a little: it's a natural product. And the hype? Claims that a terpene will make you feel a particular way go further than the evidence. We stick to the facts.\n\nLearn: link in bio. Adults 18+.\n#HerbalHolland",
+        short: "Terpenes, without the hype: aroma compounds made by many plants, from citrus peel to pine. Our product pages list the main ones, as a percentage. Claims about how they make you feel go further than the evidence. Learn: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "Learn", headline: "Terpenes, without the hype.", sub: "What they are, where you'll see them, and what the evidence doesn't say." },
+        brief: "A 5-slide carousel: what terpenes are; where else you smell them (citrus peel, pine, lavender and black pepper on a dark surface); the terpene list on a demo product page; why batches differ; what the evidence doesn't say. No products in shot.",
       },
       {
         key: "windmill-no-6", day: 36, time: "16:00", channel: "EMAIL",
@@ -250,7 +250,7 @@ export const MARCH: Playbook[] = [
           "Autumn has come to the hills. The mornings are cooler, the mist sits longer in the Midlands valleys, and the light goes gold early. It's a season for slowing down, and we're taking it slowly too.",
           "The Winter Drop is coming in May. We'll share more before it opens. To hear when it opens for you, tap Notify me on the drops page in the Rewards app.",
           "Gezellig evenings. April's are at Herbal Holland Hillcrest on Thursday 15 April and Herbal Holland Hilton on Friday 16 April, 18:00–20:00. RSVP in the Rewards app, and bring your ID.",
-          "Learn picks. Terpenes, without the hype: what they are, what the terpene list on a lab page shows, and what the evidence doesn't say.",
+          "Learn picks. Terpenes, without the hype: what they are, what the terpene list on a product page shows, and what the evidence doesn't say.",
           "See you in the hills,\nThe Herbal Holland team",
         ),
       },

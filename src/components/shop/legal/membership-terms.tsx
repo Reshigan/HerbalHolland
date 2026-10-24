@@ -169,7 +169,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
 
       <H2>9. Recalls and safety messages</H2>
       <P>
-        Every batch is traceable to the members who bought it, so we&apos;ll contact you by SMS or email about a recall, a safety notice or your orders, even if you haven&apos;t opted in to marketing. These messages are never marketing.
+        We keep a record of the batches you buy, so we&apos;ll contact you by SMS or email about a recall, a safety notice or your orders, even if you haven&apos;t opted in to marketing. These messages are never marketing.
       </P>
 
       <H2>10. Your personal information and our messages</H2>

@@ -58,7 +58,7 @@ function label(r: Row, s: { ground: string; ink: string; accent: string }, shape
       <div class="e">${eyebrow.toUpperCase()}</div>
       <div class="n">${r.name}</div>
       <div class="v">${first(r.variants)}</div>
-      <div class="f">ADULTS 18+ · LAB-TESTED</div>
+      <div class="f">ADULTS 18+ · MEMBERS ONLY</div>
     </div>`;
   return `<!doctype html><html><head><style>
     @font-face{font-family:O;src:url(data:font/woff2;base64,${font}) format('woff2');font-weight:100 900}

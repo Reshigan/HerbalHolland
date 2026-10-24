@@ -268,7 +268,7 @@ export default function BrandBook() {
           </div>
           <div className="rounded-3xl bg-ink-900 p-8">
             <div className="eyebrow text-brand-500">Inter · interface</div>
-            <p className="mt-6 text-lg leading-relaxed text-ink-200">Every batch is lab-tested and traceable to the farm. Scan the QR code on your pack to see its certificate.</p>
+            <p className="mt-6 text-lg leading-relaxed text-ink-200">Herbal Holland Rewards is free to join. Ask us at the till and we&apos;ll sign you up in 20 seconds.</p>
             <dl className="mt-8 space-y-4">
               {[
                 ["Body", "16 / 1.7 · regular", "text-base"],
@@ -371,7 +371,7 @@ export default function BrandBook() {
               <Rule ok>“For adults 18 and older. Keep out of reach of children.”</Rule>
               <Rule ok>“Your order is ready at Hatfield. Bring your ID.”</Rule>
               <Rule ok>“Herbal Holland Rewards” · “points” · “1,250 pts”</Rule>
-              <Rule ok>“Lab-tested and traceable to the farm.”</Rule>
+              <Rule ok>“Free to join. Ask us at the till.”</Rule>
             </ul>
           </div>
           <div className="rounded-3xl bg-white p-6 ring-1 ring-ink-150">

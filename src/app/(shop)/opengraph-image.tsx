@@ -17,7 +17,7 @@ export default function OpenGraphImage() {
             <div style={{ fontSize: 44, letterSpacing: 14, fontWeight: 300 }}>HERBAL</div>
             <div style={{ fontSize: 76, letterSpacing: 6, fontWeight: 800, marginTop: -8 }}>HOLLAND</div>
             <div style={{ marginTop: 36, fontSize: 40, color: "#fbf7f3", fontWeight: 600 }}>Dutch heritage. African soil.</div>
-            <div style={{ marginTop: 14, fontSize: 24, color: "#bdb3a9" }}>Lab-tested · batch-traceable · adults 18+</div>
+            <div style={{ marginTop: 14, fontSize: 24, color: "#bdb3a9" }}>CBD wellness · accessories · adults 18+</div>
           </div>
         </div>
       </div>

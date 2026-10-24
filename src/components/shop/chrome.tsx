@@ -82,7 +82,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
     : phase === "BRAND"
       ? [
           { text: "Online shopping opens soon. Join Rewards to hear first", href: customer ? "/club" : "/club/join" },
-          { text: "Browse the range and the batch certificates behind it", href: "/shop" },
+          { text: "Browse the range: CBD wellness, accessories, grow and apparel", href: "/shop" },
           { text: "Stores opening soon", href: "/stores" },
         ]
       : [
@@ -122,7 +122,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                   <Link href={customer ? "/club" : "/club/join"} className={buttonClass("primary", "lg", "w-full")}>
                     {customer ? `${customer.firstName}'s Rewards` : "Sign in or join Rewards"}
                   </Link>
-                  <p className="text-center text-xs">Adults 18+ only · Lab-tested &amp; batch-traceable</p>
+                  <p className="text-center text-xs">Adults 18+ only · Free to join</p>
                 </div>
               }
             />
@@ -201,7 +201,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 Dutch heritage. <span className="font-semibold text-white">African soil.</span>
               </p>
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-400">
-                Lab-tested, batch-traceable CBD wellness, accessories and gear{footprint.trading ? `, in ${plural(footprint.trading, "store")} across ${plural(footprint.provinces.length, "province")}${canBuyOnline(phase) ? " and online" : ""}.` : canBuyOnline(phase) ? ", online." : "."}
+                CBD wellness, accessories and gear for adults 18+{footprint.trading ? `, in ${plural(footprint.trading, "store")} across ${plural(footprint.provinces.length, "province")}${canBuyOnline(phase) ? " and online" : ""}.` : canBuyOnline(phase) ? ", online." : "."}
               </p>
               <Link href={customer ? "/club" : "/club/join"} className={buttonClass("outline-dark", "md", "mt-6")}>
                 {customer ? "Your Rewards card" : "Join Herbal Holland Rewards"}
@@ -209,7 +209,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
             </div>
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
               <FooterCol title="Shop" links={[["CBD wellness", "/shop?category=wellness"], ["Accessories", "/shop?category=accessories"], ["Grow", "/shop?category=grow"], ["Apparel", "/shop?category=apparel"], ["Gift vouchers", "/gift"], ["Dispensary (patients)", "/dispensary"]]} />
-              <FooterCol title="Help" links={[["Store finder", "/stores"], ["Track an order", "/club/orders"], ["Learn", "/learn"], ["Read a lab result", "/learn/reading-lab-results"], ["Contact us", `mailto:${contactEmailOf(company)}`]]} />
+              <FooterCol title="Help" links={[["Store finder", "/stores"], ["Track an order", "/club/orders"], ["Learn", "/learn"], ["Contact us", `mailto:${contactEmailOf(company)}`]]} />
               <FooterCol title="Rewards" links={[...(customer ? [["Your card", "/club"], ["Settings", "/club/settings"]] as [string, string][] : [["Join free", "/club/join"], ["Sign in", "/club"]] as [string, string][]), ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"], ["Wishlist", "/club/wishlist"], ["Reorder reminders", "/club/reminders"]]} />
               <FooterCol title="Legal" links={[["Membership terms", "/legal/terms"], ["Privacy notice (POPIA)", "/legal/privacy"], ["Returns & refunds", "/legal/returns"], ["Delivery", "/legal/delivery"], ["Referral rules", "/legal/referrals"], ["PAIA manual", `${SITE}/paia`], ["Responsible use", "/learn/responsible-use"]]} />
               {/* The corporate site (sites/herbalholland.com, on Cloudflare) */}

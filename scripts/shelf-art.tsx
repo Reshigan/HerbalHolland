@@ -17,7 +17,6 @@ const SUNSET = "#f5913c", INK = "#0c0a09", BROWN = "#b85a12", MUTED = "#6b5f57";
 const font = readFileSync("node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2").toString("base64");
 const FACE = `@font-face{font-family:'Outfit Variable';src:url(data:font/woff2;base64,${font}) format('woff2');font-weight:100 900}`;
 const FONT = "'Outfit Variable', Outfit, sans-serif";
-const NO_LAB = new Set(["ACCESSORY", "APPAREL", "GROW"]);
 
 const M = ({ x, y, size, heavy = true }: { x: number; y: number; size: number; heavy?: boolean }) => (
   <g transform={`translate(${x} ${y}) scale(${size / 100})`}>
@@ -94,7 +93,7 @@ function talker(p: ProductSeed | null, key: string): Sign {
         {tag.map((l, i) => <Tx key={i} x={9} y={36 + name.length * 8.2 + 9 + i * 4.4} size={3.2} weight={400} fill="#3d342e">{l}</Tx>)}
         <Tx x={9} y={124} size={prices.length > 1 ? 9 : 10.5} weight={700}>{p ? (prices.length > 1 ? `from ${rand(prices[0])}` : rand(prices[0])) : "R000"}</Tx>
         <Qr value={`${BASE}/p/${p?.slug ?? ""}`} x={72} y={98} size={24} />
-        <Tx x={84} y={126} size={2.1} weight={500} fill={MUTED} anchor="middle">{p && NO_LAB.has(p.reg) ? "Scan for details" : "Scan for lab results"}</Tx>
+        <Tx x={84} y={126} size={2.1} weight={500} fill={MUTED} anchor="middle">Scan for details</Tx>
         <rect x={9} y={131} width={87} height={0.3} fill="#e2d9cf" />
         <Tx x={9} y={136} size={2.1} weight={400} fill={MUTED}>Suggested retail, incl. VAT · Adults 18+ only</Tx>
       </>

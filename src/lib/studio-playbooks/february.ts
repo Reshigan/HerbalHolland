@@ -140,9 +140,9 @@ export const FEBRUARY: Playbook[] = [
       },
       {
         key: "li-lab-pages", day: 16, time: "12:00", channel: "SOCIAL", linkedin: "only",
-        text: "Every batch we sell has a public lab page. Scan the QR on the pack and you see what the laboratory measured, the safety tests the batch passed, and its status: released, on hold or recalled.\n\nThe status is the part that works out of sight. If a batch is placed on hold or recalled, its page says so at the top, in plain language, and our tills block it automatically.\n\nWhat we're learning: transparency isn't a page, it's a system. Adults 18+.\n#HerbalHolland",
-        short: "Every batch has a public lab page: what the lab measured, the safety tests it passed, and its status. If a batch is on hold or recalled, its page says so and our tills block it automatically. Transparency isn't a page, it's a system. #HerbalHolland",
-        card: { template: "headline", eyebrow: "What we're learning", headline: "Transparency is a system, not a page.", sub: "Every batch has a public lab page, and our tills block a recalled batch automatically." },
+        text: "Everyone who shops with Herbal Holland is a member of Herbal Holland Rewards, free to join for adults 18+. We check age when someone joins, and ID at the door and the till, on every visit.\n\nWhat we're learning: the basics are a system, not a sign on the door. Doing them every time, in every store, comes down to training from day one.\n\nAdults 18+.\n#HerbalHolland",
+        short: "Everyone who shops with us is a member, free to join for adults 18+. We check age when you join, and ID at the door and the till, every visit. The basics are a system, not a sign on the door. #HerbalHolland",
+        card: { template: "headline", eyebrow: "What we're learning", headline: "The basics are a system, not a sign.", sub: "Members only, adults 18+, and ID at the door and the till, every visit." },
       },
       {
         key: "views-hilton", day: 16, time: "19:00", channel: "SOCIAL",
@@ -166,23 +166,23 @@ export const FEBRUARY: Playbook[] = [
       },
       {
         key: "first-visit", day: 19, time: "09:00", channel: "SOCIAL",
-        text: "Bringing a friend in this weekend? Here's how a first visit works.\n\nBring your ID: we check it at the door and the till, every time. Join Herbal Holland Rewards free at the till. Ask the team anything, and you'll get a plain-English answer. And scan the QR on any pack to see that batch's lab page.\n\nAdults 18+, bring your ID.\n#HerbalHolland #HollandMeetsTheHills",
-        short: "Bringing a friend in this weekend? A first visit: bring your ID (we check it at the door and the till), join Herbal Holland Rewards free at the till, ask the team anything, and scan the QR on any pack for its lab page. Adults 18+. #HerbalHolland",
+        text: "Bringing a friend in this weekend? Here's how a first visit works.\n\nBring your ID: we check it at the door and the till, every time. Join Herbal Holland Rewards free at the till. And ask the team anything: you'll get a plain-English answer.\n\nAdults 18+, bring your ID.\n#HerbalHolland #HollandMeetsTheHills",
+        short: "Bringing a friend in this weekend? A first visit: bring your ID (we check it at the door and the till), join Herbal Holland Rewards free at the till, and ask the team anything, in plain English. Adults 18+. #HerbalHolland",
         card: {
           template: "promise",
           headline: "Your first visit",
-          lines: ["Bring your ID: we check it at the door and the till", "Join Herbal Holland Rewards free at the till", "Ask the team anything, in plain English", "Scan the QR on any pack for its lab page"],
+          lines: ["Bring your ID: we check it at the door and the till", "Join Herbal Holland Rewards free at the till", "Ask the team anything, in plain English"],
         },
         brief: "A photo at the Hillcrest door: a member advisor welcoming two friends (adults over 25, signed releases), the windmill in the window. No products in shot.",
       },
 
-      // ── Week 4: reading a lab result, the evenings in pictures, thank you ────────────────────────────────────────
+      // ── Week 4: the basics, the evenings in pictures, thank you ──────────────────────────────────────────────────
       {
         key: "learn-lab", day: 22, time: "07:00", channel: "SOCIAL",
-        text: "Read a lab result in a minute.\n\nScan the QR on the pack: it opens the lab page for that exact batch. Check the batch code matches your label. Then read three things: the potency, as the lab measured it; the terpene list, the batch's aroma profile; and the safety tests, each marked PASS, FAIL or Not applicable.\n\nEvery batch should pass four: microbes, pesticides, heavy metals and mycotoxins, plus solvents for extracts. Every one of our batches has a public lab page.\n\nThe full guide is in Learn: link in bio. Adults 18+.\n#HerbalHolland",
-        short: "Read a lab result in a minute: scan the QR on the pack, check the batch code, then read the potency, the terpene list and the safety tests. Every one of our batches has a public lab page. Learn: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Learn", headline: "Read a lab result in a minute.", sub: "Potency, the terpene list, and the safety tests every batch should pass." },
-        brief: "A 5-slide carousel on a phone showing a demo lab page: 1 scan the QR; 2 the batch code; 3 potency; 4 the terpene list; 5 the safety tests. The phone screen only, no products in shot.",
+        text: "The basics, in a minute.\n\nAdults 18+ only. Keep products in their original packaging, locked away and out of reach. Never drive or operate machinery while impaired. Don't mix with alcohol. And private use stays in private places.\n\nThe full guide is in Learn: link in bio. Adults 18+.\n#HerbalHolland",
+        short: "The basics, in a minute: adults 18+ only; locked away and out of reach; never drive or operate machinery while impaired; don't mix with alcohol; private use in private places. Learn: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "Learn", headline: "The basics, in a minute.", sub: "Five things we ask every member to live by." },
+        brief: "A 5-slide carousel, one basic a slide: adults 18+ only; locked away and out of reach; never drive while impaired; don't mix with alcohol; private use in private places. Brand artwork, no products in shot.",
       },
       {
         key: "evening-photos", day: 23, time: "19:00", channel: "SOCIAL",
@@ -206,10 +206,10 @@ export const FEBRUARY: Playbook[] = [
       },
       {
         key: "lab-weekend", day: 26, time: "09:00", channel: "SOCIAL",
-        text: "This weekend in store: ask us to walk you through a lab page. Pick any pack, scan the QR together, and we'll show you the potency, the terpene list and the safety tests for that exact batch, in plain English.\n\nEvery one of our batches has a public lab page. Adults 18+, bring your ID.\n#HerbalHolland #HollandMeetsTheHills",
-        short: "This weekend in store: ask us to walk you through a lab page. Scan the QR on any pack together and we'll show you the potency, the terpenes and the safety tests for that batch. Adults 18+, bring your ID. #HerbalHolland",
-        card: { template: "headline", eyebrow: "This weekend in store", headline: "Ask us to walk you through a lab page.", sub: "Potency, terpenes and the safety tests, for that exact batch." },
-        brief: "A photo at the counter (adults over 25, signed releases): a member advisor and a member reading a lab page on a phone. Only the phone screen in focus, no products in shot.",
+        text: "This weekend in store: bring your questions, and a friend. Ask us to read any label with you, line by line, or to explain how points work, and you'll get a plain-English answer.\n\nNot a member yet? Joining Herbal Holland Rewards is free at the till. Adults 18+, bring your ID.\n#HerbalHolland #HollandMeetsTheHills",
+        short: "This weekend in store: bring your questions, and a friend. We'll read any label with you, line by line, or explain how points work, in plain English. Joining is free at the till. Adults 18+, bring your ID. #HerbalHolland",
+        card: { template: "headline", eyebrow: "This weekend in store", headline: "Bring your questions, and a friend.", sub: "Any label, line by line, or how points work. In plain English." },
+        brief: "A photo at the counter (adults over 25, signed releases): a member advisor reading a plain mock label with a member. No products in shot.",
       },
     ],
   },

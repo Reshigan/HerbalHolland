@@ -14,7 +14,7 @@ export function LabCertificate({ batch, lab, potency, className }: { batch: Cert
     <section aria-labelledby="lab" className={className}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="eyebrow text-brand-500">Lab-tested · batch-traceable</div>
+          <div className="eyebrow text-brand-500">This batch</div>
           <h2 id="lab" className="mt-2 font-display text-2xl font-semibold text-white">
             Certificate of analysis
           </h2>
@@ -83,15 +83,12 @@ export function LabCertificate({ batch, lab, potency, className }: { batch: Cert
                 ))}
               </ul>
             ) : (
-              <p className="mt-3 text-sm text-ink-400">Potency tested; the full panel is on the certificate.</p>
+              <p className="mt-3 text-sm text-ink-400">The full panel is on the certificate.</p>
             )}
             {lab?.moisturePct != null && <p className="tnum mt-3 text-xs text-ink-400">Moisture {lab.moisturePct}%</p>}
           </div>
         </div>
       </div>
-      <p className="mt-3 flex items-center gap-2 text-xs text-ink-400">
-        <FlaskConical className="h-3.5 w-3.5" /> Scan the QR code on your pack for the certificate of the exact batch you bought.
-      </p>
     </section>
   );
 }

@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
   title: { default: "Herbal Holland", template: "%s · Herbal Holland" },
-  description: "Dutch heritage, African soil. Lab-tested, batch-traceable CBD wellness, accessories and Herbal Holland Rewards across South Africa. Adults 18+.",
+  description: "Dutch heritage, African soil. CBD wellness, accessories, apparel and Herbal Holland Rewards across South Africa. Free to join. Adults 18+.",
   applicationName: "Herbal Holland",
   // iPhone: Safari → Share → Add to Home Screen opens the shop and Rewards card full-screen (the till and the office
   // set their own names in their layouts).

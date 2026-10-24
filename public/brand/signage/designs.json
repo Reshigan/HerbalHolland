@@ -6,7 +6,12 @@
   "h": 900,
   "ink": "#f5913c",
   "ground": "#0c0a09",
-  "how": "Black aluminium composite panel (3 mm ACM). The frame is 40 mm Sunset LED neon flex; the Mark and lettering are built-up channel letters, 50 mm deep, Sunset acrylic faces, face-lit (warm white LEDs behind Sunset acrylic). Lit dusk to 22:00 on a timer."
+  "side": "Outside",
+  "where": "Above the shopfront, centred on the opening (street-front stores: Bluff, Pietermaritzburg)",
+  "material": "3 mm black ACM, LED neon frame, 50 mm face-lit channel letters",
+  "qty": "1 (street fronts)",
+  "store": null,
+  "how": "Black aluminium composite panel (3 mm ACM). The frame is 40 mm Sunset LED neon flex; the Mark and lettering are built-up channel letters, 50 mm deep, Sunset acrylic faces, face-lit (warm white LEDs behind Sunset acrylic). The age line is 5 mm flat-cut Sunset acrylic, unlit. Lit dusk to closing on a timer."
  },
  {
   "key": "fascia-2400",
@@ -15,7 +20,12 @@
   "h": 600,
   "ink": "#f5913c",
   "ground": "#0c0a09",
-  "how": "Black ACM panel. Frame, Mark and lettering in 10 mm flat-cut Sunset acrylic, pinned 20 mm off the panel and halo-lit (white LEDs behind). Check the centre's signage criteria first."
+  "side": "Outside",
+  "where": "Centre bulkhead over the shop entrance (Hillcrest, Hilton; or a narrow street front)",
+  "material": "3 mm black ACM, 10 mm halo-lit Sunset acrylic",
+  "qty": "1 (centre fronts)",
+  "store": null,
+  "how": "Black ACM panel. Frame, Mark and lettering in 10 mm flat-cut Sunset acrylic, pinned 20 mm off the panel and halo-lit (white LEDs behind); the age line 5 mm flat-cut, unlit. Check the centre's signage criteria first."
  },
  {
   "key": "blade-600",
@@ -24,25 +34,68 @@
   "h": 600,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Outside",
+  "where": "Wall bracket beside the fascia, underside at least 2,400 mm above the pavement or walkway",
+  "material": "Round lightbox, 120 mm deep, black powder-coat, opal acrylic faces",
+  "qty": "1 (where the landlord or centre allows)",
+  "store": null,
   "how": "Round double-sided lightbox, 120 mm deep, black powder-coated, on a wall bracket at least 2,400 mm above the pavement. Faces: black-printed opal acrylic with the artwork left clear so it glows Sunset (or Sunset vinyl on opal). Same artwork both sides."
  },
  {
-  "key": "window-poster",
-  "name": "Window poster, 1,000 × 1,250 mm",
-  "w": 1000,
-  "h": 1250,
+  "key": "a-board",
+  "name": "A-frame pavement board, A1 594 × 841 mm (both faces)",
+  "w": 594,
+  "h": 841,
   "ink": "#f5913c",
   "ground": "#0c0a09",
-  "how": "Printed on the back of clear window film (or on a black foamboard panel hung 50 mm behind the glass). The window-poster frame: our oldest brand code, the store window itself."
+  "side": "Outside",
+  "where": "On the pavement or walkway beside the entrance, clear of the walking line (keep 1,500 mm free); in at closing",
+  "material": "Printed 5 mm Correx (or 3 mm ACM) inserts in a black A1 snap-frame A-board",
+  "qty": "1 board, 2 prints (one per face)",
+  "store": null,
+  "how": "Printed full colour on 5 mm Correx (weatherproof) or 3 mm ACM, one print per face of a black A1 A-board. Check the municipality's (or centre's) rules for pavement boards; bring it in at closing."
  },
  {
-  "key": "door-vinyl",
-  "name": "Door vinyl (sample hours)",
-  "w": 420,
-  "h": 404,
+  "key": "sticker-18",
+  "name": "Window sticker: Adults 18+, Ø200 mm",
+  "w": 200,
+  "h": 200,
   "ink": "#f5913c",
   "ground": null,
-  "how": "Cut Sunset vinyl, applied to the outside of the door glass at eye level (centre 1,500 mm from the floor). One colour, no background."
+  "side": "Outside",
+  "where": "Entrance door glass, in a row at 1,200 mm from the floor (beside the handle side)",
+  "material": "Cut Sunset vinyl, weeded, transfer tape",
+  "qty": "1",
+  "store": null,
+  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, outside face of the entrance door glass; the three stickers in a row, 40 mm apart, centres 1,200 mm from the floor."
+ },
+ {
+  "key": "sticker-members",
+  "name": "Window sticker: Members only, Ø200 mm",
+  "w": 200,
+  "h": 200,
+  "ink": "#f5913c",
+  "ground": null,
+  "side": "Outside",
+  "where": "Entrance door glass, in a row at 1,200 mm from the floor (beside the handle side)",
+  "material": "Cut Sunset vinyl, weeded, transfer tape",
+  "qty": "1",
+  "store": null,
+  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, outside face of the entrance door glass; the three stickers in a row, 40 mm apart, centres 1,200 mm from the floor."
+ },
+ {
+  "key": "sticker-id",
+  "name": "Window sticker: ID checked, Ø200 mm",
+  "w": 200,
+  "h": 200,
+  "ink": "#f5913c",
+  "ground": null,
+  "side": "Outside",
+  "where": "Entrance door glass, in a row at 1,200 mm from the floor (beside the handle side)",
+  "material": "Cut Sunset vinyl, weeded, transfer tape",
+  "qty": "1",
+  "store": null,
+  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, outside face of the entrance door glass; the three stickers in a row, 40 mm apart, centres 1,200 mm from the floor."
  },
  {
   "key": "window-manifestation",
@@ -51,6 +104,11 @@
   "h": 80,
   "ink": "#f5913c",
   "ground": null,
+  "side": "Outside",
+  "where": "Every glass door and full-height pane, two bands centred 1,000 mm and 1,500 mm from the floor",
+  "material": "Cut Sunset vinyl (or etch-effect frost vinyl)",
+  "qty": "As needed: run the full width of every pane, 2 bands",
+  "store": null,
   "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset (or etch-effect frost) on every glass door and full-height pane, two bands centred 1,000 mm and 1,500 mm from the floor, so nobody walks into the glass (SANS 10400-N). The pattern repeats every 250 mm: run it the full width of the glass."
  },
  {
@@ -60,6 +118,11 @@
   "h": 600,
   "ink": "#f5913c",
   "ground": null,
+  "side": "Outside",
+  "where": "Main window, centre 1,700 mm from the floor (beside the poster)",
+  "material": "Reverse-cut Sunset vinyl, applied from inside",
+  "qty": "1",
+  "store": null,
   "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, on the main window, centre 1,700 mm from the floor. Reverse-cut and applied from inside for a clean face that can't be scratched off."
  },
  {
@@ -69,25 +132,82 @@
   "h": 150,
   "ink": "#f5913c",
   "ground": null,
-  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, on the door glass beside the hours, centre 1,500 mm. Required wording: we sell to members only, adults 18+."
+  "side": "Outside",
+  "where": "Side panel or second door leaf, centre 1,500 mm (beside the door vinyl)",
+  "material": "Cut Sunset vinyl, weeded, transfer tape",
+  "qty": "1",
+  "store": null,
+  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, on the glass beside the door vinyl, centre 1,500 mm. Required wording: we sell to members only, adults 18+."
  },
  {
-  "key": "window-town-hillcrest",
-  "name": "Store name, Hillcrest, 900 × 200 mm",
-  "w": 900,
-  "h": 200,
+  "key": "door-vinyl",
+  "name": "Door vinyl (every store)",
+  "w": 420,
+  "h": 332,
   "ink": "#f5913c",
   "ground": null,
-  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, along the top of the main window (top of the letters 100 mm below the frame), or on the fanlight above the door."
+  "side": "Outside",
+  "where": "Outside face of the entrance door glass, centre 1,500 mm from the floor",
+  "material": "Cut Sunset cast vinyl, weeded, transfer tape",
+  "qty": "1 per entrance door",
+  "store": "",
+  "how": "Cut Sunset vinyl, applied to the outside of the door glass at eye level (centre 1,500 mm from the floor). One colour, no background. The same for every store: cut a separate hours strip per store to sit under the rule if wanted."
  },
  {
-  "key": "window-town-hilton",
-  "name": "Store name, Hilton, 900 × 200 mm",
-  "w": 900,
-  "h": 200,
+  "key": "window-poster",
+  "name": "Window poster: Now open",
+  "w": 1000,
+  "h": 1250,
   "ink": "#f5913c",
   "ground": null,
-  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, along the top of the main window (top of the letters 100 mm below the frame), or on the fanlight above the door."
+  "side": "Outside",
+  "where": "Main shop window, on the glass, centre 1,500 mm from the floor",
+  "material": "Sunset printed on clear (optically clear) window film, no background: the glass shows through",
+  "qty": "1",
+  "store": "",
+  "how": "Sunset only, printed on clear window film (reverse-printed for the inside of the glass, read from the street), or cut from Sunset vinyl. No background: the glass is the ground. The window-poster frame: our oldest brand code, the store window itself."
+ },
+ {
+  "key": "window-qr",
+  "name": "Join free window QR panel, A2 420 × 594 mm",
+  "w": 420,
+  "h": 594,
+  "ink": "#f5913c",
+  "ground": null,
+  "side": "Outside",
+  "where": "Shop window beside the door, centre 1,300 mm from the floor (reachable for a phone)",
+  "material": "Sunset printed on clear window film, face-mounted on the outside of the glass; the QR tile printed solid cream (white-ink backed) so it scans",
+  "qty": "1",
+  "store": "",
+  "how": "Clear film: Sunset lettering and frame with no background, and only the QR tile printed solid cream (white ink behind it), since a code printed straight on glass won't scan. The QR opens https://shop.herbalholland.com/club/join?src=window: test-scan the proof through the glass before printing in quantity. Keep the glass in front of the code clean and unfrosted."
+ },
+ {
+  "key": "counter-qr",
+  "name": "Counter QR stand, A5 148 × 210 mm",
+  "w": 148,
+  "h": 210,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "On the cash wrap beside each card machine, facing the customer",
+  "material": "350 g silk card (or 3 mm Forex) in a clear acrylic A5 T-stand",
+  "qty": "1 per till",
+  "store": "",
+  "how": "Printed full colour, slotted into a clear A5 acrylic stand. The QR opens https://shop.herbalholland.com/club/join?src=counter, so joins at the till are counted separately from the window."
+ },
+ {
+  "key": "window-poster-soon",
+  "name": "Window poster: Opening soon",
+  "w": 1000,
+  "h": 1250,
+  "ink": "#f5913c",
+  "ground": null,
+  "side": "Outside",
+  "where": "Main shop window, on the glass, centre 1,500 mm from the floor",
+  "material": "Sunset printed on clear (optically clear) window film, no background: the glass shows through",
+  "qty": "1 (until opening day, then swap for the Now open version)",
+  "store": "soon",
+  "how": "Sunset only, printed on clear window film (reverse-printed for the inside of the glass, read from the street), or cut from Sunset vinyl. No background: the glass is the ground. The window-poster frame: our oldest brand code, the store window itself. For a store that isn't trading yet; on opening day swap it for the Now open version."
  },
  {
   "key": "feature-mark",
@@ -96,6 +216,11 @@
   "h": 1200,
   "ink": "#f5913c",
   "ground": null,
+  "side": "Inside",
+  "where": "Black feature wall behind the counter, centre 1,900 mm from the floor",
+  "material": "60 mm face-lit channel letters, Sunset acrylic (or Sunset neon flex on routed black backing)",
+  "qty": "1",
+  "store": null,
   "how": "The Mark on the black feature wall behind the counter, centre 1,900 mm from the floor: built-up channel letters 60 mm deep, Sunset acrylic faces, face-lit with warm white LEDs (or 30 mm Sunset neon flex on a black backing routed to this shape). This file is the face, cut as drawn."
  },
  {
@@ -105,6 +230,11 @@
   "h": 260,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "Hung over the till end of the cash wrap, bottom edge 2,300 mm",
+  "material": "6 mm black acrylic, Sunset vinyl both faces, 2 steel hanging cables",
+  "qty": "1",
+  "store": null,
   "how": "6 mm black acrylic, letters in Sunset vinyl (or UV-printed) on both faces, hung on two steel cables over the cash wrap, bottom edge 2,300 mm from the floor."
  },
  {
@@ -114,16 +244,26 @@
   "h": 260,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "Hung over the collection end of the cash wrap, bottom edge 2,300 mm",
+  "material": "6 mm black acrylic, Sunset vinyl both faces, 2 steel hanging cables",
+  "qty": "1",
+  "store": null,
   "how": "6 mm black acrylic, letters in Sunset vinyl (or UV-printed) on both faces, hung on two steel cables over the cash wrap, bottom edge 2,300 mm from the floor."
  },
  {
   "key": "dispensary",
-  "name": "Dispensary sign, 600 × 200 mm",
+  "name": "Dispensary sign, 600 × 200 mm (inside only)",
   "w": 600,
   "h": 200,
   "ink": "#f5913c",
   "ground": "#0c0a09",
-  "how": "3 mm black ACM, Sunset vinyl, screwed to the wall beside the dispensary counter at 1,800 mm. Plain wording only: no product names, no claims."
+  "side": "Inside",
+  "where": "Wall beside the dispensary counter, 1,800 mm (stores with an authorised dispenser only; never outside or in a window)",
+  "material": "3 mm black ACM, Sunset vinyl",
+  "qty": "1 (licensed stores only)",
+  "store": null,
+  "how": "3 mm black ACM, Sunset vinyl, screwed to the wall beside the dispensary counter at 1,800 mm. Inside only: the word never appears on outside signs or in a window. Plain wording only: no product names, no claims."
  },
  {
   "key": "fitting-room",
@@ -132,7 +272,54 @@
   "h": 420,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "Curtain-rail bracket or the wall beside the fitting room, 1,600 mm",
+  "material": "3 mm black ACM, Sunset vinyl",
+  "qty": "1 per fitting room",
+  "store": null,
   "how": "3 mm black ACM, Sunset vinyl, on the curtain rail bracket or the wall beside it at 1,600 mm."
+ },
+ {
+  "key": "till-id",
+  "name": "Till sign: ID is checked, 300 × 200 mm",
+  "w": 300,
+  "h": 200,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "On the cash wrap at each till, facing the customer (or on the wall behind the till at 1,500 mm)",
+  "material": "5 mm black acrylic block (free-standing) or 3 mm ACM, Sunset vinyl",
+  "qty": "1 per till",
+  "store": null,
+  "how": "5 mm black acrylic counter block (or 3 mm black ACM with stand-offs on the wall behind the till), Sunset vinyl or UV print. Staff point to it before asking for ID."
+ },
+ {
+  "key": "inside-members",
+  "name": "Members only: join free in a minute, A3 420 × 297 mm",
+  "w": 420,
+  "h": 297,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "Inside the entrance, first wall the customer faces, centre 1,500 mm (or on the welcome desk)",
+  "material": "3 mm black ACM, Sunset vinyl (or A3 print in a black frame)",
+  "qty": "1",
+  "store": null,
+  "how": "3 mm black ACM with Sunset vinyl or UV print, screwed or taped (VHB) to the wall just inside the door; or an A3 print in a black frame."
+ },
+ {
+  "key": "welcome",
+  "name": "Welcome: Ask us anything, 600 × 400 mm",
+  "w": 600,
+  "h": 400,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "Facing the door as you walk in, centre 1,600 mm (or on a floor stand by the entrance)",
+  "material": "3 mm black ACM, Sunset vinyl (or 5 mm foamboard on a black floor stand)",
+  "qty": "1",
+  "store": null,
+  "how": "3 mm black ACM with Sunset vinyl or UV print, on the wall facing the door; or 5 mm foamboard on a black poster stand by the entrance."
  },
  {
   "key": "bay-wellness",
@@ -141,6 +328,11 @@
   "h": 150,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "On top of the shelving bay for that category, clipped to the uprights",
+  "material": "3 mm black ACM, Sunset vinyl or UV print",
+  "qty": "1 per bay of the category",
+  "store": null,
   "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
  },
  {
@@ -150,6 +342,11 @@
   "h": 150,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "On top of the shelving bay for that category, clipped to the uprights",
+  "material": "3 mm black ACM, Sunset vinyl or UV print",
+  "qty": "1 per bay of the category",
+  "store": null,
   "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
  },
  {
@@ -159,6 +356,11 @@
   "h": 150,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "On top of the shelving bay for that category, clipped to the uprights",
+  "material": "3 mm black ACM, Sunset vinyl or UV print",
+  "qty": "1 per bay of the category",
+  "store": null,
   "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
  },
  {
@@ -168,6 +370,11 @@
   "h": 150,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "On top of the shelving bay for that category, clipped to the uprights",
+  "material": "3 mm black ACM, Sunset vinyl or UV print",
+  "qty": "1 per bay of the category",
+  "store": null,
   "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
  },
  {
@@ -177,6 +384,11 @@
   "h": 150,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "On top of the shelving bay for that category, clipped to the uprights",
+  "material": "3 mm black ACM, Sunset vinyl or UV print",
+  "qty": "1 per bay of the category",
+  "store": null,
   "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
  },
  {
@@ -186,6 +398,11 @@
   "h": 150,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "On top of the shelving bay for that category, clipped to the uprights",
+  "material": "3 mm black ACM, Sunset vinyl or UV print",
+  "qty": "1 per bay of the category",
+  "store": null,
   "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
  },
  {
@@ -195,6 +412,11 @@
   "h": 150,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "On top of the shelving bay for that category, clipped to the uprights",
+  "material": "3 mm black ACM, Sunset vinyl or UV print",
+  "qty": "1 per bay of the category",
+  "store": null,
   "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
  },
  {
@@ -204,6 +426,11 @@
   "h": 150,
   "ink": "#f5913c",
   "ground": "#0c0a09",
+  "side": "Inside",
+  "where": "On top of the shelving bay for that category, clipped to the uprights",
+  "material": "3 mm black ACM, Sunset vinyl or UV print",
+  "qty": "1 per bay of the category",
+  "store": null,
   "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
  },
  {
@@ -213,6 +440,11 @@
   "h": 1600,
   "ink": "#f5913c",
   "ground": null,
+  "side": "Inside",
+  "where": "Feature wall opposite the counter, scaled to fit",
+  "material": "Matte vinyl wallpaper, or painted in low-sheen acrylic",
+  "qty": "1 (where there is a free wall)",
+  "store": null,
   "how": "Feature wall opposite the counter (the Christians Village and Hilton concept). Print on matte vinyl wallpaper, or paint by colour: the sky is seven flat bands, the sun is Sunset #F5913C, the hills four flat browns to black (hex values in the file; mix to match, low-sheen acrylic). Scale up or down evenly to fit the wall."
  },
  {
@@ -222,6 +454,11 @@
   "h": 841,
   "ink": "#f5913c",
   "ground": null,
+  "side": "Inside",
+  "where": "Lounge or waiting wall, centre 1,600 mm",
+  "material": "300 g matte art paper, black aluminium frame, 50 mm cream mount",
+  "qty": "1",
+  "store": null,
   "how": "Giclée or UV print on 300 g matte art paper, black aluminium frame with a 50 mm cream mount. A1 portrait."
  },
  {
@@ -231,6 +468,11 @@
   "h": 841,
   "ink": "#f5913c",
   "ground": null,
+  "side": "Inside",
+  "where": "Lounge wall, pair with Dutch heritage print, centre 1,600 mm",
+  "material": "300 g matte art paper, black frame",
+  "qty": "1",
+  "store": null,
   "how": "Print on 300 g matte art paper, black frame, no mount (full bleed to the frame). A1 portrait."
  },
  {
@@ -240,6 +482,25 @@
   "h": 841,
   "ink": "#0c0a09",
   "ground": null,
+  "side": "Inside",
+  "where": "Lounge wall, pair with the Mark print, centre 1,600 mm",
+  "material": "300 g matte art paper, black frame",
+  "qty": "1",
+  "store": null,
   "how": "Print on 300 g matte art paper, black frame. A1 portrait. Hang as a pair with the Mark print."
+ },
+ {
+  "key": "colour-swatch",
+  "name": "Colour reference, A4",
+  "w": 210,
+  "h": 297,
+  "ink": "#0c0a09",
+  "ground": "#FFFFFF",
+  "side": "Inside",
+  "where": "For the sign maker and printer: print on the same stock and press as the job, and match vinyl, paint and acrylic to it",
+  "material": "Print a proof on the job's own media",
+  "qty": "1 per supplier",
+  "store": null,
+  "how": "Not a sign. The colour reference every supplier matches to: approve a printed or painted swatch against it under the store's own lighting before production."
  }
 ]

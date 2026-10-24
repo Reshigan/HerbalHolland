@@ -463,7 +463,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
               {!vendor && " The supplier is not registered for VAT, so no VAT is charged."}
               {trade && " Trade prices are ex VAT; VAT is shown per line and in the total."}
             </p>
-            <p>Adults 18+ only · Keep out of reach of children · Lab-tested and batch-traceable: scan any pack for its certificate.</p>
+            <p>Adults 18+ only · Keep out of reach of children.</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="inv-qr w-20">

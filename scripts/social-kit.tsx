@@ -50,7 +50,7 @@ const cover: Spec = {
       <div class="m" style="width:320px;height:320px;flex:none">${mark(SUNSET)}</div>
       <div style="flex:none;max-width:820px">
         ${wordmark}
-        <div class="p" style="margin-top:34px;font-size:40px;color:${CREAM};max-width:820px">Sawubona, Hillcrest and Hilton. A neighbourhood brand for adults 18+, opening in KwaZulu-Natal.</div>
+        <div class="p" style="margin-top:34px;font-size:40px;color:${CREAM};max-width:820px">Now open on the Bluff and in Pietermaritzburg, with Hillcrest and Hilton from 1 December. A neighbourhood brand for adults 18+.</div>
         <div class="small" style="margin-top:30px;font-size:22px;color:${SUNSET};opacity:1">Join Herbal Holland Rewards, free</div>
         <div class="small" style="margin-top:8px;font-size:22px;color:${INK_450}">${JOIN}</div>
       </div>
@@ -66,14 +66,14 @@ const storyCover: Spec = {
       <div class="m" style="width:420px;height:420px">${mark(SUNSET)}</div>
       <div style="margin-top:40px">${wordmark}</div>
       <div class="rule" style="width:110px;margin:72px 0 56px"></div>
-      <div class="h" style="font-size:84px;color:${CREAM}">Hillcrest.<br>Hilton.<br>Coming soon.</div>
+      <div class="h" style="font-size:84px;color:${CREAM}">Bluff.<br>Pietermaritzburg.<br>Now open.</div>
       <div class="small" style="position:absolute;bottom:120px;font-size:26px;color:${SUNSET}">@herbalholland · Adults 18+</div>
     </div>`,
   css: `.wm{font-size:72px;text-align:center}`,
 };
 
 // ── Instagram highlight covers 1080×1080: one word in the circle Instagram shows (the middle ~60%) ───────────────────
-const HIGHLIGHTS: [string, string, boolean][] = [["rewards", "Rewards", false], ["stores", "Stores", true], ["lab-tested", "Lab-tested", false], ["founding", "Founding", true], ["learn", "Learn", false]];
+const HIGHLIGHTS: [string, string, boolean][] = [["rewards", "Rewards", false], ["stores", "Stores", true], ["specials", "Specials", false], ["founding", "Founding", true], ["learn", "Learn", false]];
 const highlight = ([slug, label, flip]: [string, string, boolean]): Spec => {
   const ground = flip ? SUNSET : INK, ink = flip ? INK : SUNSET;
   return {
@@ -102,9 +102,9 @@ const CARDS = [
   {
     slug: "1-welcome", ground: INK, ink: SUNSET,
     inner: (tall: boolean) => `
-      <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Opening in KwaZulu-Natal</div>
-      <div class="h" style="margin-top:${tall ? 40 : 28}px;font-size:${tall ? 148 : 128}px;color:${CREAM}">Sawubona,<br>Hillcrest.</div>
-      <div class="p" style="margin-top:${tall ? 56 : 40}px;font-size:${tall ? 44 : 38}px;color:${INK_450};max-width:${tall ? 860 : 820}px">Herbal Holland is coming to Hillcrest and Hilton. Lab-tested, plain-spoken, and glad to be your neighbour.</div>`,
+      <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Now open in KwaZulu-Natal</div>
+      <div class="h" style="margin-top:${tall ? 40 : 28}px;font-size:${tall ? 148 : 128}px;color:${CREAM}">Sawubona,<br>KZN.</div>
+      <div class="p" style="margin-top:${tall ? 56 : 40}px;font-size:${tall ? 44 : 38}px;color:${INK_450};max-width:${tall ? 860 : 820}px">Herbal Holland is open on the Bluff and in Pietermaritzburg, with Hillcrest and Hilton from 1 December. Plain-spoken, members only, and glad to be your neighbour.</div>`,
   },
   {
     slug: "2-founding", ground: SUNSET, ink: INK,
@@ -121,11 +121,38 @@ const CARDS = [
       <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Free to join</div>
       <div class="h" style="margin-top:${tall ? 32 : 22}px;font-size:${tall ? 104 : 92}px;color:${CREAM}">How to join<br>in 20 seconds</div>
       <ol style="list-style:none;margin:${tall ? 64 : 44}px 0 0;padding:0;display:flex;flex-direction:column;gap:${tall ? 34 : 24}px">
-        ${["Tap the link in our bio", "Your name, mobile and home store", "You're on the list, with your number"]
+        ${["Tap the link, or ask at any till", "Your name and mobile number", "Your card is ready: show it at any store"]
           .map((t, i) => `<li style="display:flex;align-items:center;gap:30px"><span style="flex:none;width:${tall ? 92 : 80}px;height:${tall ? 92 : 80}px;border-radius:50%;background:${SUNSET};color:${INK};font-weight:800;font-size:${tall ? 46 : 40}px;display:flex;align-items:center;justify-content:center">${i + 1}</span><span class="p" style="font-size:${tall ? 44 : 38}px;color:${CREAM}">${t}</span></li>`)
           .join("")}
       </ol>
       <div class="small" style="margin-top:${tall ? 60 : 40}px;font-size:${tall ? 26 : 22}px;color:${SUNSET};opacity:1">${JOIN}</div>`,
+  },
+  ...[
+    ["4-bluff", "Bluff", "208 Tara Road, Bluff, Durban"],
+    ["5-pietermaritzburg", "Pietermaritzburg", "575 Chota Motala Road, Raisethorpe"],
+  ].map(([slug, town, street]) => ({
+    slug, ground: INK, ink: SUNSET,
+    inner: (tall: boolean) => `
+      <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Now open</div>
+      <div class="h" style="margin-top:${tall ? 36 : 24}px;font-size:${(tall ? 1700 : 1500) / Math.max(town.length, 8)}px;color:${CREAM}">${town}.</div>
+      <div class="p" style="margin-top:${tall ? 48 : 34}px;font-size:${tall ? 44 : 38}px;color:${INK_450};max-width:${tall ? 880 : 860}px">${street}. Members only, and joining is free: at the till, or on your phone in a minute.</div>
+      <div class="small" style="margin-top:${tall ? 56 : 38}px;font-size:${tall ? 26 : 22}px;color:${SUNSET};opacity:1">${JOIN}</div>`,
+  })),
+  {
+    slug: "6-december", ground: SUNSET, ink: INK,
+    inner: (tall: boolean) => `
+      <div class="eyebrow" style="font-size:${tall ? 30 : 26}px">Tuesday 1 December</div>
+      <div class="h" style="margin-top:${tall ? 32 : 20}px;font-size:${tall ? 150 : 124}px">Hillcrest.<br>Hilton.</div>
+      <div class="p" style="margin-top:${tall ? 48 : 34}px;font-size:${tall ? 42 : 36}px;max-width:${tall ? 880 : 860}px;line-height:1.35">Two new stores in the hills open on the same day. Join free now and your card works there from the first morning.</div>
+      <div class="small" style="margin-top:${tall ? 48 : 34}px;font-size:${tall ? 26 : 22}px;opacity:1">${JOIN}</div>`,
+  },
+  {
+    slug: "7-friend", ground: INK, ink: SUNSET,
+    inner: (tall: boolean) => `
+      <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Bring a friend</div>
+      <div class="h" style="margin-top:${tall ? 32 : 22}px;font-size:${tall ? 112 : 96}px;color:${CREAM}">Better<br>together.</div>
+      <div class="p" style="margin-top:${tall ? 48 : 34}px;font-size:${tall ? 42 : 36}px;color:${INK_450};max-width:${tall ? 880 : 860}px">Your link is in the Rewards app. When a friend (18+) joins with it and makes their first purchase, you each get points.</div>
+      <div class="small" style="margin-top:${tall ? 56 : 38}px;font-size:${tall ? 26 : 22}px;color:${SUNSET};opacity:1">${JOIN}</div>`,
   },
 ] satisfies { slug: string; ground: string; ink: string; inner: (tall: boolean) => string }[];
 const card = (c: (typeof CARDS)[number], tall: boolean): Spec => ({
