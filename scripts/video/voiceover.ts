@@ -8,6 +8,7 @@ import { existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 
 const FFMPEG = process.env.FFMPEG ?? "ffmpeg";
+const FFPROBE = process.env.FFPROBE ?? FFMPEG.replace(/ffmpeg$/, "ffprobe");
 const VO = new URL("./assets/vo/", import.meta.url).pathname;
 const OUT = new URL("../../public/brand/video/", import.meta.url).pathname;
 // [file, start in seconds]: each line lands inside its scene (scripts/video/launch.ts timelines).
@@ -21,9 +22,11 @@ for (const [film, cues] of Object.entries(CUES))
     const file = join(OUT, `${film}-${orient}.mp4`);
     if (!existsSync(file)) continue;
     const inputs = cues.flatMap(([f]) => ["-i", join(VO, `${f}.mp3`)]);
-    const delays = cues.map(([, at], i) => `[${i + 1}:a]aresample=48000,adelay=${Math.round(at * 1000)}:all=1,volume=1.6[v${i}]`).join(";");
-    const voice = `${cues.map((_, i) => `[v${i}]`).join("")}amix=inputs=${cues.length}:normalize=0,asplit=2[vo][key]`;
-    const filter = `${delays};${voice};[0:a][key]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[bed];[bed][vo]amix=inputs=2:normalize=0,loudnorm=I=-14:TP=-1:LRA=9[a]`;
+    // Every line padded to the film's length, so amix (which divides by its inputs) never re-weights as one ends.
+    const seconds = Number(spawnSync(FFPROBE, ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file], { encoding: "utf8" }).stdout);
+    const delays = cues.map(([, at], i) => `[${i + 1}:a]aresample=48000,aformat=channel_layouts=stereo,adelay=${Math.round(at * 1000)}|${Math.round(at * 1000)},apad,atrim=0:${seconds}[v${i}]`).join(";");
+    const voice = `${cues.map((_, i) => `[v${i}]`).join("")}amix=inputs=${cues.length},volume=${cues.length * 1.6},asplit=2[vo][key]`;
+    const filter = `${delays};${voice};[0:a][key]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[bed];[bed][vo]amix=inputs=2,volume=2,loudnorm=I=-14:TP=-1:LRA=9[a]`;
     const tmp = file.replace(/\.mp4$/, ".vo.mp4");
     const r = spawnSync(FFMPEG, ["-y", "-hide_banner", "-loglevel", "error", "-i", file, ...inputs, "-filter_complex", filter, "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-shortest", "-movflags", "+faststart", tmp], { stdio: "inherit" });
     if (r.status !== 0) throw new Error(`ffmpeg failed on ${file}`);
