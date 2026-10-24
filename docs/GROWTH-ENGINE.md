@@ -44,7 +44,10 @@ live, then national.
       how to write about us). Added the first release, "Herbal Holland opens in KwaZulu-Natal", as a draft, and
       docs/press/PITCHES.md: angles, outlets, three pitch emails and a send log. The owner approves the release (sets its
       date), adds a founder quote and sends the pitches from press@.
-- [ ] **Media plan (owner approved 24 Oct): monthly newsletter** to consented members only, drafted for approval.
+- [x] **Media plan (owner approved 24 Oct): the newsletter.** The Windmill already runs from the Studio (No. 1 on the
+      shop's opening day, No. 2 with the December openings, then monthly packs), sent only to members who said yes to
+      email, inside the CPA send windows, through the copy screen. Added "The Windmill: a first look" (email + push) for
+      now, while the stores trade and the shop is still closed: HQ lays it out in Studio on a Tuesday and approves it.
 - [ ] **Media plan: Telegram channel** page and join button (the owner creates the channel), then its posts.
 - [ ] **Media plan: lifestyle content pack:** 30 platform-safe posts (no product, no prices) and backup-handle notes.
 - [ ] **Media plan: op-ed draft** "the law, plainly", for the owner to send to a national opinion editor.
