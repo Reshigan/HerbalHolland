@@ -488,5 +488,19 @@
   "qty": "1",
   "store": null,
   "how": "Print on 300 g matte art paper, black frame. A1 portrait. Hang as a pair with the Mark print."
+ },
+ {
+  "key": "colour-swatch",
+  "name": "Colour reference, A4",
+  "w": 210,
+  "h": 297,
+  "ink": "#0c0a09",
+  "ground": "#FFFFFF",
+  "side": "Inside",
+  "where": "For the sign maker and printer: print on the same stock and press as the job, and match vinyl, paint and acrylic to it",
+  "material": "Print a proof on the job's own media",
+  "qty": "1 per supplier",
+  "store": null,
+  "how": "Not a sign. The colour reference every supplier matches to: approve a printed or painted swatch against it under the store's own lighting before production."
  }
 ]

@@ -9,8 +9,19 @@ files by hand: change the script and re-run. Every design is drawn at actual siz
 - `contact-sheet.png`: every design at a glance. `storefront.png`: a night mock-up of a street front with the set together.
 - `designs.json`: the same list as below, with the full fabrication note for each design.
 
-Colours: Sunset orange #F5913C, warm black #0C0A09, cream #FBF7F3 (QR tiles only). No other colours. Match cut vinyl,
-acrylic and paint to a printed swatch of #F5913C under the store's own lighting before ordering.
+## Colours
+
+| Colour | Hex | RGB | CMYK (print) | Pantone (paint, vinyl, acrylic) | Used for |
+|---|---|---|---|---|---|
+| Sunset orange | #F5913C | 245 145 60 | C0 M41 Y76 K4 | PANTONE 715 C (closest solid match) | Lettering, the Mark, frames, cut vinyl |
+| Warm black | #0C0A09 | 12 10 9 | C50 M50 Y50 K100 (rich black for large panels) | PANTONE Black 6 C | Panel and fascia grounds |
+| Cream | #FBF7F3 | 251 247 243 | C0 M2 Y3 K2 | White ink behind on clear film | QR tiles only |
+
+No other colours. The CMYK values are converted from the brand's screen colour; presses and vinyls vary, so ask the supplier
+for their nearest match to PANTONE 715 C (for cut vinyl, the closest orange in their range, e.g. Oracal 751/951 or 3M 7725,
+chosen against a swatch) and approve a physical proof against `colour-swatch.pdf` under the store's own lighting before
+production. On clear window film, print the orange with a white backing layer behind it so it doesn't look washed out
+against the glass.
 
 Content rules these files keep (check any reprint against them): no prices or offers; no health or medical claims; no
 lab-testing, batch-testing, certificate or traceability claims; no leaf, smoke or consumption imagery; the word
@@ -51,6 +62,7 @@ a message (the Mark, the manifestation band, the store name and the wall art are
 | `print-hills` (.pdf, .svg, .png) | Inside | Lounge or waiting wall, centre 1,600 mm | 594 × 841 mm | 300 g matte art paper, black aluminium frame, 50 mm cream mount | 1 |
 | `print-mark` (.pdf, .svg, .png) | Inside | Lounge wall, pair with Dutch heritage print, centre 1,600 mm | 594 × 841 mm | 300 g matte art paper, black frame | 1 |
 | `print-words` (.pdf, .svg, .png) | Inside | Lounge wall, pair with the Mark print, centre 1,600 mm | 594 × 841 mm | 300 g matte art paper, black frame | 1 |
+| `colour-swatch` (.pdf, .svg, .png) | Inside | For the sign maker and printer: print on the same stock and press as the job, and match vinyl, paint and acrylic to it | 210 × 297 mm | Print a proof on the job's own media | 1 per supplier |
 
 ## Door, window posters and QR codes (every store)
 
