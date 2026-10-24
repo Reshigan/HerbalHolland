@@ -94,7 +94,7 @@ export async function removePromoCode() {
 }
 
 // ── Sign in / join (phone OTP → one short registration step) ────────────────
-type Field = "phone" | "code" | "firstName" | "email" | "idNumber" | "dob" | "homeStoreId" | "accept";
+type Field = "phone" | "code" | "firstName" | "lastName" | "email" | "idNumber" | "dob" | "homeStoreId" | "accept";
 export type AuthState = {
   step: "phone" | "code" | "register" | "done";
   phone?: string;
@@ -162,10 +162,11 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
     const refused = (): AuthState => (jar.delete(SHOP_COOKIE.phone), { step: "phone", error: COLLISION_REFUSED });
     if (await collisionsUsedUp(`phone:${phone}`)) return refused();
     // Everything comes back with an error, ticks too: React resets the form after the action, and a lost opt-in goes unnoticed.
-    const v = Object.fromEntries(["firstName", "email", "idType", "idNumber", "dob", "homeStoreId", "ref", "accept", ...CHANNELS.map((ch) => `consent_${ch}`)].map((k) => [k, String(form.get(k) ?? "").trim()]));
+    const v = Object.fromEntries(["firstName", "lastName", "email", "idType", "idNumber", "dob", "homeStoreId", "ref", "accept", ...CHANNELS.map((ch) => `consent_${ch}`)].map((k) => [k, String(form.get(k) ?? "").trim()]));
     v.interests = form.getAll("interest").map(String).join(" ");
     const fields: AuthState["fields"] = {};
     if (!v.firstName || v.firstName.length > 60) fields.firstName = "Tell us your first name";
+    if (!v.lastName || v.lastName.length > 60) fields.lastName = "Tell us your surname";
     if (v.email && !isEmail(v.email)) fields.email = "That email address doesn't look right";
     let dob: Date | undefined;
     if (v.idType === "passport") {
@@ -186,6 +187,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
         {
           phone,
           firstName: v.firstName,
+          lastName: v.lastName,
           email: v.email || undefined,
           idNumber: v.idType === "passport" ? undefined : v.idNumber,
           dob: v.idType === "passport" ? dob : undefined,

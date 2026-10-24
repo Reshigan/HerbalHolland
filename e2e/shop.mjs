@@ -575,6 +575,7 @@ try {
   const dob = "1994-05-17";
   const friendEmail = friend.getByLabel(/Email for invoices/);
   await friend.getByLabel("First name").fill("Zanele");
+  await friend.getByLabel("Surname").fill("Mthembu");
   await friendEmail.fill(taken);
   await friend.getByRole("radio", { name: "Passport" }).click();
   await friend.getByLabel("Date of birth").fill(dob);
@@ -588,6 +589,7 @@ try {
   await timed("Join: create account (email taken)", () => friend.getByRole("button", { name: /Join and continue/ }).click(), () => friend.getByText("That email is already linked to another member").waitFor());
   const kept = [
     (await friend.getByLabel("First name").inputValue()) === "Zanele",
+    (await friend.getByLabel("Surname").inputValue()) === "Mthembu",
     (await friendEmail.inputValue()) === taken,
     (await friend.getByLabel("Date of birth").inputValue()) === dob,
     (await friend.getByLabel("Home store").inputValue()) === home,

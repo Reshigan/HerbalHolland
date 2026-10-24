@@ -224,7 +224,10 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         <FieldRow label="First name" htmlFor="reg-first" error={state.fields?.firstName}>
           <TextInput id="reg-first" name="firstName" autoComplete="given-name" required maxLength={60} defaultValue={v.firstName} aria-invalid={!!state.fields?.firstName} autoFocus />
         </FieldRow>
-        <FieldRow label="Email for invoices (optional)" htmlFor="reg-email" error={state.fields?.email} hint="Tax invoices and receipts only, unless you opt in below.">
+        <FieldRow label="Surname" htmlFor="reg-last" error={state.fields?.lastName}>
+          <TextInput id="reg-last" name="lastName" autoComplete="family-name" required maxLength={60} defaultValue={v.lastName} aria-invalid={!!state.fields?.lastName} />
+        </FieldRow>
+        <FieldRow className="sm:col-span-2" label="Email for invoices (optional)" htmlFor="reg-email" error={state.fields?.email} hint="Tax invoices and receipts only, unless you opt in below.">
           <TextInput id="reg-email" name="email" type="email" autoComplete="email" defaultValue={v.email} aria-invalid={!!state.fields?.email} />
         </FieldRow>
       </div>

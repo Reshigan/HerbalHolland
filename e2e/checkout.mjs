@@ -59,6 +59,7 @@ await page.getByRole("button", { name: "Fill it in" }).click();
 await page.getByRole("button", { name: "Verify" }).click();
 await page.getByText("Welcome: one quick step").waitFor();
 await page.getByLabel("First name").fill("Lindiwe");
+await page.getByLabel("Surname").fill("Dlamini");
 await page.getByLabel(/Email for invoices/).fill(`lindiwe.${phone}@example.co.za`);
 await page.getByLabel("SA ID number").fill(saId);
 await page.getByLabel("Home store").selectOption({ label: "Hatfield" });
