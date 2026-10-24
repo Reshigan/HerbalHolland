@@ -179,7 +179,7 @@ export const HOME = {
   founding: {
     eyebrow: "Herbal Holland Rewards",
     title: "Be one of the first {cap}",
-    body: "The first {cap} members of Herbal Holland Rewards become Founding Members, with a numbered card and our {tier} tier for {months} months. Joining is free, for adults 18+, and opens with our online shop.",
+    body: "The first {cap} members of Herbal Holland Rewards become Founding Members, with a numbered card and our {tier} tier for {months} months. Joining is free for adults 18+, in our stores or on your phone, and takes about a minute.",
     // Until Rewards opens: the early-access list is first in line.
     soon: "The early-access list is first in line.",
     cta: "Join Rewards",
@@ -612,7 +612,7 @@ export const CONTACT = {
     careers: { title: "Careers", body: "Jobs in our stores and at HQ.", link: "Careers" },
     members: {
       title: "Members",
-      body: "Orders, Herbal Holland Rewards and your membership. Sign in on the shop to see your orders and your card, or email us.",
+      body: "Herbal Holland Rewards and your membership. Sign in to see your card, points and orders, or email us.",
       soon: "Herbal Holland Rewards opens soon. Questions about membership in the meantime? Email us.",
       link: "Sign in to Rewards",
     },
