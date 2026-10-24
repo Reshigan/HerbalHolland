@@ -654,7 +654,8 @@ try {
   const tokens = JSON.parse(
     execFileSync(`${ROOT}node_modules/.bin/tsx`, ["--env-file-if-exists=.env", "-e", `import { optOutToken } from "./src/server/messaging.ts"; const id = process.argv.at(-1); console.log(JSON.stringify({ SMS: optOutToken(id, "SMS"), EMAIL: optOutToken(id, "EMAIL") }));`, pal.id], { cwd: ROOT, encoding: "utf8" }).trim().split("\n").pop(),
   );
-  await friend.goto(`${BASE}/unsubscribe?c=${pal.id}&ch=SMS&t=${tokens.SMS.slice(0, -1)}x`);
+  // Change the last character (to anything but itself: a token can end in "x" already).
+  await friend.goto(`${BASE}/unsubscribe?c=${pal.id}&ch=SMS&t=${tokens.SMS.slice(0, -1)}${tokens.SMS.endsWith("x") ? "y" : "x"}`);
   await friend.getByRole("heading", { name: "This link has expired" }).waitFor();
   ok("a tampered link is refused");
   await friend.goto(`${BASE}/unsubscribe?c=${pal.id}&ch=SMS&t=${tokens.SMS}`);
