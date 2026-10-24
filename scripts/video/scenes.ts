@@ -3,7 +3,8 @@
 // only in `range`, as the-range artwork. The only call to action is the end card ("Join free").
 import { Build, captions, dataUri, EASE, EASE_BOUNCE, EASE_IO, endCard, mark, markDrawCss, page, Scene, TICK_HELPERS } from "./scene";
 
-const CATEGORIES = ["flower", "pre-rolls", "edibles", "vapes", "wellness", "skin-care", "coffee-drinks", "protein-nutrition", "collagen-supplements", "accessories", "apparel", "grow", "concentrates"];
+// THC categories (flower, pre-rolls, edibles, vapes, concentrates) never appear in brand videos.
+const CATEGORIES = ["wellness", "skin-care", "coffee-drinks", "protein-nutrition", "collagen-supplements", "accessories", "apparel", "grow"];
 
 // ---------------------------------------------------------------------------------------------------------------
 // welcome: the mark draws itself in, the wordmark rises, "Holland, meet the Hills."
@@ -214,6 +215,44 @@ ${end.html}`;
 
 // ---------------------------------------------------------------------------------------------------------------
 // join: a phone mock of the join flow, three steps, with a 20-second ring.
+// launch (WhatsApp Status, post before `join`): the story in three beats, then "We're online" with the shop address.
+const INTRO = 17;
+const STORY: [number, number, string, string, string][] = [
+  [0, 4.6, "The 1970s", "Seeds from <b>the hills behind Durban</b>", "travelled to Amsterdam."],
+  [4.6, 8.9, "The Windmill", "They found a second <b>home in Holland.</b>", "Herbal Holland is named for that journey."],
+  [8.9, 13.2, "Now", "We're bringing it <b>home.</b>", "Premium quality.<br>Members only, run by the book."],
+];
+function launchIntro(b: Build) {
+  const css = `
+${STORY.map(([from, to], i) => `.beat${i}{padding:0 8vmin;gap:3vmin;${b.win(from, to, { enter: "opacity:1", hold: "opacity:1", exit: "opacity:0", outS: 0.5 })}}
+.beat${i} .eyebrow{${b.win(from + 0.2, to)}}
+.beat${i} .h1{font-size:${b.ctx.portrait ? 11 : 10}vmin;line-height:1.05;${b.win(from + 0.4, to, { enter: "opacity:0;transform:translateY(4vmin)", inS: 1 })}}
+.beat${i} .sub{${b.win(from + 1.2, to)}}`).join("\n")}
+.glow{position:absolute;left:50%;top:50%;width:130vmin;height:130vmin;border-radius:50%;background:radial-gradient(closest-side,rgba(245,145,60,.14),rgba(245,145,60,0));${b.win(0, INTRO, { enter: "transform:translate(-50%,-50%) scale(.5);opacity:0", hold: "transform:translate(-50%,-50%) scale(1);opacity:1", exit: "transform:translate(-50%,-50%) scale(1.1);opacity:0", inS: 4, outS: 0.6, ease: EASE_IO })}}
+.intro{${b.win(13.2, INTRO, { enter: "opacity:1", hold: "opacity:1", exit: "opacity:0;transform:scale(.97)", outS: 0.6 })};gap:3vmin;padding:0 6vmin}
+.intro .mark{width:${b.ctx.portrait ? 30 : 26}vmin;height:${b.ctx.portrait ? 30 : 26}vmin;color:var(--orange)}
+${markDrawCss(b, ".intro", 13.3)}
+.intro .eyebrow{margin-top:2vmin;${b.win(14.4, INTRO)}}
+.intro .h1{font-size:${b.ctx.portrait ? 14 : 13}vmin;${b.win(14.6, INTRO, { enter: "opacity:0;transform:translateY(4vmin)", inS: 1 })}}
+.intro .url{font-weight:700;font-size:${b.ctx.portrait ? 5.6 : 5}vmin;color:var(--orange);white-space:nowrap;${b.win(15.2, INTRO)}}`;
+  const html = `<div class="glow"></div>
+${STORY.map(([, , eyebrow, h1, sub], i) => `<div class="center beat${i}"><div class="eyebrow">${eyebrow}</div><div class="h1">${h1}</div><div class="sub">${sub}</div></div>`).join("")}
+<div class="center intro">${mark()}<div class="eyebrow">Herbal Holland</div><div class="h1">We're <b>online.</b></div><div class="url">shop.herbalholland.com</div></div>
+${captions(b, [[15.4, 16.9, "Members only, adults 18+. Joining is free."]])}`;
+  return { css, html };
+}
+
+const launch: Scene = {
+  name: "launch",
+  seconds: INTRO + 4,
+  html(ctx) {
+    const b = new Build(ctx, INTRO + 4);
+    const story = launchIntro(b);
+    const end = endCard(b, INTRO);
+    return page(ctx, b, `${story.html}\n${end.html}`, `${story.css}\n${end.css}`);
+  },
+};
+
 const join: Scene = {
   name: "join",
   seconds: 24,
@@ -330,7 +369,7 @@ const range: Scene = {
       const style = b.tween(0, 20, `transform:translateY(${up ? 0 : -dist}vmin)`, `transform:translateY(${up ? -dist : 0}vmin)`, "linear");
       return `<div class="col" style="${style}">${doubled.map((src) => `<div class="tile"><img src="${src}"></div>`).join("")}</div>`;
     }).join("");
-    const labels = ["Flower", "Pre-rolls", "Edibles", "Vapes", "Wellness", "Skin care", "Coffee", "Nutrition", "Accessories", "Apparel", "Grow"];
+    const labels = ["CBD wellness", "Skin care", "Coffee & tea", "Nutrition", "Collagen", "Accessories", "Apparel", "Grow"];
     const css = `
 .grid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-6deg);display:flex;gap:${gap}vmin;${b.win(0, 16.4, { enter: "opacity:0;transform:translate(-50%,-50%) rotate(-6deg) scale(1.08)", hold: "opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(1)", exit: "opacity:0;transform:translate(-50%,-50%) rotate(-6deg) scale(1.04)", inS: 2.2, outS: 0.8, ease: EASE_IO })}}
 .col{display:flex;flex-direction:column;gap:${gap}vmin;will-change:transform}
@@ -351,7 +390,7 @@ ${end.css}`;
 <div class="title"><div class="eyebrow">Herbal Holland</div><div class="h1">The <b>range.</b></div></div>
 <div class="tick"><div class="in">${run}${run}</div></div>
 ${captions(b, [
-  [2.0, 7.4, "Thirteen ranges under one roof, for members 18+."],
+  [2.0, 7.4, "Eight ranges under one roof, for members 18+."],
   [8.0, 15.6, "From the Windmill to the Hills. In store and online, soon."],
 ])}
 ${end.html}`;
@@ -365,5 +404,5 @@ export const SCENES: Scene[] = [
   town("Pietermaritzburg", "Raisethorpe", { kind: "open", street: "575 Chota Motala Road, Raisethorpe" }, "open-pietermaritzburg"),
   town("Hillcrest", "Upper Highway", { kind: "opens", day: "1 December" }),
   town("Hilton", "The Midlands", { kind: "opens", day: "1 December" }),
-  join, range,
+  launch, join, range,
 ];

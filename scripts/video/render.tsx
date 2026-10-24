@@ -2,7 +2,7 @@
 // frame by frame at 30 fps in headless Chromium (every CSS animation's currentTime is set per frame), screenshotted
 // and piped to ffmpeg as H.264 mp4 (yuv420p, faststart). Both 9:16 (1080×1920) and 16:9 (1920×1080) are made.
 //
-//   FFMPEG=/path/to/ffmpeg npx tsx scripts/video/render.tsx [name ...]     (no names = all eight)
+//   FFMPEG=/path/to/ffmpeg npx tsx scripts/video/render.tsx [name ...]     (no names = all)
 //
 // Env: FFMPEG (static ffmpeg binary, see README.md), FFPROBE (defaults to the ffprobe beside FFMPEG, optional),
 // ORIENT=9x16|16x9 (default both), FPS (30), CRF (23; raised automatically while a file is over MAX_MB),

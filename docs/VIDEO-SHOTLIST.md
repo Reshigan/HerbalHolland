@@ -39,14 +39,6 @@ the website) at 30 fps, H.264, under 4 MB each. Every one ends on the end card: 
 | 12–16 | A pill pops above the card, "↑ 1 friend = 250 places up"; the number counts down 0292 → 0043. | Every friend who joins with your link moves you up 250 places. |
 | 16–20 | End card. | |
 
-### lab-tested · 20 s · "Every batch has a certificate"
-| t | Picture | Caption |
-|---|---|---|
-| 0–5 | LAB-TESTED, EVERY BATCH. A batch code types in, HH-2609-0192, "the batch code, on every pack". | Every batch has a certificate. |
-| 6–10 | The code becomes a real QR (it resolves to `shop.herbalholland.com/batch/HH-2609-0192`); an orange scan line sweeps it. | Scan the code on the pack to read it. |
-| 11–16 | Five rows slide in and tick, one after another: Microbials, Pesticides, Heavy metals, Mycotoxins, Residual solvents. "Certificate on file". | Tested for microbials, pesticides, heavy metals, mycotoxins and solvents. |
-| 16–20 | End card. | |
-
 ### rewards · 22 s · "How Rewards works"
 | t | Picture | Caption |
 |---|---|---|
@@ -62,6 +54,15 @@ the website) at 30 fps, H.264, under 4 MB each. Every one ends on the end card: 
 | 2–12 | The town name rises letter by letter; "Upper Highway · KwaZulu-Natal" (Hillcrest) or "The Midlands · KwaZulu-Natal" (Hilton); OPENING SOON. | Opening soon in Hillcrest / Hilton. Join free and be first through the door. |
 | 12–16 | End card. | |
 
+### launch · 21 s · "We're online" (WhatsApp Status: post it, then `join` straight after)
+| t | Picture | Caption |
+|---|---|---|
+| 0–4.6 | THE 1970S. "Seeds from **the hills behind Durban**", "travelled to Amsterdam." A soft orange glow grows. | |
+| 4.6–9 | THE WINDMILL. "They found a second **home in Holland.**", "Herbal Holland is named for that journey." | |
+| 9–13 | NOW. "We're bringing it **home.**", "Premium quality. Members only, run by the book." | |
+| 13–17 | The mark draws in; "We're **online.**", `shop.herbalholland.com`. | Members only, adults 18+. Joining is free. |
+| 17–21 | End card. | |
+
 ### join · 24 s · "Join in 20 seconds"
 | t | Picture | Caption |
 |---|---|---|
@@ -74,7 +75,7 @@ the website) at 30 fps, H.264, under 4 MB each. Every one ends on the end card: 
 ### range · 20 s · "The range"
 | t | Picture | Caption |
 |---|---|---|
-| 0–16 | The thirteen category renders drift past as a tilted grid of cream tiles (columns moving in opposite directions) under a dark veil; "The **range.**"; a ticker of range names. No prices, no close-ups. | Thirteen ranges, one standard: lab-tested, adults only. / From the Windmill to the Hills. In store and online, soon. |
+| 0–16 | The eight non-THC category renders (CBD wellness, skin care, coffee and tea, nutrition, collagen, accessories, apparel, grow) drift past as a tilted grid of cream tiles (columns moving in opposite directions) under a dark veil; "The **range.**"; a ticker of range names. No prices, no close-ups. | Eight ranges under one roof, for members 18+. / From the Windmill to the Hills. In store and online, soon. |
 | 16–20 | End card. | |
 
 ## 2. Shot lists for real footage (phase 1 and 2, Oct–Dec 2026)
