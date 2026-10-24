@@ -32,7 +32,8 @@ live, then national.
       law, plainly; reading a product label; caring for your accessories; private growing and the law since 2018;
       responsible use for adults. Copy screen and claims list apply. Published: caring for your accessories (24 Oct).
       Next: reading a product label.
-- [ ] **IndexNow:** tell Bing and others the moment a page is published or changed (free, no account).
+- [x] **IndexNow:** every production deploy sends the sitemap's URLs to IndexNow (Bing, Yandex, Seznam and others share
+      it; free, no account). The key is public/<key>.txt. Google doesn't use IndexNow: it reads the sitemap.
 - [ ] **Monthly specials page:** shareable with the member's link (the earlier plan, no newsfeed).
 - [ ] **Events: the plus-one joins to RSVP.**
 - [ ] **Growth dashboard in HQ:** joins per store per week, share from referrals, invites per member, the referral ratio
