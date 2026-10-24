@@ -5,7 +5,7 @@ files by hand: change the script and re-run. Every design is drawn at actual siz
 
 - `<key>.pdf`: actual size, vector, for the printer or sign maker.
 - `<key>.svg`: actual size, outlined lettering (no fonts needed), one colour where it is cut vinyl; for the plotter or router.
-- `<key>.png`: preview on the panel's colour (cut vinyl previews on a brown "glass" ground, which is not printed).
+- `<key>.png`: the design on its panel colour; glass and cut-vinyl designs have a transparent background (the glass shows through). `<key>.preview.svg` shows those on a glass tone.
 - `contact-sheet.png`: every design at a glance. `storefront.png`: a night mock-up of a street front with the set together.
 - `designs.json`: the same list as below, with the full fabrication note for each design.
 
@@ -57,10 +57,10 @@ a message (the Mark, the manifestation band, the store name and the wall art are
 | File | Side | Where it goes | Size | Material | Qty per store |
 |---|---|---|---|---|---|
 | `door-vinyl` (.pdf, .svg, .png) | Outside | Outside face of the entrance door glass, centre 1,500 mm from the floor | 420 × 332 mm | Cut Sunset cast vinyl, weeded, transfer tape | 1 per entrance door |
-| `window-poster` (.pdf, .svg, .png) | Outside | Main shop window, behind the glass, centre 1,500 mm from the floor | 1,000 × 1,250 mm | Reverse-printed clear window film (or 5 mm black foamboard hung 50 mm behind the glass) | 1 |
-| `window-qr` (.pdf, .svg, .png) | Outside | Shop window beside the door, centre 1,300 mm from the floor (reachable for a phone) | 420 × 594 mm | 3 mm Forex (PVC foam) or 5 mm foamboard stood 20 mm behind the glass; or printed opaque window vinyl, face-mounted | 1 |
+| `window-poster` (.pdf, .svg, .png) | Outside | Main shop window, on the glass, centre 1,500 mm from the floor | 1,000 × 1,250 mm | Sunset printed on clear (optically clear) window film, no background: the glass shows through | 1 |
+| `window-qr` (.pdf, .svg, .png) | Outside | Shop window beside the door, centre 1,300 mm from the floor (reachable for a phone) | 420 × 594 mm | Sunset printed on clear window film, face-mounted on the outside of the glass; the QR tile printed solid cream (white-ink backed) so it scans | 1 |
 | `counter-qr` (.pdf, .svg, .png) | Inside | On the cash wrap beside each card machine, facing the customer | 148 × 210 mm | 350 g silk card (or 3 mm Forex) in a clear acrylic A5 T-stand | 1 per till |
-| `window-poster-soon` (.pdf, .svg, .png) | Outside | Main shop window, behind the glass, centre 1,500 mm from the floor | 1,000 × 1,250 mm | Reverse-printed clear window film (or 5 mm black foamboard hung 50 mm behind the glass) | 1 (until opening day, then swap for the Now open version) |
+| `window-poster-soon` (.pdf, .svg, .png) | Outside | Main shop window, on the glass, centre 1,500 mm from the floor | 1,000 × 1,250 mm | Sunset printed on clear (optically clear) window film, no background: the glass shows through | 1 (until opening day, then swap for the Now open version) |
 
 The window poster comes in two versions: `window-poster` (Now open) and `window-poster-soon` (Opening soon, for a store
 that isn't trading yet). QR codes: window `https://shop.herbalholland.com/club/join?src=window`, counter `https://shop.herbalholland.com/club/join?src=counter`.

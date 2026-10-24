@@ -178,11 +178,11 @@ function windowPoster(s: Store): Design {
   const status = s.opening === "soon" ? ["OPENING SOON"] : s.opening ? ["OPENING", s.opening.toUpperCase()] : ["NOW OPEN"];
   return {
     key: `window-poster${s.slug ? `-${s.slug}` : ""}`, name: `Window poster: ${s.opening === "soon" ? "Opening soon" : "Now open"}`, store: s.slug,
-    w: 1000, h: 1250, ink: SUNSET, ground: INK, side: "Outside",
-    where: "Main shop window, behind the glass, centre 1,500 mm from the floor",
-    material: "Reverse-printed clear window film (or 5 mm black foamboard hung 50 mm behind the glass)",
+    w: 1000, h: 1250, ink: SUNSET, ground: null, side: "Outside",
+    where: "Main shop window, on the glass, centre 1,500 mm from the floor",
+    material: "Sunset printed on clear (optically clear) window film, no background: the glass shows through",
     qty: s.opening ? "1 (until opening day, then swap for the Now open version)" : "1",
-    how: `Printed on the back of clear window film (or on a black foamboard panel hung 50 mm behind the glass). The window-poster frame: our oldest brand code, the store window itself.${s.opening ? " For a store that isn't trading yet; on opening day swap it for the Now open version." : ""}`,
+    how: `Sunset only, printed on clear window film (reverse-printed for the inside of the glass, read from the street), or cut from Sunset vinyl. No background: the glass is the ground. The window-poster frame: our oldest brand code, the store window itself.${s.opening ? " For a store that isn't trading yet; on opening day swap it for the Now open version." : ""}`,
     body: (
       <>
         <rect x={t / 2} y={t / 2} width={1000 - t} height={1250 - t} rx={96} fill="none" stroke="currentColor" strokeWidth={t} />
@@ -209,11 +209,11 @@ function windowQr(s: Store): Design {
   const w = 420, h = 594, cx = w / 2;
   return {
     key: `window-qr${s.slug ? `-${s.slug}` : ""}`, name: "Join free window QR panel, A2 420 × 594 mm", store: s.slug,
-    w, h, ink: SUNSET, ground: INK, side: "Outside",
+    w, h, ink: SUNSET, ground: null, side: "Outside",
     where: "Shop window beside the door, centre 1,300 mm from the floor (reachable for a phone)",
-    material: "3 mm Forex (PVC foam) or 5 mm foamboard stood 20 mm behind the glass; or printed opaque window vinyl, face-mounted",
+    material: "Sunset printed on clear window film, face-mounted on the outside of the glass; the QR tile printed solid cream (white-ink backed) so it scans",
     qty: "1",
-    how: `Printed full colour (black ground, Sunset lettering, cream QR tile). The QR opens ${JOIN("window")}: test-scan the proof through the glass before printing in quantity. Keep the glass in front of the code clean and unfrosted.`,
+    how: `Clear film: Sunset lettering and frame with no background, and only the QR tile printed solid cream (white ink behind it), since a code printed straight on glass won't scan. The QR opens ${JOIN("window")}: test-scan the proof through the glass before printing in quantity. Keep the glass in front of the code clean and unfrosted.`,
     body: (
       <>
         <rect x={16} y={16} width={w - 32} height={h - 32} rx={44} fill="none" stroke="currentColor" strokeWidth={10} />
@@ -712,14 +712,15 @@ for (const d of all) {
   writeFileSync(`${OUT}/${d.key}.svg`, svgOf(d, { width: `${d.w}mm`, height: `${d.h}mm` }));
   writeFileSync(`${OUT}/${d.key}.preview.svg`, svgOf(d, { width: `${d.w}mm`, height: `${d.h}mm` }, true));
   const k = 2000 / Math.max(d.w, d.h), w = Math.round(d.w * k), h = Math.round(d.h * k);
-  await png(svgOf(d, { width: `${w}px`, height: `${h}px` }, true), w, h, `${OUT}/${d.key}.png`);
+  // Clear-backed designs (glass, cut vinyl) export with a transparent background; the .preview.svg shows them on a glass tone.
+  await png(svgOf(d, { width: `${w}px`, height: `${h}px` }, !!d.ground), w, h, `${OUT}/${d.key}.png`);
   await page.setContent(`<style>@page{margin:0}body{margin:0}</style>${svgOf(d, { width: `${d.w}mm`, height: `${d.h}mm` })}`);
   writeFileSync(`${OUT}/${d.key}.pdf`, await page.pdf({ width: `${d.w}mm`, height: `${d.h}mm`, margin: { top: "0", right: "0", bottom: "0", left: "0" }, pageRanges: "1" }));
   if (process.env.HD) {
     // 300 dpi, capped at 8,000 px on the long edge (the fascia, mural and bands are large: print those from the PDF).
     const k2 = Math.min(300 / 25.4, 8000 / Math.max(d.w, d.h)), w2 = Math.round(d.w * k2), h2 = Math.round(d.h * k2);
     mkdirSync(process.env.HD, { recursive: true });
-    await png(svgOf(d, { width: `${w2}px`, height: `${h2}px` }, true), w2, h2, `${process.env.HD}/${d.key}.png`);
+    await png(svgOf(d, { width: `${w2}px`, height: `${h2}px` }, !!d.ground), w2, h2, `${process.env.HD}/${d.key}.png`);
   }
   console.log(`${d.key}: ${d.w} × ${Math.round(d.h)} mm`);
 }
@@ -745,7 +746,7 @@ if (!only) {
     body{margin:0;padding:28px 32px;background:${CREAM};color:${INK};font:13px/1.3 system-ui,sans-serif;width:1736px}
     h1{font-size:26px;margin:0 0 4px}p{margin:0 0 8px;color:#57534e}h2{font-size:15px;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.08em;color:#9a4a12}
     .grid{display:grid;grid-template-columns:repeat(8,1fr);gap:10px}figure{margin:0}
-    .art{height:150px;display:flex;align-items:center;justify-content:center;background:#e7e0d9;border-radius:10px;padding:8px}
+    .art{height:150px;display:flex;align-items:center;justify-content:center;background:#4a4440;border-radius:10px;padding:8px}
     .art img{max-width:100%;max-height:100%;box-shadow:0 1px 3px rgba(0,0,0,.25)}figcaption{font-size:11px;margin-top:4px;word-break:break-all}
     .scene img{width:560px;border-radius:10px}</style>
     <h1>Herbal Holland store signs</h1><p>One set for every store. Generated ${new Date().toISOString().slice(0, 10)} by scripts/signage-art.tsx. Files and placement: README.md.</p>
@@ -772,7 +773,7 @@ files by hand: change the script and re-run. Every design is drawn at actual siz
 
 - \`<key>.pdf\`: actual size, vector, for the printer or sign maker.
 - \`<key>.svg\`: actual size, outlined lettering (no fonts needed), one colour where it is cut vinyl; for the plotter or router.
-- \`<key>.png\`: preview on the panel's colour (cut vinyl previews on a brown "glass" ground, which is not printed).
+- \`<key>.png\`: the design on its panel colour; glass and cut-vinyl designs have a transparent background (the glass shows through). \`<key>.preview.svg\` shows those on a glass tone.
 - \`contact-sheet.png\`: every design at a glance. \`storefront.png\`: a night mock-up of a street front with the set together.
 - \`designs.json\`: the same list as below, with the full fabrication note for each design.
 

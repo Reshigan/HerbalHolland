@@ -159,13 +159,13 @@
   "w": 1000,
   "h": 1250,
   "ink": "#f5913c",
-  "ground": "#0c0a09",
+  "ground": null,
   "side": "Outside",
-  "where": "Main shop window, behind the glass, centre 1,500 mm from the floor",
-  "material": "Reverse-printed clear window film (or 5 mm black foamboard hung 50 mm behind the glass)",
+  "where": "Main shop window, on the glass, centre 1,500 mm from the floor",
+  "material": "Sunset printed on clear (optically clear) window film, no background: the glass shows through",
   "qty": "1",
   "store": "",
-  "how": "Printed on the back of clear window film (or on a black foamboard panel hung 50 mm behind the glass). The window-poster frame: our oldest brand code, the store window itself."
+  "how": "Sunset only, printed on clear window film (reverse-printed for the inside of the glass, read from the street), or cut from Sunset vinyl. No background: the glass is the ground. The window-poster frame: our oldest brand code, the store window itself."
  },
  {
   "key": "window-qr",
@@ -173,13 +173,13 @@
   "w": 420,
   "h": 594,
   "ink": "#f5913c",
-  "ground": "#0c0a09",
+  "ground": null,
   "side": "Outside",
   "where": "Shop window beside the door, centre 1,300 mm from the floor (reachable for a phone)",
-  "material": "3 mm Forex (PVC foam) or 5 mm foamboard stood 20 mm behind the glass; or printed opaque window vinyl, face-mounted",
+  "material": "Sunset printed on clear window film, face-mounted on the outside of the glass; the QR tile printed solid cream (white-ink backed) so it scans",
   "qty": "1",
   "store": "",
-  "how": "Printed full colour (black ground, Sunset lettering, cream QR tile). The QR opens https://shop.herbalholland.com/club/join?src=window: test-scan the proof through the glass before printing in quantity. Keep the glass in front of the code clean and unfrosted."
+  "how": "Clear film: Sunset lettering and frame with no background, and only the QR tile printed solid cream (white ink behind it), since a code printed straight on glass won't scan. The QR opens https://shop.herbalholland.com/club/join?src=window: test-scan the proof through the glass before printing in quantity. Keep the glass in front of the code clean and unfrosted."
  },
  {
   "key": "counter-qr",
@@ -201,13 +201,13 @@
   "w": 1000,
   "h": 1250,
   "ink": "#f5913c",
-  "ground": "#0c0a09",
+  "ground": null,
   "side": "Outside",
-  "where": "Main shop window, behind the glass, centre 1,500 mm from the floor",
-  "material": "Reverse-printed clear window film (or 5 mm black foamboard hung 50 mm behind the glass)",
+  "where": "Main shop window, on the glass, centre 1,500 mm from the floor",
+  "material": "Sunset printed on clear (optically clear) window film, no background: the glass shows through",
   "qty": "1 (until opening day, then swap for the Now open version)",
   "store": "soon",
-  "how": "Printed on the back of clear window film (or on a black foamboard panel hung 50 mm behind the glass). The window-poster frame: our oldest brand code, the store window itself. For a store that isn't trading yet; on opening day swap it for the Now open version."
+  "how": "Sunset only, printed on clear window film (reverse-printed for the inside of the glass, read from the street), or cut from Sunset vinyl. No background: the glass is the ground. The window-poster frame: our oldest brand code, the store window itself. For a store that isn't trading yet; on opening day swap it for the Now open version."
  },
  {
   "key": "feature-mark",
