@@ -200,7 +200,7 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
   const phoneOk = !!normalisePhone(f.phone);
   const emailOk = !f.email || isEmail(f.email.trim());
   const underage = id?.ok && id.age < minAge;
-  const valid = phoneOk && f.firstName.trim() && emailOk && ((id?.ok && !underage) || (!f.idNumber && passport && !!dob)) && deals !== null && terms;
+  const valid = phoneOk && f.firstName.trim() && f.lastName.trim() && emailOk && ((id?.ok && !underage) || (!f.idNumber && passport && !!dob)) && deals !== null && terms;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   async function submit(e: React.FormEvent) {
@@ -241,8 +241,8 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
           <Field label="First name" htmlFor="nm-first" error={touched && !f.firstName.trim() ? "Enter their first name" : undefined}>
             <TextInput id="nm-first" autoFocus={!!phone} autoComplete="off" value={f.firstName} onChange={set("firstName")} aria-invalid={touched && !f.firstName.trim()} />
           </Field>
-          <Field label="Surname (optional)" htmlFor="nm-last">
-            <TextInput id="nm-last" autoComplete="off" value={f.lastName} onChange={set("lastName")} />
+          <Field label="Surname" htmlFor="nm-last" error={touched && !f.lastName.trim() ? "Enter their surname" : undefined}>
+            <TextInput id="nm-last" autoComplete="off" value={f.lastName} onChange={set("lastName")} aria-invalid={touched && !f.lastName.trim()} />
           </Field>
           <Field label="Email for deals and invoices (optional)" htmlFor="nm-email" error={!emailOk ? "That email doesn't look right" : undefined}>
             <TextInput id="nm-email" type="email" inputMode="email" autoComplete="off" value={f.email} onChange={set("email")} placeholder="name@example.co.za" aria-invalid={!emailOk} />

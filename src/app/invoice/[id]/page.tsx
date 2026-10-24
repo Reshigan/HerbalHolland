@@ -113,7 +113,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
   return (
     <main className="inv-page min-h-screen bg-ink-50 px-4 py-8 text-ink-850">
       <style>{PRINT_CSS}</style>
-      <PrintBar back={s.customerId ? { href: "/club/invoices", label: "Your invoices" } : null} />
+      <PrintBar back={s.customerId ? { href: "/club/invoices", label: "Your purchases" } : null} />
 
       <article className="inv-sheet mx-auto max-w-[210mm] rounded-2xl bg-white p-8 shadow-card ring-1 ring-ink-150 sm:p-12">
         <header className="inv-head flex flex-wrap items-start justify-between gap-6 border-b-4 border-brand-500 pb-6">

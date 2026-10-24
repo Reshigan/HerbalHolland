@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db, tx } from "@/server/db";
 import { saveSetting, DEFAULT_SETTINGS } from "@/server/settings";
-import { assignFounding, expireTierFloors, waitlistPlace } from "@/server/launch";
+import { assignFounding, expireTierFloors, FOUNDER_MEMBER_NO, waitlistPlace } from "@/server/launch";
 import { recordPurchase } from "@/server/loyalty";
 import { postPosSale, refundSale } from "@/server/sales";
 import { placeOrder } from "@/server/orders";
@@ -47,14 +47,17 @@ describe("Founding Members list", () => {
     const b = await member(2, { createdAt: new Date(t0 + 1000) });
     const c = await member(3, { createdAt: new Date(t0 + 2000) });
     await member(4, { createdAt: new Date(t0 + 3000), referredById: c.id }); // c moves up three places
+    const founderCard = await member(5, { memberNo: FOUNDER_MEMBER_NO, createdAt: new Date(t0 + 4000) }); // joins last, still first
+    expect((await waitlistPlace(founderCard.id))!.place).toBe(1);
     // Places (existing world members joined earlier): c jumps ahead of a and b.
     const [pa, pc] = [await waitlistPlace(a.id), await waitlistPlace(c.id)];
     expect(pc!.place).toBeLessThan(pa!.place);
     expect(pc!.referrals).toBe(1);
 
-    expect(await assignFounding()).toMatchObject({ assigned: 3, firstYear: 1 }); // #4 joined before the close but beyond the cap: a First Year Member
+    expect(await assignFounding()).toMatchObject({ assigned: 3, firstYear: 2 }); // #4 joined before the close but beyond the cap: a First Year Member
     expect((await assignFounding()).assigned).toBe(0); // idempotent
-    expect((await db.customer.findMany({ where: { foundingNo: null, tierFloor: "SPROUT" } })).length).toBe(1);
+    expect((await db.customer.findMany({ where: { foundingNo: null, tierFloor: "SPROUT" } })).length).toBe(2);
+    expect((await db.customer.findUniqueOrThrow({ where: { id: founderCard.id } })).foundingNo).toBe(1);
     const founders = await db.customer.findMany({ where: { foundingNo: { not: null } }, orderBy: { foundingNo: "asc" } });
     expect(founders.map((f) => f.tier)).toEqual(["SPROUT", "SPROUT", "SPROUT"]);
     const founder = founders[0];

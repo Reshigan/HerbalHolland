@@ -7,8 +7,11 @@ import { fmtDate } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { zar } from "@/lib/money";
 
-export const metadata = { title: "Invoices" };
+export const metadata = { title: "Purchases" };
 const PAGE = 12;
+/** "2 × Hemp Wick, Smell-proof Pouch + 3 more": what was bought, at a glance. */
+const items = (lines: { qty: number; variant: { product: { name: string } } }[], count: number) =>
+  lines.map((l) => `${l.qty > 1 ? `${l.qty} × ` : ""}${l.variant.product.name}`).join(", ") + (count > lines.length ? ` + ${count - lines.length} more` : "");
 const rel = (url: string) => {
   const u = new URL(url);
   return `${u.pathname}${u.search}`;
@@ -22,9 +25,9 @@ export default async function ClubInvoices({ searchParams }: { searchParams: Pro
 
   return (
     <Container className="pt-8">
-      <h1 className="font-display text-3xl font-semibold tracking-tight text-white">Invoices &amp; receipts</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-tight text-white">Purchase history</h1>
       <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-ink-400">
-        Every purchase in store and online, with a printable tax invoice from the store that sold it.
+        Everything you've bought, in store and online. Tap one for its tax invoice from the store that sold it.
         {customer.email ? (
           <span className="inline-flex items-center gap-1">
             <Mail className="h-3.5 w-3.5" /> Emailed to {customer.email}
@@ -44,14 +47,12 @@ export default async function ClubInvoices({ searchParams }: { searchParams: Pro
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-white">
-                        {s.title} {s.number}
-                      </span>
+                      <span className="min-w-0 truncate font-medium text-white">{items(s.lines, s._count.lines)}</span>
                       {s.kind === "REFUND" && <Tag tone="amber">Refund</Tag>}
                       {s.channel === "ONLINE" && <Tag>Online</Tag>}
                     </div>
                     <div className="truncate text-xs text-ink-450">
-                      {fmtDate(s.createdAt)} · {s.store.name} · {s._count.lines} item{s._count.lines === 1 ? "" : "s"}
+                      {fmtDate(s.createdAt)} · {s.store.name} · {s.title} {s.number}
                       {s.pointsEarned > 0 && ` · earned ${fmtPoints(s.pointsEarned)}`}
                     </div>
                   </div>
@@ -67,7 +68,7 @@ export default async function ClubInvoices({ searchParams }: { searchParams: Pro
       ) : (
         <div className="mt-6 rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center">
           <Receipt className="mx-auto h-9 w-9 text-ink-600" />
-          <p className="mt-3 text-sm text-ink-400">No purchases yet. Scan your card at the till and your invoices will appear here.</p>
+          <p className="mt-3 text-sm text-ink-400">No purchases yet. Scan your card at the till and what you buy will appear here, with its invoice.</p>
         </div>
       )}
     </Container>

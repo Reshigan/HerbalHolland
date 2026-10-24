@@ -284,7 +284,7 @@ try {
   const entries = await page.locator("main li").filter({ hasText: /[+−][\d,]+ pts$/ }).count();
   assert(points === ledger && entries === Math.min(lines, 20), `balance ${points} pts shown, equal to the ledger total; ${entries} of ${lines} entries listed (20 a page)`);
 
-  await timed("Rewards tab: Invoices", () => nav.getByRole("link", { name: "Invoices" }).click(), () => page.getByRole("heading", { name: "Invoices & receipts" }).waitFor());
+  await timed("Rewards tab: Purchases", () => nav.getByRole("link", { name: "Purchases" }).click(), () => page.getByRole("heading", { name: "Purchase history" }).waitFor());
   const invLink = page.locator('main a[href^="/invoice/"]').first();
   const invHref = await invLink.getAttribute("href");
   const saleId = invHref.split("/").pop().split("?")[0];
@@ -575,6 +575,7 @@ try {
   const dob = "1994-05-17";
   const friendEmail = friend.getByLabel(/Email for invoices/);
   await friend.getByLabel("First name").fill("Zanele");
+  await friend.getByLabel("Surname").fill("Mthembu");
   await friendEmail.fill(taken);
   await friend.getByRole("radio", { name: "Passport" }).click();
   await friend.getByLabel("Date of birth").fill(dob);
@@ -588,6 +589,7 @@ try {
   await timed("Join: create account (email taken)", () => friend.getByRole("button", { name: /Join and continue/ }).click(), () => friend.getByText("That email is already linked to another member").waitFor());
   const kept = [
     (await friend.getByLabel("First name").inputValue()) === "Zanele",
+    (await friend.getByLabel("Surname").inputValue()) === "Mthembu",
     (await friendEmail.inputValue()) === taken,
     (await friend.getByLabel("Date of birth").inputValue()) === dob,
     (await friend.getByLabel("Home store").inputValue()) === home,
@@ -652,7 +654,8 @@ try {
   const tokens = JSON.parse(
     execFileSync(`${ROOT}node_modules/.bin/tsx`, ["--env-file-if-exists=.env", "-e", `import { optOutToken } from "./src/server/messaging.ts"; const id = process.argv.at(-1); console.log(JSON.stringify({ SMS: optOutToken(id, "SMS"), EMAIL: optOutToken(id, "EMAIL") }));`, pal.id], { cwd: ROOT, encoding: "utf8" }).trim().split("\n").pop(),
   );
-  await friend.goto(`${BASE}/unsubscribe?c=${pal.id}&ch=SMS&t=${tokens.SMS.slice(0, -1)}x`);
+  // Change the last character (to anything but itself: a token can end in "x" already).
+  await friend.goto(`${BASE}/unsubscribe?c=${pal.id}&ch=SMS&t=${tokens.SMS.slice(0, -1)}${tokens.SMS.endsWith("x") ? "y" : "x"}`);
   await friend.getByRole("heading", { name: "This link has expired" }).waitFor();
   ok("a tampered link is refused");
   await friend.goto(`${BASE}/unsubscribe?c=${pal.id}&ch=SMS&t=${tokens.SMS}`);

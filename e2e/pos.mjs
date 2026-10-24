@@ -97,6 +97,7 @@ try {
   const joinId = [...Array(10).keys()].map((z) => idBase + z).find(luhnOk);
   await page.getByLabel("Mobile number").fill(joinPhone);
   await page.getByLabel("First name").fill("Sipho");
+  await page.getByLabel("Surname").fill("Ndlovu");
   await page.getByLabel("SA ID number").fill(joinId);
   await page.getByTestId("deals-question").getByRole("button", { name: "Yes, send deals" }).click();
   await page.getByTestId("deals-question").getByRole("button", { name: "CBD & wellness" }).click();

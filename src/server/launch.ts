@@ -20,16 +20,20 @@ const tierRank = (col: Prisma.Sql) => Prisma.sql`CASE ${col} ${Prisma.join(TIERS
 // The higher of a tier column and a tier.
 const atLeast = (col: Prisma.Sql, tier: string) => Prisma.sql`CASE WHEN ${tierRank(col)} >= ${TIERS.findIndex((t) => t.key === tier)} THEN ${col} ELSE ${tier} END`;
 
+/** The founder's card: always Founding Member #0001, whatever the list does. */
+export const FOUNDER_MEMBER_NO = "HH0100001";
+
 // Waitlist ranking (members who joined before `at`), shared by the place lookup and founding assignment.
 const ranked = (at: Date, boost: number) => Prisma.sql`
   WITH refs AS (
     SELECT "referredById" AS id, count(*) AS n FROM "Customer"
     WHERE "referredById" IS NOT NULL AND "createdAt" < ${at} GROUP BY 1
   ), w AS (
-    SELECT c.id, row_number() OVER (ORDER BY c."createdAt", c.id) AS seq, coalesce(r.n, 0) AS refs
+    SELECT c.id, row_number() OVER (ORDER BY c."createdAt", c.id) AS seq, coalesce(r.n, 0) AS refs,
+      CASE WHEN c."memberNo" = ${FOUNDER_MEMBER_NO} THEN 0 ELSE 1 END AS founder
     FROM "Customer" c LEFT JOIN refs r ON r.id = c.id WHERE c."createdAt" < ${at}
   ), ranked AS (
-    SELECT id, refs, row_number() OVER (ORDER BY seq - ${boost} * refs, seq) AS place, count(*) OVER () AS total FROM w
+    SELECT id, refs, row_number() OVER (ORDER BY founder, seq - ${boost} * refs, seq) AS place, count(*) OVER () AS total FROM w
   )`;
 
 /** How many Founding places the list has used (members who joined before it closes), cached per request. */

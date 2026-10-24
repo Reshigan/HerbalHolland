@@ -15,8 +15,9 @@ export function AddMember({ action, storeName }: { action: FormAction; storeName
             <Input id="m-first" name="firstName" required maxLength={60} autoComplete="off" />
             <FieldError name="firstName" />
           </Field>
-          <Field label="Last name" htmlFor="m-last">
-            <Input id="m-last" name="lastName" maxLength={60} autoComplete="off" />
+          <Field label="Surname" htmlFor="m-last">
+            <Input id="m-last" name="lastName" required maxLength={60} autoComplete="off" />
+            <FieldError name="lastName" />
           </Field>
         </div>
         <Field label="Mobile number" htmlFor="m-phone" hint="Used to sign in with a one-time code">
