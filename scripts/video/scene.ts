@@ -9,6 +9,9 @@ export type Scene = {
   name: string;
   seconds: number;
   html: (ctx: Ctx) => Promise<string> | string;
+  /** Optional soundtrack: the body of an async browser function `(seconds, rate)` returning an AudioBuffer from an
+   *  OfflineAudioContext (render.tsx runs it in the page and muxes it as AAC). */
+  audio?: string;
 };
 
 export const ORANGE = "#F5913C", BLACK = "#0C0A09", CREAM = "#F4EDE4";
@@ -16,7 +19,8 @@ export const ORANGE = "#F5913C", BLACK = "#0C0A09", CREAM = "#F4EDE4";
 export const EASE = "cubic-bezier(.16,1,.3,1)";
 export const EASE_IO = "cubic-bezier(.65,0,.35,1)";
 export const EASE_BOUNCE = "cubic-bezier(.34,1.56,.64,1)";
-export const JOIN_URL = "shop.herbalholland.com/club/join";
+/** The short join link (herbalholland.com redirects it to Rewards sign-up on the shop). */
+export const JOIN_URL = "herbalholland.com/join";
 
 const font = readFileSync(new URL("../../node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2", import.meta.url)).toString("base64");
 

@@ -8,7 +8,7 @@
 // ORIENT=9x16|16x9 (default both), FPS (30), CRF (23; raised automatically while a file is over MAX_MB),
 // MAX_MB (4), JOBS (2 renders in parallel), OUT (public/brand/video), STILLS=<dir> (also writes one PNG per second, for QA).
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { once } from "node:events";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -45,6 +45,23 @@ const scenes = names.length ? names.map((n) => SCENES.find((s) => s.name === n) 
 mkdirSync(OUT, { recursive: true });
 if (STILLS) mkdirSync(STILLS, { recursive: true });
 
+/** Runs a scene's soundtrack in the page (48 kHz) and returns it as a 16-bit WAV, base64. Plain source, not a
+ *  function: tsx would wrap a passed function in helpers the page doesn't have. */
+const RENDER_WAV = `async ([body, seconds]) => {
+  const rate = 48000;
+  const buf = await new Function("seconds", "rate", "return (async () => {" + body + "})()")(seconds, rate);
+  const n = buf.length, ch = buf.numberOfChannels, out = new DataView(new ArrayBuffer(44 + n * ch * 2));
+  const str = (o, t) => { for (let i = 0; i < t.length; i++) out.setUint8(o + i, t.charCodeAt(i)); };
+  str(0, "RIFF"); out.setUint32(4, 36 + n * ch * 2, true); str(8, "WAVEfmt "); out.setUint32(16, 16, true); out.setUint16(20, 1, true);
+  out.setUint16(22, ch, true); out.setUint32(24, rate, true); out.setUint32(28, rate * ch * 2, true); out.setUint16(32, ch * 2, true);
+  out.setUint16(34, 16, true); str(36, "data"); out.setUint32(40, n * ch * 2, true);
+  const data = []; for (let c = 0; c < ch; c++) data.push(buf.getChannelData(c));
+  for (let i = 0, o = 44; i < n; i++) for (let c = 0; c < ch; c++, o += 2) out.setInt16(o, Math.max(-1, Math.min(1, data[c][i])) * 0x7fff, true);
+  const bytes = new Uint8Array(out.buffer); let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}`;
+
 const ctxFor = (orient: "9x16" | "16x9"): Ctx => (orient === "9x16" ? { w: 1080, h: 1920, portrait: true } : { w: 1920, h: 1080, portrait: false });
 
 async function encode(page: Page, scene: Scene, orient: "9x16" | "16x9", crf: number) {
@@ -57,11 +74,14 @@ async function encode(page: Page, scene: Scene, orient: "9x16" | "16x9", crf: nu
     await Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; }))));
     for (const a of document.getAnimations()) a.pause();
   });
+  const wav = scene.audio ? join(OUT, `.${scene.name}-${orient}.wav`) : null;
+  if (wav) writeFileSync(wav, Buffer.from((await page.evaluate(`(${RENDER_WAV})(${JSON.stringify([scene.audio, scene.seconds])})`)) as string, "base64"));
   const ff = spawn(FFMPEG, [
     "-y", "-hide_banner", "-loglevel", "error",
     "-f", "image2pipe", "-framerate", String(FPS), "-c:v", "mjpeg", "-i", "-",
+    ...(wav ? ["-i", wav, "-c:a", "aac", "-b:a", "192k", "-shortest"] : ["-an"]),
     "-c:v", "libx264", "-preset", "slow", "-crf", String(crf), "-profile:v", "high", "-level", "4.1",
-    "-pix_fmt", "yuv420p", "-r", String(FPS), "-movflags", "+faststart", "-an", file,
+    "-pix_fmt", "yuv420p", "-r", String(FPS), "-movflags", "+faststart", file,
   ], { stdio: ["pipe", "inherit", "inherit"] });
   const frames = Math.round(scene.seconds * FPS);
   for (let f = 0; f < frames; f++) {
@@ -77,6 +97,7 @@ async function encode(page: Page, scene: Scene, orient: "9x16" | "16x9", crf: nu
   ff.stdin.end();
   const [code] = (await once(ff, "close")) as [number];
   if (code !== 0) throw new Error(`ffmpeg exited ${code} for ${file}`);
+  if (wav) rmSync(wav);
   return file;
 }
 
@@ -84,7 +105,7 @@ function probe(file: string) {
   if (FFPROBE) {
     const r = spawnSync(FFPROBE, ["-v", "error", "-show_entries", "format=duration:stream=codec_name,width,height,pix_fmt", "-of", "json", file], { encoding: "utf8" });
     const j = JSON.parse(r.stdout || "{}");
-    const s = j.streams?.[0] ?? {};
+    const s = j.streams?.find((x: { codec_name?: string }) => x.codec_name !== "aac") ?? {};
     return { seconds: Number(j.format?.duration ?? 0), codec: s.codec_name, size: `${s.width}x${s.height}`, pix: s.pix_fmt };
   }
   const r = spawnSync(FFMPEG, ["-hide_banner", "-i", file], { encoding: "utf8" });
