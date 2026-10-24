@@ -36,7 +36,7 @@ describe("titles and descriptions", () => {
     expect(pageTitle("Registered patients & Section 21: how collection works")).toEqual({ absolute: "Registered patients & Section 21: how collection works" });
   });
   it("builds descriptions of 120–160 characters, adding fillers only while short", () => {
-    const filler = "Lab-tested, batch-traceable, click & collect in store or delivered nationwide. Adults 18+.";
+    const filler = "Members only, free to join, click & collect in store or delivered nationwide. Adults 18+.";
     const short = metaDescription("Oils, drops and capsules for everyday calm.", filler, "Never used");
     expect(short.length).toBeGreaterThanOrEqual(DESCRIPTION_MIN);
     expect(short.length).toBeLessThanOrEqual(DESCRIPTION_MAX);

@@ -7,7 +7,7 @@ export const GOOGLE: Playbook[] = [
   {
     key: "google-month",
     name: "Google profile: a month for one store",
-    blurb: "Four Monday posts for one store's Google profile, posted by hand: the hours and how to find us, joining Herbal Holland Rewards at the till, reading a label or a lab page with the team, and the store's monthly Gezellig evening. Store and event news only: no product or offer words.",
+    blurb: "Four Monday posts for one store's Google profile, posted by hand: the hours and how to find us, joining Herbal Holland Rewards at the till, reading a label with the team, and the store's monthly Gezellig evening. Store and event news only: no product or offer words.",
     store: true,
     weekday: 1,
     why: "Google posts go up on Monday mornings",
@@ -23,7 +23,7 @@ export const GOOGLE: Playbook[] = [
       },
       {
         key: "labels", day: 14, time: "09:00", channel: "GOOGLE",
-        text: "Ask the team at {store} to read a label with you. Every batch has a public lab page: scan the QR on the pack, and we'll walk you through it, line by line, in plain English. Questions are always welcome. Adults 18+, bring your ID.",
+        text: "Ask the team at {store} to read a label with you. We'll walk you through it, line by line, in plain English: what it is, the numbers and what's in it. Questions are always welcome. Adults 18+, bring your ID.",
       },
       {
         key: "gezellig", day: 21, time: "09:00", channel: "GOOGLE",

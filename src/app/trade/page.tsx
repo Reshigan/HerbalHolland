@@ -2,7 +2,7 @@
 // (counts only; prices show after sign-in), how it works, and the two doors: apply or sign in. Organization JSON-LD.
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, BadgePercent, Coffee, FileText, FlaskConical, Landmark, Leaf, Package, Pill, Store, Stethoscope, Truck } from "lucide-react";
+import { ArrowRight, BadgePercent, Coffee, FileText, Landmark, Leaf, Package, Pill, Store, Stethoscope, Truck } from "lucide-react";
 import { db } from "@/server/db";
 import { getSettings } from "@/server/settings";
 import { getTradeBuyer } from "@/server/trade/auth";
@@ -19,7 +19,7 @@ import { zarWhole } from "@/lib/money";
 import { num } from "@/lib/format";
 
 const TITLE = "Herbal Holland Trade: wholesale, done properly";
-const DESCRIPTION = "Trade prices ex VAT, case packs and lab-tested batches for pharmacies, independent retailers, cafés and wellness practices. Courier from our DC or click & collect. Adults 18+.";
+const DESCRIPTION = "Trade prices ex VAT and case packs for pharmacies, independent retailers, cafés and wellness practices. Courier from our DC or click & collect. Adults 18+.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -38,7 +38,6 @@ const KIND_ICON: Record<string, React.ReactNode> = {
 const GET_ICON: Record<string, React.ReactNode> = {
   prices: <BadgePercent className="h-6 w-6" strokeWidth={1.7} aria-hidden />,
   cases: <Package className="h-6 w-6" strokeWidth={1.7} aria-hidden />,
-  coa: <FlaskConical className="h-6 w-6" strokeWidth={1.7} aria-hidden />,
   delivery: <Truck className="h-6 w-6" strokeWidth={1.7} aria-hidden />,
   terms: <Landmark className="h-6 w-6" strokeWidth={1.7} aria-hidden />,
   invoices: <FileText className="h-6 w-6" strokeWidth={1.7} aria-hidden />,
@@ -48,14 +47,13 @@ const GET_ICON: Record<string, React.ReactNode> = {
 const TRADE_PRODUCT = { status: "ACTIVE" as const, regClass: { in: TRADE_CLASSES }, variants: { some: { active: true, podSku: null, wholesaleCents: { gt: 0 } } } };
 
 export default async function TradeLanding() {
-  const [settings, buyer, franchisor, categories, collectStores, dcs, lots] = await Promise.all([
+  const [settings, buyer, franchisor, categories, collectStores, dcs] = await Promise.all([
     getSettings(),
     getTradeBuyer(),
     getFranchisor(),
     db.category.findMany({ where: { products: { some: TRADE_PRODUCT } }, orderBy: { sortOrder: "asc" }, select: { id: true, slug: true, name: true, icon: true, blurb: true, _count: { select: { products: { where: TRADE_PRODUCT } } } } }),
     db.store.count({ where: { kind: "RETAIL", status: "ACTIVE", clickCollect: true } }),
     db.store.count({ where: { kind: "WAREHOUSE", status: "ACTIVE" } }),
-    db.batch.count({ where: { labName: { not: null }, status: "RELEASED" } }),
   ]);
   const t = settings.trade;
   const base = siteUrl();
@@ -117,7 +115,7 @@ export default async function TradeLanding() {
                   <div className="min-w-0">
                     <div className="truncate font-semibold text-white">{name}</div>
                     <div className="mt-0.5 text-xs text-ink-400">
-                      {pack} · lab-tested batch · certificate of analysis
+                      {pack} · trade price ex VAT
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
@@ -165,7 +163,6 @@ export default async function TradeLanding() {
                   {g.key === "cases" ? ` The minimum order is ${zarWhole(t.minOrderCents)} ex VAT.` : ""}
                   {g.key === "delivery" ? ` Courier ${zarWhole(t.deliveryCents)} ex VAT; collection handling ${zarWhole(t.collectHandlingCents)} ex VAT.` : ""}
                   {g.key === "terms" ? ` EFT orders are held ${t.eftHoldDays} days for payment.` : ""}
-                  {g.key === "coa" && lots > 0 ? ` ${num(lots)} released lots carry one today.` : ""}
                 </p>
               </div>
             </li>

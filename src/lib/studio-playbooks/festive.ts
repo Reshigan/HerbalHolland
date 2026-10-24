@@ -67,10 +67,10 @@ export const FESTIVE: Playbook[] = [
       },
       {
         key: "learn-lab", day: 8, time: "07:00", channel: "SOCIAL",
-        text: "Read a lab result in a minute: potency, the terpene list, and the four safety tests every batch should pass (microbes, pesticides, heavy metals and residual solvents). Every one of our batches has a public lab page: scan the QR on the pack. More in Learn: link in bio. Adults 18+. #HerbalHolland",
-        short: "Read a lab result in a minute: potency, terpenes, and the four safety tests every batch should pass. Every one of our batches has a public lab page: scan the QR on the pack. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Learn", headline: "Read a lab result in a minute.", sub: "Potency, terpenes, and the four safety tests every batch should pass." },
-        brief: "A 5-slide carousel: 1) Read a lab result in a minute; 2) potency, and what the numbers mean; 3) the terpene list; 4) the four safety tests: microbes, pesticides, heavy metals, residual solvents; 5) scan the QR on the pack for the batch's lab page.",
+        text: "The festive basics, in a minute: adults 18+ only; keep products in their original packaging, locked away and out of reach; never drive or operate machinery while impaired; and don't mix with alcohol. More in Learn: link in bio. Adults 18+. #HerbalHolland",
+        short: "The festive basics, in a minute: adults 18+ only; locked away and out of reach; never drive while impaired; don't mix with alcohol. More in Learn: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "Learn", headline: "The festive basics, in a minute.", sub: "Adults 18+, locked away, never drive impaired, and don't mix." },
+        brief: "A 5-slide carousel: 1) The festive basics, in a minute; 2) adults 18+ only; 3) locked away and out of reach; 4) never drive or operate machinery while impaired; 5) don't mix with alcohol. Brand artwork, no products in shot.",
       },
       {
         key: "thank-you", day: 9, time: "19:00", channel: "SOCIAL", linkedin: "also",

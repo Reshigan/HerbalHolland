@@ -36,7 +36,7 @@ export const ARTICLES: ArticleMeta[] = [
     aliases: ["coa-lab-results"],
     kicker: "Quality",
     title: "How to read a lab result",
-    dek: "Every pack carries a batch code. Here's what the certificate of analysis behind it tells you, and what a PASS really means.",
+    dek: "A certificate of analysis covers one batch of a product. Here's what the numbers on it tell you, and what a PASS really means.",
     minutes: 5,
     published: "2026-09-28",
     updated: "2026-09-28",

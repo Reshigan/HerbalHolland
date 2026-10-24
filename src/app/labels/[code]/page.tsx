@@ -21,7 +21,6 @@ type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ cat?: 
 type Label = BoardItem & { category: string };
 
 const PER = { edge: 21, talker: 4 } as const;
-const NO_LAB: string[] = ["ACCESSORY", "APPAREL", "GROW"]; // no certificate of analysis to show
 const chunk = <T,>(xs: T[], n: number) => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n));
 
 const PRINT_CSS = `
@@ -145,7 +144,7 @@ function Talker({ i, today, base }: { i: Label; today: string; base: string }) {
         </div>
         <div className="w-[24mm] shrink-0 text-center">
           <QrCode value={`${base}/p/${i.slug}`} label={`${i.name}: details online`} margin={1} className="w-full" />
-          <div className="mt-[1mm] text-[6pt] leading-tight text-ink-600">{NO_LAB.includes(i.regClass) ? "Scan for details" : "Scan for lab results"}</div>
+          <div className="mt-[1mm] text-[6pt] leading-tight text-ink-600">Scan for details</div>
         </div>
       </div>
       <div className="mt-[5mm] border-t border-ink-200 pt-[2mm] text-[6pt] text-ink-500">Prices include VAT · price at {today} · Adults 18+ only</div>

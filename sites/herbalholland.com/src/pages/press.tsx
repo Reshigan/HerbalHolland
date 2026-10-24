@@ -40,7 +40,6 @@ function FactSheet({ id }: { id: string }) {
     [facts.rows.membership, facts.values.membership],
     [facts.rows.founding, fill(facts.values.founding, V)],
     [facts.rows.age, facts.values.age],
-    [facts.rows.quality, facts.values.quality],
     [facts.rows.medicines, facts.values.medicines],
     [
       facts.rows.online,

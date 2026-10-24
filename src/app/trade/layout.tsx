@@ -5,7 +5,7 @@ import { TradeChrome } from "@/components/trade/chrome";
 // trade terms do).
 export const metadata: Metadata = {
   title: { default: "Herbal Holland Trade", template: "%s · Herbal Holland Trade" },
-  description: "Herbal Holland Trade: wholesale for pharmacies, independent retailers, cafés and wellness practices. Trade prices ex VAT, case packs, lab-tested batches. Adults 18+.",
+  description: "Herbal Holland Trade: wholesale for pharmacies, independent retailers, cafés and wellness practices. Trade prices ex VAT and case packs. Adults 18+.",
   robots: { index: false, follow: false },
 };
 

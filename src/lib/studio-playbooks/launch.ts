@@ -21,10 +21,10 @@ export const LAUNCH: Playbook[] = [
         key: "welkom", day: 0, time: "07:00", channel: "SOCIAL",
         text: paras(
           "Welkom, and sawubona. We're Herbal Holland.",
-          "We're a members-only wellness retailer for adults 18+, with Dutch heritage and our feet in African soil. We like a warm welcome, plain answers and knowing exactly what's on the shelf, so every batch we sell is lab-tested, with a public lab page you can check for yourself. Our online shop opens soon, and our stores in Hillcrest and Hilton follow.",
+          "We're a members-only wellness retailer for adults 18+, with Dutch heritage and our feet in African soil. We like a warm welcome, plain answers and a team that knows what's on the shelf. Our online shop opens soon, and our stores in Hillcrest and Hilton follow.",
           "Get first access: link in bio. Adults 18+. #HerbalHolland #HollandMeetsTheHills",
         ),
-        short: "Welkom, and sawubona. We're Herbal Holland: a members-only wellness retailer for adults 18+. Every batch is lab-tested, with a public lab page. Our online shop opens soon, and our stores in Hillcrest and Hilton follow. Get first access: link in bio. Adults 18+. #HerbalHolland",
+        short: "Welkom, and sawubona. We're Herbal Holland: a members-only wellness retailer for adults 18+, and it's free to join. Our online shop opens soon, and our stores in Hillcrest and Hilton follow. Get first access: link in bio. Adults 18+. #HerbalHolland",
         card: { template: "reveal", eyebrow: "Welkom · Sawubona", headline: "Holland, meet the Hills.", sub: "Dutch heritage · African soil." },
       },
       {
@@ -32,7 +32,7 @@ export const LAUNCH: Playbook[] = [
         text: paras(
           "Welkom, and sawubona: this is the Herbal Holland Channel.",
           "We're a members-only wellness retailer for adults 18+, with Dutch heritage and our feet in African soil. Our online shop opens soon, and our stores in Hillcrest and Hilton follow.",
-          "Follow the Channel for our news: opening days, events, new merch, and Learn, our plain-English reads on lab results, labels and the law.",
+          "Follow the Channel for our news: opening days, events, new merch, and Learn, our plain-English reads on labels, Rewards and the law.",
           "Want to hear the day the shop opens? Get first access at herbalholland.com. Adults 18+.",
         ),
       },
@@ -40,13 +40,13 @@ export const LAUNCH: Playbook[] = [
         key: "how-we-work", day: 1, time: "12:00", channel: "SOCIAL", linkedin: "only",
         text: paras(
           "Why we're building Herbal Holland the way we are.",
-          "Standards you can check. Every batch we sell is lab-tested, and every batch has a public lab page: scan the QR on the pack to see what the lab measured and what it screened for.",
+          "A team that knows the shelf. Ask us about a product, its label or the law as it stands, and you'll get a plain answer.",
           "Members only. Everyone who shops with us is a member of Herbal Holland Rewards, free to join for adults 18+. It's how we keep what we do for adults only: we check your age when you join, and your ID at the door and the till.",
-          "Plain English. No medical claims and no hype. Learn, our library of short reads on lab results, labels and the law as it stands, says what we know and how we know it.",
+          "Plain English. No medical claims and no hype. Learn, our library of short reads on labels, Rewards and the law as it stands, says what we know and how we know it.",
           "Our online shop opens soon, and our stores in Hillcrest and Hilton, in KwaZulu-Natal, follow. Get first access at herbalholland.com. Adults 18+. #HerbalHolland",
         ),
-        short: "Why we're building Herbal Holland this way: every batch lab-tested, with a public lab page; members only, free to join for adults 18+; plain English, with no medical claims and no hype. Get first access at herbalholland.com. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "How we work", headline: "Standards you can check.", sub: "Lab-tested batches with public lab pages. Members only. Plain English." },
+        short: "Why we're building Herbal Holland this way: members only, free to join for adults 18+; a team that knows the shelf; plain English, with no medical claims and no hype. Get first access at herbalholland.com. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "How we work", headline: "Members only. Plain English.", sub: "Free to join for adults 18+, with ID checked at the door and the till." },
       },
       {
         key: "windmill", day: 1, time: "19:00", channel: "SOCIAL",
@@ -71,13 +71,13 @@ export const LAUNCH: Playbook[] = [
       {
         key: "learn-lab", day: 4, time: "09:00", channel: "SOCIAL",
         text: paras(
-          "Read a lab result in a minute.",
-          "Every batch we sell has a public lab page: scan the QR on the pack for the certificate behind that exact batch. Look for three things. The potency. The terpene list, which is the aroma profile. And the safety panels every batch should pass: microbes, pesticides, heavy metals and mycotoxins. PASS means the lab measured each one below its limit.",
+          "Read a CBD label in a minute.",
+          "Every Schedule 0 CBD product shows three things. The CBD per pack: no more than 600 mg. The maximum daily serving: no more than 20 mg of CBD a day. And its approved claims, and nothing else. If a CBD product anywhere promises to fix a medical condition, take that as a warning sign.",
           "Get first access: link in bio. Adults 18+. #HerbalHolland",
         ),
-        short: "Read a lab result in a minute: the potency, the terpene list (the aroma profile) and the safety panels every batch should pass. Every batch we sell has a public lab page: scan the QR on the pack. Get first access: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Learn", headline: "Read a lab result in a minute.", sub: "Potency, terpenes and the safety panels every batch should pass." },
-        brief: "Carousel, 5 slides: 1 'Read a lab result in a minute'; 2 find the batch code and the QR on the label; 3 potency, as a percentage by weight; 4 the safety panels (microbes, pesticides, heavy metals, mycotoxins) and what PASS means; 5 terpenes, the aroma profile, and 'Scan the QR on the pack for its lab page'. Brand artwork, no product close-ups.",
+        short: "Read a CBD label in a minute: the CBD per pack (no more than 600 mg), the maximum daily serving (no more than 20 mg a day) and its approved claims, and nothing else. Get first access: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "Learn", headline: "Read a CBD label in a minute.", sub: "The CBD per pack, the daily serving and the approved claims." },
+        brief: "Carousel, 4 slides: 1 'Read a CBD label in a minute'; 2 the CBD per pack, no more than 600 mg; 3 the maximum daily serving, no more than 20 mg of CBD a day; 4 the approved claims, and nothing else. Brand artwork, no product close-ups.",
       },
       {
         key: "rewards", day: 7, time: "07:00", channel: "SOCIAL",
@@ -263,7 +263,7 @@ export const LAUNCH: Playbook[] = [
           "Welkom to The Windmill, our newsletter for members of Herbal Holland Rewards. This is the first one.",
           "The story so far. Our online shop opened a week ago, for adults 18+ anywhere in South Africa, and everyone who has joined since has a place on the Founding Members list. Siyabonga for being here early.",
           "Your Founding place. The first 2,026 places get a numbered Founding Member card in the Rewards app and at least Sprout tier for 14 months: Sprout-tier savings on eligible items and early access to selected drops, and an invitation to a Founding Members' Evening every December. Your place is in the app. To move up, share your link: every friend who joins with it moves you up 250 places, and you both get 50 points on their first purchase.",
-          "Three Learn reads. How to read a lab result: potency, terpenes and the safety panels every batch should pass. What Schedule 0 means on a label. And how Rewards works, from Seed to Harvest. Each takes a few minutes, in plain English, at shop.herbalholland.com/learn.",
+          "Three Learn reads. The heritage landraces and the people who grow them. What Schedule 0 means on a label. And how Rewards works, from Seed to Harvest. Each takes a few minutes, in plain English, at shop.herbalholland.com/learn.",
           "Wear the windmill. The Windmill Tee, the Sunset Hoodie, the Heritage Crewneck, the Windmill Cap, the Sunset Bucket Hat, the Windmill Beanie and the Windmill Tote are all in stock: delivered anywhere in South Africa, or collected in store once our stores open.",
           "Two new stores in the hills. Hillcrest, in the Upper Highway, and Hilton, in the KZN Midlands, open their doors in December. Invitations to the opening week follow soon.",
           "See you soon,\nThe Herbal Holland team",
@@ -303,10 +303,10 @@ export const LAUNCH: Playbook[] = [
         key: "reveal", day: -33, time: "07:00", channel: "SOCIAL",
         text: paras(
           "{town}, we're your new neighbours. {store} opens on {date} at 09:00, at {address}.",
-          "We're members only, for adults 18+. Every batch is lab-tested, with a public lab page, and joining Herbal Holland Rewards is free.",
+          "We're members only, for adults 18+, and joining Herbal Holland Rewards is free.",
           "Until then, we're online: link in bio. Adults 18+. #HerbalHolland #HollandMeetsTheHills",
         ),
-        short: "{town}, we're your new neighbours: {store} opens on {date} at 09:00. Members only, for adults 18+, and every batch lab-tested. Until then, we're online: link in bio. Adults 18+. #HerbalHolland",
+        short: "{town}, we're your new neighbours: {store} opens on {date} at 09:00. Members only, for adults 18+, and free to join. Until then, we're online: link in bio. Adults 18+. #HerbalHolland",
         card: { template: "reveal", headline: "Something's turning in {town}.", sub: "{store} opens {date}." },
         brief: "Photo: the street outside the store on a clear morning, with the window wrap ('Something's turning') up and the orange frame in view. No people needed.",
       },
@@ -333,7 +333,7 @@ export const LAUNCH: Playbook[] = [
       },
       {
         key: "google-coming", day: -29, time: "09:00", channel: "GOOGLE",
-        text: "Herbal Holland is coming to {town}. {store} opens on {date} at 09:00, at {address}. We're a members-only store for adults 18+, and joining Herbal Holland Rewards is free, online or at the till. Every batch is lab-tested, with a public lab page you can check by scanning the QR on the pack.",
+        text: "Herbal Holland is coming to {town}. {store} opens on {date} at 09:00, at {address}. We're a members-only store for adults 18+, and joining Herbal Holland Rewards is free, online or at the till. Bring your ID: we check it at the door and the till.",
       },
       {
         key: "invitations", day: -20, time: "19:00", channel: "SOCIAL", shared: true,
@@ -669,7 +669,7 @@ export const LAUNCH: Playbook[] = [
         key: "managers", day: -9, time: "12:00", channel: "SOCIAL", linkedin: "only",
         text: paras(
           "We're hiring store managers.",
-          "A Herbal Holland store manager runs the store and the team: rosters, stock, cash-ups, the neighbours and the standards. The standards are the job: every batch lab-tested, members only, and ID checked at the door and the till, every time. Training starts on day one.",
+          "A Herbal Holland store manager runs the store and the team: rosters, stock, cash-ups, the neighbours and the standards. The standards are the job: members only, adults 18+, and ID checked at the door and the till, every time. Training starts on day one.",
           "If you've run a store, a café or a front-of-house team and you like doing things properly, apply by {date} at herbalholland.com/careers. We never charge to apply. Adults 18+. #HerbalHolland",
         ),
         short: "We're hiring store managers: run the store and the team, from rosters and stock to cash-ups, the neighbours and the standards. Apply by {date} at herbalholland.com/careers. We never charge to apply. Adults 18+. #HerbalHolland",
@@ -689,12 +689,12 @@ export const LAUNCH: Playbook[] = [
         key: "advisors", day: -7, time: "12:00", channel: "SOCIAL", linkedin: "only",
         text: paras(
           "What does a member advisor do?",
-          "They're the first person a member meets: a warm welcome at the door, an ID check, and clear, plain-English answers to questions about lab results, labels and Rewards. If that sounds like you, we'd like to hear from you. We train you from day one.",
+          "They're the first person a member meets: a warm welcome at the door, an ID check, and clear, plain-English answers to questions about products, labels and Rewards. If that sounds like you, we'd like to hear from you. We train you from day one.",
           "Apply by {date} at herbalholland.com/careers. We never charge to apply. Adults 18+. #HerbalHolland",
         ),
-        short: "What does a member advisor do? A warm welcome at the door, an ID check, and plain-English answers about lab results, labels and Rewards. We train you from day one. Apply by {date} at herbalholland.com/careers. Adults 18+. #HerbalHolland",
+        short: "What does a member advisor do? A warm welcome at the door, an ID check, and plain-English answers about products, labels and Rewards. We train you from day one. Apply by {date} at herbalholland.com/careers. Adults 18+. #HerbalHolland",
         card: { template: "headline", eyebrow: "We're hiring", headline: "Member advisors", sub: "A warm welcome, an ID check and plain-English answers. Apply by {date}." },
-        brief: "Photo or 20-second Reel: a member advisor (adult over 25, signed release) welcoming someone at the door, checking ID, then talking them through a lab page on a phone.",
+        brief: "Photo or 20-second Reel: a member advisor (adult over 25, signed release) welcoming someone at the door, checking ID, then talking them through the Rewards app on a phone.",
       },
       {
         key: "last-day", day: 0, time: "07:00", channel: "SOCIAL", pinned: true, linkedin: "also",

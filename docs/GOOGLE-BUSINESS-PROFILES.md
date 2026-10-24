@@ -38,8 +38,8 @@ For the two opening-soon stores, set the opening date (Google allows up to 90 da
 ## Description (750 characters at most; same for every store, change the town)
 
 > Herbal Holland in Bluff is a members' store for adults 18+: CBD wellness, accessories, grow gear and Herbal Holland
-> apparel. Every consumable is lab-tested and batch-traceable, and the code on each pack opens its certificate. Join
-> Herbal Holland Rewards free in store or online for member prices from your first visit and points on every purchase.
+> apparel. Join Herbal Holland Rewards free in store or online for member prices from your first visit and points on
+> every purchase.
 > Our team will help you find what suits you. Dutch heritage, African soil.
 
 No health claims, no "dispensary", no prices or offers (Google rejects them in descriptions).

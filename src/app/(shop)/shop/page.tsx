@@ -2,7 +2,7 @@ import Link from "next/link";
 import { categoryImage } from "@/lib/category-images";
 import Form from "next/form";
 import type { Metadata } from "next";
-import { ArrowRight, BookOpen, FlaskConical, Search, ShieldCheck, SlidersHorizontal, Store, X } from "lucide-react";
+import { ArrowRight, BookOpen, Search, ShieldCheck, SlidersHorizontal, Store, X } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { listCatalogue, PAGE_SIZE, SORTS, type SortKey } from "@/server/shop/catalogue";
 import { getPreferredStore, getStoreFootprint } from "@/server/shop/context";
@@ -27,21 +27,20 @@ type SP = { category?: string; mood?: string; sort?: string; min?: string; max?:
 
 const num = (v?: string) => (v && /^\d{1,6}$/.test(v) ? Number(v) : undefined);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const RANGE = "CBD wellness, accessories, grow and apparel: lab-tested, batch-traceable, delivered nationwide or ready to collect in store. Adults 18+.";
+const RANGE = "CBD wellness, accessories, grow and apparel, delivered nationwide or ready to collect in store. Free to join Herbal Holland Rewards. Adults 18+.";
 
 // Why this category: one plain sentence per class in it (approved facts, never a health claim), and the guide to read.
 const CLASS_STORY: Partial<Record<RegClass, string>> = {
   CBD: "CBD supplements are Schedule 0: at most 20 mg of CBD a day and 600 mg in a pack, with the legal basis and the daily serving on every product page.",
   CBD_FOOD: "CBD food and drink carries only the CBD naturally in its hemp ingredients (under 0.0075%), with ingredients and allergens on every pack.",
   CBD_TOPICAL: "Creams and balms are for the skin only. Patch-test first.",
-  HEMP: "Hemp products for adults 18+, with the same batch traceability as everything else we sell.",
+  HEMP: "Hemp products for adults 18+.",
   SUPPLEMENT: "Supplements carry no cannabis: the serving is on the label, and they work alongside a varied diet.",
   ACCESSORY: "Tools and storage that last. Where the law asks, tobacco-related items are sold in store only.",
   APPAREL: "In stock: delivered to your door, or collect it in store.",
   GROW: "Soil, pots and tools for growing at home, within the law.",
 };
 const CLASS_GUIDE: Partial<Record<RegClass, string>> = { CBD: "cbd-schedule-0", CBD_FOOD: "cbd-schedule-0", CBD_TOPICAL: "cbd-schedule-0", HEMP: "reading-lab-results", SUPPLEMENT: "reading-lab-results", GROW: "responsible-use" };
-const CONSUMABLE: RegClass[] = ["CBD", "CBD_FOOD", "CBD_TOPICAL", "HEMP", "SUPPLEMENT", "THC"];
 
 /** One indexable URL per category (or mood); searches and filtered/sorted views canonicalise to it and stay out of the index. */
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
@@ -98,10 +97,9 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const story = catClasses.map((c) => CLASS_STORY[c]).filter((s): s is string => !!s);
   const guide = catClasses.map((c) => CLASS_GUIDE[c]).find(Boolean);
   const article = guide ? articleBySlug(guide) : null;
-  const consumable = catClasses.some((c) => CONSUMABLE.includes(c));
   const prices = res.items.map((i) => i.priceCents);
   const heroTitle = q ? `Results for “${q}”` : cat && !licensedCategory ? cat.name : query.mood ? `For ${query.mood}` : "The range";
-  const heroLine = cat && !licensedCategory ? cat.blurb : query.mood ? "Everyday CBD and hemp products, grouped by the moment they're made for." : "CBD wellness, accessories, grow and apparel. Every consumable lab-tested and traceable by batch.";
+  const heroLine = cat && !licensedCategory ? cat.blurb : query.mood ? "Everyday CBD and hemp products, grouped by the moment they're made for." : "CBD wellness, accessories, grow and apparel for adults 18+.";
 
   return (
     <>
@@ -212,11 +210,6 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                   {story.map((s) => (
                     <li key={s}>{s}</li>
                   ))}
-                  {consumable && (
-                    <li className="flex items-start gap-2 text-ink-200">
-                      <FlaskConical className="mt-1 h-4 w-4 shrink-0 text-brand-500" /> Every consumable is lab-tested and traceable by batch: scan the pack for its certificate.
-                    </li>
-                  )}
                 </ul>
               </div>
               <div className="grid grid-cols-2 content-start gap-3 text-sm">

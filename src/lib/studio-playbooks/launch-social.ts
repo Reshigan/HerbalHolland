@@ -2,7 +2,7 @@
 // night it closes, built to fill the list. One feed post a day, five a week; three short videos a week (Reels and
 // TikToks, each with its script in the brief: the hook line, three beats and the end card); a Story every day, by
 // hand (the rota below, LAUNCH_SOCIAL_STORIES, since Stories can't be posted by API). The sequence: the hook (the
-// number 2,026), then proof (lab-tested every batch, licensed, the people), the mechanism (join in 20 seconds; a friend
+// number 2,026), then proof (members only, licensed, the people), the mechanism (join in 20 seconds; a friend
 // moves you up 250 places), urgency (the closing date) and social proof (the milestones). Laid out for a store: the
 // shared posts go out once, naming every town, and each town's own posts (Fridays, 19:00) follow a week later for the
 // second town, so Hillcrest and Hilton each get their moment and the feed still keeps to five a week.
@@ -105,17 +105,17 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         brief: "Reel/TikTok, 25 seconds, vertical. Hook (0–3 s): a summer storm clearing over the hills, the words 'Something's turning in the hills'. Beat 1: the windmill mark drawn stroke by stroke in Sunset orange. Beat 2: it turns over the ridges, Hillcrest then Hilton. Beat 3: 'Dutch heritage · African soil' over South African hands at work (adults over 25, signed releases). End card: 'The Founding Members list is open. Join free in 20 seconds. Adults 18+.' No flags, ships or colonial imagery. Story the same day: the drawing clip with the link sticker.",
       }),
 
-      // ── Week 2: proof. Lab-tested, licensed, the people. ──
+      // ── Week 2: proof. Members only, licensed, the people. ──
       post("lab-tested", -34, T.morning, {
         shared: true,
         text: paras(
           "What you're joining.",
-          "A members-only club for adults 18+ that checks your ID at the door and the till. Every batch we sell is lab-tested, with a public lab page you can read for yourself. Licensed stores, in {towns}. Plain English, no hype. That's the whole promise, and the first 2,026 members hold a numbered card to it.",
+          "A members-only club for adults 18+ that checks your ID at the door and the till. Licensed stores, in {towns}, with a team that knows the shelf. Plain English, no hype. That's the whole promise, and the first 2,026 members hold a numbered card to it.",
           `${JOIN} #HerbalHolland`,
         ),
-        short: "What you're joining: a members-only club for adults 18+, every batch lab-tested with a public lab page, licensed stores, plain English and no hype. The first 2,026 members hold a numbered card. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "promise", eyebrow: "What you're joining", headline: "Standards you can check.", lines: ["Every batch lab-tested", "A public lab page for every batch", "Licensed stores, ID at the door and the till", "Adults 18+ only", "Plain English, no hype"] },
-        brief: "Card as it is, Monday 07:00. Story the same day: a member advisor reads a lab page on a phone, 15 seconds, and the link sticker.",
+        short: "What you're joining: a members-only club for adults 18+, licensed stores, a team that knows the shelf, plain English and no hype. The first 2,026 members hold a numbered card. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "promise", eyebrow: "What you're joining", headline: "Members only. Plain English.", lines: ["Free to join, for adults 18+", "Licensed stores, ID at the door and the till", "A team that knows the shelf", "Plain English, no hype"] },
+        brief: "Card as it is, Monday 07:00. Story the same day: a member advisor shows the Rewards card on a phone, 15 seconds, and the link sticker.",
       }),
       video("the-people", -33, T.evening, "The people behind the windmill.", {
         shared: true,
@@ -125,17 +125,17 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         ),
         short: "The people behind the windmill: member advisors from the Upper Highway and the Midlands, who'll show you around and answer your questions in plain English. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
         card: { template: "headline", eyebrow: "The team", headline: "The people behind the windmill.", sub: "From the Upper Highway and the Midlands. Welkom, and we mean it." },
-        brief: "Reel/TikTok, 30 seconds, vertical. Hook (0–3 s): three faces, one after another, each saying 'Sawubona' or 'Howzit' to camera. Beat 1: each names their town (Kloof, Howick, Pinetown, wherever they live). Beat 2: each says one thing they'll do for a member: check your ID, show you a lab page, answer a plain question. Beat 3: the team together in the orange frame. End card: 'Join free in 20 seconds. Adults 18+.' Adults over 25 only, signed releases, no products in shot. Story the same day: one advisor's 'Sawubona' clip with the link sticker.",
+        brief: "Reel/TikTok, 30 seconds, vertical. Hook (0–3 s): three faces, one after another, each saying 'Sawubona' or 'Howzit' to camera. Beat 1: each names their town (Kloof, Howick, Pinetown, wherever they live). Beat 2: each says one thing they'll do for a member: check your ID, show you around, answer a plain question. Beat 3: the team together in the orange frame. End card: 'Join free in 20 seconds. Adults 18+.' Adults over 25 only, signed releases, no products in shot. Story the same day: one advisor's 'Sawubona' clip with the link sticker.",
       }),
       video("licensed", -31, T.midday, "What licensed means.", {
         shared: true,
         text: paras(
-          "What licensed means. Our stores hold their licences and show them on the wall. We check your ID when you join and at the door and the till, every time, because we're for adults 18+. Every batch is lab-tested, with a public lab page. The first 2,026 members hold a numbered card to that promise.",
+          "What licensed means. Our stores hold their licences and show them on the wall. We check your ID when you join and at the door and the till, every time, because we're for adults 18+. The first 2,026 members hold a numbered card to that promise.",
           `${JOIN} #HerbalHolland`,
         ),
-        short: "What licensed means: licences on the wall, your ID checked when you join and at the door and the till, every batch lab-tested with a public lab page. The first 2,026 members hold a numbered card to that. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Learn", headline: "What licensed means.", sub: "Licences on the wall. ID at the door and the till. Lab pages for every batch." },
-        brief: "Reel/TikTok, 25 seconds, vertical, talking head with cutaways. Hook (0–3 s): 'What does licensed actually mean?' Beat 1: the licence frame going up on the wall. Beat 2: an ID being checked at the door and at the till (hands only, demo card). Beat 3: a lab page on a phone, the PASS lines. End card: '2,026 Founding places. Join free in 20 seconds. Adults 18+.' No products in shot. Story the same day: the ID-check clip, 10 seconds, and the link sticker.",
+        short: "What licensed means: licences on the wall, your ID checked when you join and at the door and the till, every time. The first 2,026 members hold a numbered card to that. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "Learn", headline: "What licensed means.", sub: "Licences on the wall. ID when you join, at the door and the till." },
+        brief: "Reel/TikTok, 25 seconds, vertical, talking head with cutaways. Hook (0–3 s): 'What does licensed actually mean?' Beat 1: the licence frame going up on the wall. Beat 2: an ID being checked at the door and at the till (hands only, demo card). Beat 3: the Rewards card on a phone at the till. End card: '2,026 Founding places. Join free in 20 seconds. Adults 18+.' No products in shot. Story the same day: the ID-check clip, 10 seconds, and the link sticker.",
       }),
       post("milestone-500", -29, T.saturday, {
         shared: true, milestone: 500,
@@ -194,7 +194,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         shared: true,
         text: paras(
           "Drop your link in the family group.",
-          "Your Founding Members link is in the Rewards app. Send it on WhatsApp to the people who'd like a club that says welkom, checks ID and shows its lab pages: every one who joins moves you up 250 places. Adults 18+ only, so the family group's grown-ups.",
+          "Your Founding Members link is in the Rewards app. Send it on WhatsApp to the people who'd like a club that says welkom, checks ID and answers in plain English: every one who joins moves you up 250 places. Adults 18+ only, so the family group's grown-ups.",
           `${JOIN} #HerbalHolland`,
         ),
         short: "Drop your link in the family group. It's in the Rewards app: every friend who joins with it moves you up 250 places on the Founding Members list. Adults 18+ only. Join free in 20 seconds: link in bio. #HerbalHolland",

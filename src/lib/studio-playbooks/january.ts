@@ -29,7 +29,7 @@ export const JANUARY: Playbook[] = [
           "Hi {{firstName}},",
           "Welkom to 2027, and to The Windmill, our newsletter for Herbal Holland Rewards members. This month's theme is Know your Holland: our labels, our people and our evenings.",
           "December, in short. On Tuesday 1 December our doors opened in Hillcrest and Hilton. Opening week brought our Members' Evening and Open Day, with a coffee cart, local makers' tables and Learn sessions with the team on the hour. The Founding Members list closed on Sunday 6 December, and every Founding Member's numbered card is in the Rewards app. Siyabonga for such a warm welcome.",
-          "Read the label. Every Tuesday this month, a four-part Learn series on reading a label, line by line: what it is, the numbers, what's in it, and the batch and its lab page. Each part is on our social pages, and the whole read is in Learn at shop.herbalholland.com.",
+          "Read the label. Every Tuesday this month, a four-part Learn series on reading a label, line by line: what it is, the numbers, what's in it, and what a label may say. Each part is on our social pages, and the whole read is in Learn at shop.herbalholland.com.",
           "Gezellig evenings. Gezellig is Dutch for warm, sociable, at home, and from this month each store hosts a Gezellig evening every month: Hillcrest on the third Thursday and Hilton the evening after, 18:00–20:00. The first are on Thursday 21 January in Hillcrest and Friday 22 January in Hilton. They're for members: RSVP in the Rewards app, and bring your ID.",
           "Your Rewards in the long month. January is a long month, so here's how your membership works for you. Instant member savings come off eligible items automatically, in store and online. You earn points on every rand. And every Monday, My Deals brings you a personal offer, automatically, with nothing to clip or remember.",
           "See you this month,\nThe Herbal Holland team",
@@ -42,8 +42,8 @@ export const JANUARY: Playbook[] = [
       },
       {
         key: "linkedin-month", day: 2, time: "12:00", channel: "SOCIAL", linkedin: "only",
-        text: "A month in the hills: three things we're keeping. On 1 December we opened two new stores, in Hillcrest and Hilton. First, plain English: every batch has a public lab page, and this month our Learn series teaches how to read a label, line by line. Second, the basics, every time: members only, adults 18+, ID at the door and the till, and a Good Neighbour Promise at each store. Third, time together: from this month, each store hosts a Gezellig evening every month. Thank you to our teams, our neighbours and our members for a warm first month. #HerbalHolland #HollandMeetsTheHills",
-        short: "A month in the hills, and three things we're keeping: plain English, from labels to lab pages; the basics every time, members only, adults 18+, ID at the door and the till; and time together, with a Gezellig evening at each store every month. #HerbalHolland",
+        text: "A month in the hills: three things we're keeping. On 1 December we opened two new stores, in Hillcrest and Hilton. First, plain English: this month our Learn series teaches how to read a label, line by line. Second, the basics, every time: members only, adults 18+, ID at the door and the till, and a Good Neighbour Promise at each store. Third, time together: from this month, each store hosts a Gezellig evening every month. Thank you to our teams, our neighbours and our members for a warm first month. #HerbalHolland #HollandMeetsTheHills",
+        short: "A month in the hills, and three things we're keeping: plain English, starting with how to read a label; the basics every time, members only, adults 18+, ID at the door and the till; and time together, with a Gezellig evening at each store every month. #HerbalHolland",
         card: { template: "headline", eyebrow: "A month in the hills", headline: "Three things we're keeping.", sub: "Plain English. The basics, every time. Time together." },
       },
       {
@@ -90,8 +90,8 @@ export const JANUARY: Playbook[] = [
       },
       {
         key: "advisors", day: 9, time: "19:00", channel: "SOCIAL",
-        text: "Team spotlight: our member advisors. They're the first people you meet at Herbal Holland: a warm welcome at the door, an ID check, and plain-English answers about labels, lab pages and Rewards. Ask them anything about Read the label, this month's Learn series. Adults 18+. #HerbalHolland #HollandMeetsTheHills",
-        short: "Team spotlight: our member advisors. A warm welcome at the door, an ID check, and plain-English answers about labels, lab pages and Rewards. Adults 18+. #HerbalHolland",
+        text: "Team spotlight: our member advisors. They're the first people you meet at Herbal Holland: a warm welcome at the door, an ID check, and plain-English answers about labels, products and Rewards. Ask them anything about Read the label, this month's Learn series. Adults 18+. #HerbalHolland #HollandMeetsTheHills",
+        short: "Team spotlight: our member advisors. A warm welcome at the door, an ID check, and plain-English answers about labels, products and Rewards. Adults 18+. #HerbalHolland",
         card: { template: "headline", eyebrow: "Team spotlight", headline: "Our member advisors.", sub: "A warm welcome, an ID check, and plain-English answers." },
         brief: "A photo of one member advisor from each store (over 25, signed release) at the door, smiling, in a Windmill Tee. When you post it by hand, add their first name and a line in their own words.",
       },
@@ -111,9 +111,9 @@ export const JANUARY: Playbook[] = [
       },
       {
         key: "weekend-labels", day: 12, time: "09:00", channel: "SOCIAL",
-        text: "This weekend in store: bring your questions about any label. Our teams in Hillcrest and Hilton will read it with you, line by line, and show you its batch's lab page. It's this month's Learn series, Read the label, in person. Adults 18+, bring your ID. #HerbalHolland",
-        card: { template: "headline", eyebrow: "This weekend in store", headline: "Read a label with the team.", sub: "Line by line, and the lab page behind it. Hillcrest and Hilton." },
-        brief: "A photo at the counter: a member advisor (over 25, signed release) pointing out a line on a plain mock label for a member, the lab page open on a phone beside it. No products in use.",
+        text: "This weekend in store: bring your questions about any label. Our teams in Hillcrest and Hilton will read it with you, line by line, in plain English. It's this month's Learn series, Read the label, in person. Adults 18+, bring your ID. #HerbalHolland",
+        card: { template: "headline", eyebrow: "This weekend in store", headline: "Read a label with the team.", sub: "Line by line, in plain English. Hillcrest and Hilton." },
+        brief: "A photo at the counter: a member advisor (over 25, signed release) pointing out a line on a plain mock label for a member. No products in use.",
       },
       // ── Week 3: the first Gezellig evenings ──────────────────────────────────────────────────────────────────
       {
@@ -134,20 +134,20 @@ export const JANUARY: Playbook[] = [
       },
       {
         key: "linkedin-team", day: 16, time: "12:00", channel: "SOCIAL", linkedin: "only",
-        text: "The people behind our stores in the hills. Our member advisors are the first people members meet: a warm welcome, an ID check, and plain-English answers about labels, lab pages and Rewards. Our store managers run the store and the team: rosters, stock, the neighbours and the standards. Every one of them was trained from day one. Siyabonga, Hillcrest and Hilton teams, for a warm start. #HerbalHolland",
+        text: "The people behind our stores in the hills. Our member advisors are the first people members meet: a warm welcome, an ID check, and plain-English answers about labels, products and Rewards. Our store managers run the store and the team: rosters, stock, the neighbours and the standards. Every one of them was trained from day one. Siyabonga, Hillcrest and Hilton teams, for a warm start. #HerbalHolland",
         short: "The people behind our stores in the hills: member advisors, with a warm welcome, an ID check and plain-English answers, and store managers who run the store, the team and the standards. Siyabonga, Hillcrest and Hilton teams. #HerbalHolland",
         card: { template: "headline", eyebrow: "Our teams", headline: "Warm welcomes. Straight answers.", sub: "The member advisors and store managers of Hillcrest and Hilton." },
       },
       {
         key: "open-day-questions", day: 16, time: "19:00", channel: "SOCIAL",
-        text: "Questions from Open Day, answered. Do I need to be a member? Yes, and joining Herbal Holland Rewards is free for adults 18+, online, in the app or at the till. Why ID every time? Everything we do is for adults 18+, so we check at the door and the till. How do I see a lab result? Scan the QR on the pack for its batch's public lab page. Ask us more below. Adults 18+. #HerbalHolland",
-        short: "Questions from Open Day, answered: yes, it's members only, and joining is free for adults 18+. We check ID at the door and the till, every time. And every batch's lab page is a QR scan away. Adults 18+. #HerbalHolland",
+        text: "Questions from Open Day, answered. Do I need to be a member? Yes, and joining Herbal Holland Rewards is free for adults 18+, online, in the app or at the till. Why ID every time? Everything we do is for adults 18+, so we check at the door and the till. Can I bring a friend? Yes, if they're 18 or over and bring their ID. Ask us more below. Adults 18+. #HerbalHolland",
+        short: "Questions from Open Day, answered: yes, it's members only, and joining is free for adults 18+. We check ID at the door and the till, every time. And yes, bring a friend, if they're 18+ with ID. Adults 18+. #HerbalHolland",
         card: {
           template: "promise",
           headline: "Questions from Open Day",
-          lines: ["Members only? Yes, and joining is free", "Why ID every time? Everything we do is 18+", "Lab results? Scan the QR on the pack", "Your Rewards? In every store and online"],
+          lines: ["Members only? Yes, and joining is free", "Why ID every time? Everything we do is 18+", "Bring a friend? Yes, if they're 18+ with ID", "Your Rewards? In every store and online"],
         },
-        brief: "A 5-slide carousel over photos from Open Day (adults over 25, signed releases): one question per slide in the team's words: members only, ID every time, the lab page, Rewards in store and online, and \"ask us more below\".",
+        brief: "A 5-slide carousel over photos from Open Day (adults over 25, signed releases): one question per slide in the team's words: members only, ID every time, bringing a friend, Rewards in store and online, and \"ask us more below\".",
       },
       {
         key: "tonight", day: 17, time: "12:00", channel: "SOCIAL", pinned: true,
@@ -160,13 +160,13 @@ export const JANUARY: Playbook[] = [
         card: { template: "merch", image: "sunset-bucket-hat", headline: "Summer in the hills.", sub: "The Windmill Cap and the Sunset Bucket Hat, the windmill embroidered on each." },
         brief: "A photo outdoors in the hills on a bright morning: an adult over 25 (signed release) in the Sunset Bucket Hat, another in the Windmill Cap, the view behind them.",
       },
-      // ── Week 4: the batch, and the long month ────────────────────────────────────────────────────────────────
+      // ── Week 4: the claims, and the long month ───────────────────────────────────────────────────────────────
       {
         key: "label-4", day: 22, time: "07:00", channel: "SOCIAL",
-        text: "Read the label, part 4 of 4: the batch, and what a label may say. Every pack carries its batch, and every batch has a public lab page: scan the QR on the pack to see its results. A label may make only a handful of modest, approved claims, and never a medical one. That's the series: read it again in Learn. Adults 18+. #HerbalHolland",
-        short: "Read the label, part 4 of 4: the batch, and what a label may say. Scan the QR on the pack for its batch's public lab page. A label may make only modest, approved claims, never a medical one. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Read the label · 4 of 4", headline: "The batch, and the claims.", sub: "Scan the QR for the lab page. A label may make only modest, approved claims." },
-        brief: "A 5-slide carousel on a plain mock label (no real product): 1) Read the label, part 4: the batch and the claims; 2) the batch on the pack; 3) scan the QR: the batch's lab page; 4) only modest, approved claims; 5) never a medical claim, and the whole series in Learn.",
+        text: "Read the label, part 4 of 4: what a label may say. A label may make only a handful of modest, approved claims, and never a medical one. If a product anywhere promises to fix a medical condition, take that as a warning sign. That's the series: read it again in Learn. Adults 18+. #HerbalHolland",
+        short: "Read the label, part 4 of 4: what a label may say. Only modest, approved claims, never a medical one. A product promising to fix a medical condition is a warning sign. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "Read the label · 4 of 4", headline: "What a label may say.", sub: "Only modest, approved claims, and never a medical one." },
+        brief: "A 5-slide carousel on a plain mock label (no real product): 1) Read the label, part 4: what a label may say; 2) the approved claims on a label; 3) only modest claims; 4) never a medical claim; 5) the whole series in Learn.",
       },
       {
         key: "email-savings", day: 15, time: "16:00", channel: "EMAIL",
@@ -183,9 +183,9 @@ export const JANUARY: Playbook[] = [
       },
       {
         key: "linkedin-lab", day: 23, time: "12:00", channel: "SOCIAL", linkedin: "only",
-        text: "Why every batch has a public lab page. Trust shouldn't rest on adjectives. Every batch is lab-tested, and anyone can scan the QR on the pack to see its results: potency, the terpene list, and the safety tests for microbes, pesticides, heavy metals and residual solvents. This month we spent four Tuesdays on how to read a label, line by line. Plain information, given plainly, is the most useful thing we can offer. #HerbalHolland",
-        short: "Why every batch has a public lab page: trust shouldn't rest on adjectives. Scan the QR on the pack and see the results. This month, four Tuesdays on how to read a label, line by line. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Read the label", headline: "Trust shouldn't rest on adjectives.", sub: "Every batch is lab-tested, with a public lab page: scan the QR on the pack." },
+        text: "Why we spent four Tuesdays on a label. Trust shouldn't rest on adjectives. A label says what a product is, how much is in the pack, what's in it and what it may claim, so this month we went through one, line by line. Plain information, given plainly, is the most useful thing we can offer. #HerbalHolland",
+        short: "Why we spent four Tuesdays on a label: trust shouldn't rest on adjectives. What it is, how much is in the pack, what's in it and what it may claim, line by line. #HerbalHolland",
+        card: { template: "headline", eyebrow: "Read the label", headline: "Trust shouldn't rest on adjectives.", sub: "Four Tuesdays on how to read a label, line by line." },
       },
       {
         key: "gezellig-thanks", day: 23, time: "19:00", channel: "SOCIAL",

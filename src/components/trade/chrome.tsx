@@ -94,7 +94,7 @@ export async function TradeChrome({ children }: { children: React.ReactNode }) {
                 <Wordmark className="text-lg" />
               </Link>
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-400">
-                Herbal Holland Trade: wholesale for pharmacies, independent retailers, cafés and wellness practices. Prices ex VAT, case packs, lab-tested batches.
+                Herbal Holland Trade: wholesale for pharmacies, independent retailers, cafés and wellness practices. Prices ex VAT, case packs, adults 18+.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">

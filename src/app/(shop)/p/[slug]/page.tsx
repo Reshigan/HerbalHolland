@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   if (!p || p.status !== "ACTIVE") return { title: "Not found" };
   // Licensed medicines are never advertised: generic title, kept out of search.
   if (classes.licensed.includes(p.regClass)) return { title: "Dispensary", robots: { index: false, follow: false } };
-  const description = metaDescription(p.tagline, p.description, `${p.category.name} from ${SITE_NAME}: click & collect in store or delivered nationwide. Adults 18+.`, "Every consumable we sell is lab-tested and traceable by batch.");
+  const description = metaDescription(p.tagline, p.description, `${p.category.name} from ${SITE_NAME}: click & collect in store or delivered nationwide. Adults 18+.`, "Free to join Herbal Holland Rewards.");
   const path = `/p/${p.slug}`;
   const photos = await productImages(p.id);
   return {
@@ -296,11 +296,6 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         </Tag>
       )}
       {product.line && product.line !== "HERITAGE" && <Tag className="bg-ink-950/70 backdrop-blur">{product.line.charAt(0) + product.line.slice(1).toLowerCase()} line</Tag>}
-      {tested && (
-        <Tag tone="green" className="bg-ink-950/70 backdrop-blur">
-          Lab-tested
-        </Tag>
-      )}
     </>
   );
   const reminderChannels = REMINDER_CHANNELS.map((c) => ({ ...c, disabled: c.key === "EMAIL" && !customer?.email ? "add an email in Settings" : c.key === "PUSH" && !devices ? "turn on app notifications" : undefined }));

@@ -57,7 +57,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <PageHeader overline="Product" title="Batches & recalls" description="Every lot is lab-tested and traceable from the distribution centre to the member. Quarantine or recall a batch and every till, DC and the web shop stop selling it at once." />
+      <PageHeader overline="Product" title="Batches & recalls" description="Every lot is traceable from the distribution centre to the member. Quarantine or recall a batch and every till, DC and the web shop stop selling it at once." />
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Released batches" value={num(count("RELEASED"))} />
         <Stat label="In quarantine" value={num(count("QUARANTINE"))} sub={count("QUARANTINE") ? "awaiting review" : "none"} />

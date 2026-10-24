@@ -36,7 +36,7 @@ export default async function GoPage() {
           <Mark className="h-16 w-16" />
         </span>
         <h1 className="mt-5 font-display text-2xl font-semibold tracking-tight text-white">@herbalholland</h1>
-        <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-300">Sawubona, Hillcrest and Hilton. Lab-tested, plain-spoken, and glad to be your neighbour. Adults 18+.</p>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-300">Sawubona, Hillcrest and Hilton. Plain-spoken, members-only, and glad to be your neighbour. Adults 18+.</p>
 
         <nav aria-label="Links" className="mt-8 flex w-full flex-col gap-3">
           {links.map((l) => (

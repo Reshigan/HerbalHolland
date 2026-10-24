@@ -146,7 +146,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
         </div>
       ) : (
         <Callout tone="info" className="mt-12" title="No laboratory testing required">
-          This is a non-consumable product, so there&apos;s no certificate of analysis. But every unit is still traceable to its supplier and packing date below.
+          This is a non-consumable product, so there&apos;s no certificate of analysis. Its supplier and packing date are below.
         </Callout>
       )}
 

@@ -20,8 +20,8 @@ herbalholland.com/press (fact sheet, logos, notes on how to write about us) and 
 - **Local opening:** two KZN stores open, two more on 1 December; locally owned franchises; free membership.
 - **Dutch heritage, African soil:** a brand named for Amsterdam's coffee-shop history, rooted in KZN's own landraces
   (Durban Poison left from the hills behind Durban in the 1970s). Good for features and radio.
-- **Doing it by the book:** lab-tested, batch-traceable products with a public result behind every pack, ID at the
-  till, adults 18+, licensed medicines only through a pharmacist. A clear contrast to the grey market.
+- **Doing it by the book:** members only, ID at the till, adults 18+, CBD within Schedule 0 and licensed medicines
+  only through a pharmacist. A clear contrast to the grey market.
 - **The law, plainly (op-ed):** what changed with the Cannabis for Private Purposes Act and what didn't, what Schedule
   0 CBD is, what a retailer may and may not sell. Offered as a byline piece, not an advert.
 
@@ -50,9 +50,8 @@ Find each named contact on the outlet's own site before sending; never guess an 
 > Hi [name],
 >
 > Herbal Holland has opened in [Pietermaritzburg / on the Bluff]: a members-only store for adults 18+ selling CBD
-> wellness, accessories, grow gear and our own apparel. Every product is lab-tested, and the code on each pack opens
-> its result. Two more stores, in Hillcrest and Hilton, open on 1 December. Each is owned and run by a local
-> franchisee.
+> wellness, accessories, grow gear and our own apparel. Joining is free, and ID is checked at the till. Two more
+> stores, in Hillcrest and Hilton, open on 1 December. Each is owned and run by a local franchisee.
 >
 > [Founder quote.]
 >
@@ -70,7 +69,7 @@ Find each named contact on the outlet's own site before sending; never guess an 
 > In the 1970s, seeds from the hills behind Durban travelled to Amsterdam and became one of the world's best-known
 > cultivars. Herbal Holland is named for that journey, and its first stores are open in Pietermaritzburg and on the
 > Bluff, with Hillcrest and Hilton on 1 December. [Founder] can talk about the heritage, about what's legal for adults
-> today, and about running every store by the book (lab-tested products, ID at the till, adults 18+).
+> today, and about running every store by the book (members only, ID at the till, adults 18+).
 >
 > Background: herbalholland.com/press.
 

@@ -209,7 +209,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
 
         <footer className="flex h-[6vmin] shrink-0 items-center justify-between gap-[2vmin] border-t border-ink-850 px-[2.4vmin] text-[1.6vmin] text-ink-400">
           <span className="truncate">
-            Lab-tested &amp; batch-traceable · Prices include VAT
+            Adults 18+ · Prices include VAT
             {anyMemberPrices ? " · Member prices for Herbal Holland Rewards members" : ""}
             {!showLicensed ? " · Medicines: ask an authorised dispenser" : ""}
           </span>

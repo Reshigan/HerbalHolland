@@ -99,7 +99,7 @@ export default async function TradeTermsPage() {
 
         <H2>7. Invoices, statements and records</H2>
         <P>
-          Every shipped or collected order carries a tax invoice from the supplying store or distribution centre, with the batch codes supplied. Accounts receive a monthly statement. Keep the certificates of analysis we provide with the stock you hold, and tell us at once about any recall notice we send.
+          Every shipped or collected order carries a tax invoice from the supplying store or distribution centre, with the batch codes supplied. Accounts receive a monthly statement. Keep a record of the batch codes on the stock you hold, and tell us at once about any recall notice we send.
         </P>
 
         <H2>8. Reselling responsibly</H2>
