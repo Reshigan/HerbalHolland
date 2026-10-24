@@ -24,6 +24,8 @@ export async function addMember(code: string, _: ActionState, fd: FormData): Pro
     const { store, actor } = await manage(code);
     const firstName = str(fd, "firstName").slice(0, 60);
     if (firstName.length < 2) return fail("Enter the member's first name", "firstName");
+    const lastName = str(fd, "lastName").slice(0, 60);
+    if (!lastName) return fail("Enter the member's surname", "lastName");
     const phone = str(fd, "phone");
     if (!phone) return fail("A South African mobile number is required", "phone");
     const email = str(fd, "email").slice(0, 120);
@@ -41,7 +43,7 @@ export async function addMember(code: string, _: ActionState, fd: FormData): Pro
       {
         phone,
         firstName,
-        lastName: str(fd, "lastName").slice(0, 60) || undefined,
+        lastName,
         email: email || undefined,
         idNumber: idNumber || undefined,
         dob: idNumber ? undefined : dob,

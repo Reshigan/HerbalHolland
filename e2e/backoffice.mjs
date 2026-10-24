@@ -211,7 +211,7 @@ try {
   const memberEmail = `e2e.backoffice.${run.toLowerCase()}@example.co.za`;
   const memberName = `E2E Member ${run}`;
   await addDlg.getByLabel("First name").fill("E2E");
-  await addDlg.getByLabel("Last name").fill(`Member ${run}`);
+  await addDlg.getByLabel("Surname").fill(`Member ${run}`);
   await addDlg.getByLabel("Mobile number").fill(phone);
   await addDlg.getByLabel("Email (optional)").fill(memberEmail);
   await addDlg.getByLabel(/seen an ID document/).check();
