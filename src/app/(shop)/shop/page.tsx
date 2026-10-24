@@ -47,6 +47,7 @@ const CLASS_GUIDE: Partial<Record<RegClass, string>> = { CBD: "cbd-schedule-0", 
 /** One indexable URL per category (or mood); searches and filtered/sorted views canonicalise to it and stay out of the index. */
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
   const sp = await searchParams;
+  if (sp.category && isHiddenCategory(sp.category)) notFound();
   const cat = sp.category ? await db.category.findUnique({ where: { slug: sp.category }, select: { name: true, blurb: true } }) : null;
   const mood = !cat && sp.mood && /^[a-z]{1,20}$/.test(sp.mood) ? sp.mood : null;
   const title = cat ? cat.name : mood ? `For ${mood}` : "Shop the range";

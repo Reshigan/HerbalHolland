@@ -65,7 +65,7 @@ type SP = { v?: string; reviews?: string };
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug } = await params;
   const [p, classes] = await Promise.all([getProductBySlug(slug), getClasses()]);
-  if (!p || p.status !== "ACTIVE") return { title: "Not found" };
+  if (!p || p.status !== "ACTIVE" || isHiddenCategory(p.category.slug)) return { title: "Not found" };
   // Licensed medicines are never advertised: generic title, kept out of search.
   if (classes.licensed.includes(p.regClass)) return { title: "Dispensary", robots: { index: false, follow: false } };
   const description = metaDescription(p.tagline, p.description, `${p.category.name} from ${SITE_NAME}: click & collect in store or delivered nationwide. Adults 18+.`, "Free to join Herbal Holland Rewards.");
