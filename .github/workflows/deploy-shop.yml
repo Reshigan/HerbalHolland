@@ -150,6 +150,16 @@ jobs:
           cat health.json
           jq -e '.ok and .db == "up"' health.json > /dev/null
 
+      - name: "Tell search engines what's live (IndexNow: Bing, Yandex, Seznam and others share each ping)"
+        continue-on-error: true
+        env:
+          INDEXNOW_KEY: ca14435b3bdfc5cbe54a0e3a4b17ed19 # public/<key>.txt holds the same value; it proves the site is ours, it isn't a secret
+        run: |
+          urls=$(curl -sf --max-time 30 "$SHOP_URL/sitemap.xml" | grep -o '<loc>[^<]*</loc>' | sed 's#</\?loc>##g' | jq -R . | jq -sc .)
+          [ "$urls" != "[]" ] || { echo "::warning::sitemap.xml had no URLs"; exit 0; }
+          jq -n --arg host "${SHOP_URL#https://}" --arg key "$INDEXNOW_KEY" --argjson urls "$urls" '{host: $host, key: $key, urlList: $urls}' |
+            curl -s --max-time 30 -o /dev/null -w "IndexNow: HTTP %{http_code} for $(echo "$urls" | jq length) URLs\n" -H 'Content-Type: application/json; charset=utf-8' --data @- https://api.indexnow.org/indexnow
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
