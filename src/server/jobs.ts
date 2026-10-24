@@ -23,6 +23,7 @@ import { submitMerchOrders } from "./merch";
 import { runLossRules } from "./loss";
 import { purgeLeads } from "./leads";
 import { purgeMessageBodies } from "./messaging";
+import { purgePageViews } from "./analytics";
 import { lowStockDigest, notifyAlerts, notifyAnnouncements, notifyDepositsDue, notifyExpiringBatches, notifyNewOrders, pruneStaffPushEvents } from "./staff-push";
 import { pruneExports, runDueExports } from "./exports";
 import { purgeResolvedTickets } from "./support";
@@ -130,6 +131,8 @@ export const JOBS: Record<string, Steps> = {
     supportTickets: purgeResolvedTickets,
     // POPIA: message texts are blanked 12 months after they're sent (the log row stays).
     messageBodies: purgeMessageBodies,
+    // Shop and Rewards app analytics: page views are deleted after 400 days.
+    pageViews: purgePageViews,
     // My Deals refresh weekly, on Mondays (SAST).
     offers: async () => (weekdaySA(new Date()) === 1 ? generateOffers() : { created: 0 }),
     // Reorder reminders the member set (one message with a one-tap reorder link; nothing is charged).

@@ -3,6 +3,7 @@ import { getCustomer } from "@/server/auth";
 import { ShopChrome } from "@/components/shop/chrome";
 import { ClubNav } from "@/components/shop/club-client";
 import { Container } from "@/components/shop/ui";
+import { AnalyticsBeacon } from "@/components/shop/analytics-beacon";
 import { splashStartupImages } from "@/lib/pwa-splash";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default async function ClubLayout({ children }: { children: React.ReactNo
       <div className={customer ? "pb-20 sm:pb-0" : undefined}>
         {children}
       </div>
+      <AnalyticsBeacon />
     </ShopChrome>
   );
 }
