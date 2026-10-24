@@ -6,8 +6,10 @@
 // (30 days; "Not now" on the till is a day). Everything it remembers stays in localStorage; nothing goes to the server.
 //
 // Variants: "card" (a rounded card: Rewards home, the pair screen), "bar" (a slim strip under a mobile header),
-// "menu" (a row in a side menu) and "button" (a pill among other till actions).
+// "menu" (a row in a side menu), "button" (a pill among other till actions) and "sheet" (a bottom sheet that rises
+// over the shop from the visitor's second page, a few seconds in).
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Download, Share, SquarePlus, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { installKey, installState, parseDismissal, type DismissKind, type InstallApp, type InstallPlatform, type InstallState } from "@/lib/install";
@@ -83,7 +85,7 @@ function IosSteps({ className }: { className?: string }) {
  * `priority`: the moment right after joining. The card ignores an earlier "Not now", leads with the step, and says what
  * comes next (notifications), because the offer is the point of the page rather than a nudge beside it.
  */
-export function InstallPrompt({ app, variant = "card", once = false, priority = false, className }: { app: InstallApp; variant?: "card" | "bar" | "menu" | "button"; once?: boolean; priority?: boolean; className?: string }) {
+export function InstallPrompt({ app, variant = "card", once = false, priority = false, className }: { app: InstallApp; variant?: "card" | "bar" | "menu" | "button" | "sheet"; once?: boolean; priority?: boolean; className?: string }) {
   const [state, setState] = useState<InstallState | null>(null);
   const [evt, setEvt] = useState<PromptEvent | null>(null);
   const [gone, setGone] = useState(false);
@@ -126,7 +128,30 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
     };
   }, [app, once, passive, priority]);
 
-  const visible = !!state && state.show && !gone && (state.mode === "ios-steps" || (state.mode === "prompt" && !!evt));
+  // The sheet waits for a second page in this visit, then a few seconds more: never in the way of a first look.
+  const pathname = usePathname();
+  const [armed, setArmed] = useState(variant !== "sheet");
+  useEffect(() => {
+    if (variant !== "sheet") return;
+    let views = 1;
+    try {
+      views = Number(sessionStorage.getItem("hh-install:views") ?? 0) + 1;
+      sessionStorage.setItem("hh-install:views", String(views));
+    } catch {
+      /* storage blocked: count this page only */
+    }
+    if (views < 2) return;
+    const t = setTimeout(() => setArmed(true), 3500);
+    return () => clearTimeout(t);
+  }, [variant, pathname]);
+  useEffect(() => {
+    if (variant !== "sheet" || !armed) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && dismiss(copy.dismiss);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const visible = armed && !!state && state.show && !gone && (state.mode === "ios-steps" || (state.mode === "prompt" && !!evt));
 
   // A once-only placement (the shop home) counts as shown the first time it actually appears.
   useEffect(() => {
@@ -229,6 +254,38 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
         <button type="button" onClick={() => dismiss(copy.dismiss)} aria-label={copy.dismissLabel} title={copy.dismissLabel} className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
           <X className="h-5 w-5" aria-hidden />
         </button>
+      </div>
+    );
+
+  if (variant === "sheet")
+    return (
+      <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4" {...shared}>
+        <section role="dialog" aria-label={title} className={cn("animate-rise w-full max-w-md rounded-2xl border border-brand-500/40 bg-ink-900 p-5 text-ink-100 shadow-2xl shadow-black/60", className)}>
+          <div className="flex items-start gap-3">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-brand-500 text-ink-950">
+              <Download className="h-5 w-5" strokeWidth={1.9} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-lg font-semibold leading-snug text-white">{title}</h2>
+              <p className="mt-0.5 text-sm text-ink-400">{copy.benefit} Free, and it takes a second.</p>
+            </div>
+          </div>
+          {ios && (
+            <p className="mt-4 rounded-xl bg-ink-850 px-4 py-3 text-sm leading-relaxed text-ink-300">
+              <IosSteps />
+            </p>
+          )}
+          <div className="mt-4 flex gap-2">
+            {!ios && (
+              <button type="button" onClick={install} disabled={busy} className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 hover:bg-brand-400 disabled:opacity-60">
+                <Download className="h-4 w-4" aria-hidden /> Install the app
+              </button>
+            )}
+            <button type="button" onClick={() => dismiss(copy.dismiss)} className={cn("inline-flex h-12 items-center justify-center rounded-full border border-ink-700 px-5 text-sm font-semibold text-ink-200 hover:border-ink-500 hover:text-white", ios && "flex-1")}>
+              {ios ? "Got it" : copy.dismissLabel}
+            </button>
+          </div>
+        </section>
       </div>
     );
 
