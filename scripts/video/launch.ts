@@ -5,6 +5,7 @@
 // on the beat of its own soundtrack (120 bpm, one beat = 0.5 s), synthesised in the page so nothing needs a licence.
 // Words: cannabis for the story and the culture; the products named are CBD only. No THC products, prices or claims.
 import { Build, dataUri, EASE, EASE_IO, mark, markDrawCss, page, Scene, JOIN_URL } from "./scene";
+import { JOIN_QR, qrSvg } from "../qr";
 
 type Part = "open" | "seed" | "holland" | "home" | "hills" | "tour" | "founding" | "end";
 const ORDER: Part[] = ["open", "seed", "holland", "home", "hills", "tour", "founding", "end"];
@@ -21,9 +22,9 @@ const timeline = (d: Record<Part, number>) => {
 const asset = (f: string) => dataUri(new URL(`./assets/${f}`, import.meta.url).pathname, "image/jpeg");
 // The tour: [file, width/height, eyebrow, headline]
 const SHOTS: [string, number, string, string][] = [
-  ["store-wide.jpg", 2330 / 665, "Members only", "A members' club for <b>cannabis culture.</b>"],
+  ["store-wide.jpg", 2330 / 665, "Members only", "Redefining cannabis culture <b>in South Africa.</b>"],
   ["store-display.jpg", 1110 / 700, "On the shelves", "CBD wellness <b>and coffee.</b>"],
-  ["store-merch.jpg", 1170 / 700, "Wear the Windmill", "Our own apparel, <b>accessories and grow.</b>"],
+  ["store-merch.jpg", 1170 / 700, "Wear it, grow it", "Apparel, accessories, <b>and learn to grow.</b>"],
 ];
 
 /** Letters that sharpen into place one by one. */
@@ -155,12 +156,13 @@ ${windows.map((_, i) => `.ams rect:nth-of-type(${i + 1}){${b.tween(h0 + 1.2 + i 
 
 /* the end card */
 .end{${b.tween(e0, e0 + 0.4, "opacity:0", "opacity:1", EASE_IO)};background:var(--black);gap:2.2vmin;z-index:20}
-.end .mark{width:${P ? 24 : 20}vmin;height:${P ? 24 : 20}vmin;color:var(--orange)}
+.end .mark{width:${P ? 18 : 12}vmin;height:${P ? 18 : 12}vmin;color:var(--orange)}
 ${markDrawCss(b, ".end", e0 + 0.05, 22)}
 .end .o1{font-size:${P ? 3.2 : 2.8}vmin;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--orange);${b.win(e0 + 0.3, SECONDS + 5)}}
 .end .twn{font-size:${P ? 6.4 : 5.4}vmin;font-weight:700;color:var(--cream);${b.win(e0 + 0.4, SECONDS + 5)}}
 .end .j{margin-top:2vmin;font-size:${P ? 5.4 : 4.6}vmin;font-weight:300;color:var(--cream);${b.win(e0 + 0.6, SECONDS + 5)}}
 .end .u{font-size:${P ? 8.4 : 7.2}vmin;font-weight:800;letter-spacing:-.02em;color:var(--orange);white-space:nowrap;${b.win(e0 + 0.8, SECONDS + 5, { enter: "opacity:0;transform:scale(.9)", hold: "opacity:1;transform:none", ease: "cubic-bezier(.34,1.56,.64,1)" })}}
+.end .qr{width:${P ? 30 : 22}vmin;height:${P ? 30 : 22}vmin;${b.win(e0 + 1.0, SECONDS + 5, { enter: "opacity:0;transform:scale(.92)", hold: "opacity:1;transform:none", ease: EASE })}}
 .end .s{font-size:${P ? 2.9 : 2.5}vmin;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--ink300);${b.win(e0 + 1.1, SECONDS + 5)}}
 `;
 
@@ -184,7 +186,7 @@ ${shots.map((s) => s.bg).join("")}
 <div class="cardwrap">${shots.map((s) => s.card).join("")}</div>
 <div class="center founding pad"><div class="fcard"><div class="top">${mark()}<span>Founding Member</span></div><div class="no"><small>#</small>0001</div><div class="bt">Herbal Holland Rewards</div></div>
   <div class="h1">Be a <b>founding member.</b></div><div class="sub2">The first 2,026 get a numbered card. Free for adults 18+.</div></div>
-<div class="center end">${mark()}<div class="o1">Opening 1 December</div><div class="twn">Hillcrest · Hilton</div><div class="j">Join free</div><div class="u">${JOIN_URL}</div><div class="s">Members only · Adults 18+</div></div>
+<div class="center end">${mark()}<div class="o1">Opening 1 December</div><div class="twn">Hillcrest · Hilton</div><div class="j">Join free</div><div class="u">${JOIN_URL}</div><div class="qr">${qrSvg(JOIN_QR, "#0c0a09", "#fbf7f1")}</div><div class="s">Members only · Adults 18+</div></div>
 <div class="flash"></div>
 <div class="vig"></div>
 <svg class="grain"><filter id="gn"><feTurbulence id="turb" type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="1"/></filter><rect width="100%" height="100%" filter="url(#gn)"/></svg>`;
@@ -192,14 +194,14 @@ ${shots.map((s) => s.bg).join("")}
     return page(ctx, b, body, css, tick);
   }
 
-  // The soundtrack, on the same timeline: wind and a drone under the open, a quiet story (pad and plucks) that builds
-  // through "coming home" into an impact on "Holland, meet the Hills", the beat under the tour and the Founding card,
-  // and a held A minor under the end card.
+  // The soundtrack, on the same timeline, South African: wind and a drone under the open, the story on jazzy keys that
+  // gathers shakers and a first log drum by "coming home", an impact on "Holland, meet the Hills", a full amapiano
+  // groove (log drum, shakers, clave, keys) under the tour and the Founding card, and Am9 held under the end card.
   const audio = `
 const T = ${JSON.stringify(T)};
 const ctx = new OfflineAudioContext(2, Math.ceil(seconds * rate), rate);
 const comp = ctx.createDynamicsCompressor();
-comp.threshold.value = -16; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.18;
+comp.threshold.value = -20; comp.knee.value = 6; comp.ratio.value = 5; comp.attack.value = 0.004; comp.release.value = 0.18;
 const master = ctx.createGain(); master.gain.value = 0.8;
 master.gain.setValueAtTime(0.8, seconds - 1.6); master.gain.linearRampToValueAtTime(0.0001, seconds - 0.05);
 master.connect(comp); comp.connect(ctx.destination);
@@ -275,36 +277,66 @@ function impact(t, amp = 0.9) {
   env(ng, t, 0.002, amp * 0.35, 1); s.connect(f); f.connect(ng); out(ng, 0, 0.8);
 }
 
-const B = 0.5;
-const chords = [[57, 60, 64], [53, 57, 60], [55, 60, 64], [55, 59, 62]];
-const roots = [33, 29, 36, 31];
-// the open: wind and a low drone, the mark's shimmer
+// Amapiano: the log drum (a sine with a falling pitch, driven into a soft clip), shakers on the sixteenths, a light
+// kick, a clave, and jazzy seventh chords on the keys. A minor: Am9, Fmaj7, Cmaj7/G, G6.
+const clip = ctx.createWaveShaper(); clip.curve = Float32Array.from({ length: 1024 }, (_, i) => Math.tanh(2.4 * (i / 511.5 - 1)));
+const ldBus = ctx.createGain(); ldBus.gain.value = 0.9; const ldLp = ctx.createBiquadFilter(); ldLp.type = "lowpass"; ldLp.frequency.value = 900;
+ldBus.connect(clip); clip.connect(ldLp); out(ldLp);
+function logdrum(t, m, len = 0.38, amp = 0.55) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.setValueAtTime(hz(m + 12) * 1.9, t); o.frequency.exponentialRampToValueAtTime(hz(m + 12), t + 0.045); o.frequency.exponentialRampToValueAtTime(hz(m + 12) * 0.94, t + len);
+  env(g, t, 0.004, amp, len); o.connect(g); g.connect(ldBus); o.start(t); o.stop(t + len + 0.05);
+}
+function shaker(t, amp) {
+  const s = noiseSrc(t, 0.07), f = ctx.createBiquadFilter(), g = ctx.createGain(); f.type = "bandpass"; f.frequency.value = 6500; f.Q.value = 1.2;
+  env(g, t, 0.006, amp, 0.05); s.connect(f); f.connect(g); out(g, 0.35, 0.08);
+}
+function clave(t, amp = 0.09) {
+  const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 2400; env(g, t, 0.001, amp, 0.05); o.connect(g); out(g, -0.3, 0.2); o.start(t); o.stop(t + 0.08);
+}
+function keys(t, notes, len = 0.32, amp = 0.05) {
+  notes.forEach((m, i) => [["triangle", 1], ["sine", 2]].forEach(([type, mul], j) => {
+    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = hz(m) * mul; o.detune.value = (i - 1) * 3;
+    env(g, t, 0.006, amp * (j ? 0.3 : 1), len); o.connect(g); out(g, (i - 1.5) * 0.25, 0.35); o.start(t); o.stop(t + len + 0.1);
+  }));
+}
+const B = 0.5, S16 = B / 4;
+const chords = [[57, 60, 64, 67, 71], [53, 57, 60, 64], [55, 60, 64, 67, 71], [55, 59, 62, 64]];
+const roots = [33, 29, 31, 31];
+// log drum pattern per bar (in sixteenths from the bar's start) with an octave jump: the amapiano "talk"
+const LD = [[0, 0], [3, 0], [6, 12], [10, 0], [12, 7], [14, 0]];
+// keys: off-beat stabs (in sixteenths)
+const KEYS = [2, 6, 7, 10, 14];
+// the open: wind, a low drone, the mark's shimmer on the keys
 wind(T.open[0], T.seed[1], 0.11); pad(T.open[0], [45, 52], T.open[1], 0.03, 600);
 [0.9, 1.15, 1.4, 1.65].forEach((o, i) => pluck(T.open[0] + o, [69, 72, 76, 81][i], 0.05));
-// the story: one chord every two seconds, plucks on the beat, a soft kick once it's coming home
+// the story: the chords alone, then shakers creep in; a first log drum once it's coming home
 for (let t = T.seed[0], k = 0; t < T.home[1] - 0.01; t += 2, k++) {
   const len = Math.min(2, T.home[1] - t), c = chords[k % 4];
-  pad(t, c, len, t >= T.home[0] ? 0.05 : 0.04, t >= T.home[0] ? 1500 : t >= T.holland[0] ? 1200 : 900);
-  for (let x = 0; x < len - 0.01; x += B) { pluck(t + x, c[(k + Math.round(x / B)) % 3] + 12, 0.045); if (t + x >= T.home[0]) kick(t + x, 0.45); }
+  pad(t, c.slice(0, 3), len, 0.035, t >= T.holland[0] ? 1300 : 900);
+  KEYS.forEach((x) => x * S16 < len && keys(t + x * S16, c, 0.3, 0.035));
+  if (t >= T.holland[0]) for (let x = 0; x < len - 0.01; x += S16) shaker(t + x, x % B === 0 ? 0.03 : 0.018);
+  if (t >= T.home[0]) LD.forEach(([x, o]) => x * S16 < len && logdrum(t + x * S16, roots[k % 4] + o, 0.34, 0.4));
 }
 whoosh(T.holland[0], 0.12); riser(T.home[0], T.hills[0], 0.22);
-// Holland, meet the Hills
-impact(T.hills[0]); pad(T.hills[0], [45, 57, 60, 64], T.hills[1] - T.hills[0], 0.05, 1600);
-// the tour and the Founding card: the full beat
+// Holland, meet the Hills: the drop
+impact(T.hills[0]); pad(T.hills[0], [45, 57, 60, 64], T.hills[1] - T.hills[0], 0.045, 1600);
+logdrum(T.hills[0] + 0.5, 33, 0.9, 0.6);
+// the tour and the Founding card: the full groove
 for (let t = T.tour[0], k = 0; t < T.founding[1] - 0.01; t += 2, k++) {
   const len = Math.min(2, T.founding[1] - t), c = chords[k % 4];
-  pad(t, c, len, 0.05, 1700);
-  for (let x = 0; x < len - 0.01; x += B) {
-    const b = t + x, n = Math.round(x / B);
-    kick(b); bass(b + B / 2, roots[k % 4], 0.22); hat(b + B / 2); hat(b + B / 4, 0.03); hat(b + (3 * B) / 4, 0.03);
-    if (n % 2) clap(b);
-    pluck(b + (n % 2 ? B / 2 : 0), c[(k + n) % 3] + 12, 0.045);
-  }
+  pad(t, c.slice(0, 3), len, 0.035, 1500);
+  for (let x = 0; x < len - 0.01; x += B) { kick(t + x, 0.6); if (Math.round(x / B) % 2) clap(t + x, 0.16); }
+  for (let x = 0; x < len - 0.01; x += S16) shaker(t + x, Math.round(x / S16) % 4 === 2 ? 0.05 : 0.025);
+  [0, 3, 6, 10, 12].forEach((x) => x * S16 < len && clave(t + x * S16));
+  LD.forEach(([x, o]) => x * S16 < len && logdrum(t + x * S16, roots[k % 4] + o));
+  KEYS.forEach((x) => x * S16 < len && keys(t + x * S16, c));
 }
 const shot = (T.tour[1] - T.tour[0]) / 3;
-[0, 1, 2].forEach((i) => whoosh(T.tour[0] + i * shot)); whoosh(T.founding[0], 0.14);
-// the end card: a held A minor and a bell for the mark
-whoosh(T.end[0], 0.12); pad(T.end[0], [45, 57, 60, 64, 69], T.end[1] - T.end[0], 0.045, 1300); bass(T.end[0], 33, T.end[1] - T.end[0] - 0.5, 0.24);
+[0, 1, 2].forEach((i) => whoosh(T.tour[0] + i * shot, 0.14)); whoosh(T.founding[0], 0.12);
+// the end card: Am9 held on the keys and pad, one last log drum, a bell for the mark
+whoosh(T.end[0], 0.1); pad(T.end[0], [45, 57, 60, 64, 71], T.end[1] - T.end[0], 0.045, 1300);
+logdrum(T.end[0], 33, 1.2, 0.5); keys(T.end[0] + 0.5, chords[0], 1.6, 0.05);
 [0.1, 0.35, 0.6].forEach((o, i) => pluck(T.end[0] + o, [81, 84, 88][i], 0.06));
 return ctx.startRendering();
 `;

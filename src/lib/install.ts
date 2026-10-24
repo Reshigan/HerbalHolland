@@ -41,6 +41,19 @@ export function detectPlatform(ua: string, touchPoints = 0): { platform: Install
   return { platform: "other", inApp, iosSafari: false };
 }
 
+/**
+ * Where this browser can't install but the phone's own browser can (an in-app browser, or iOS outside Safari): the
+ * hand-off. Android gets an intent link that reopens the page in Chrome (falling back to the page itself); iOS can only
+ * be told to open it in Safari. Null where the normal nudge applies, or where no hand-off helps (desktop).
+ */
+export function browserHandoff(ua: string, url: string, touchPoints = 0): { platform: "android"; href: string } | { platform: "ios" } | null {
+  const { platform, inApp, iosSafari } = detectPlatform(ua, touchPoints);
+  if (platform === "ios") return iosSafari ? null : { platform: "ios" };
+  if (platform !== "android" || !inApp) return null;
+  const u = new URL(url);
+  return { platform: "android", href: `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end` };
+}
+
 /** When a remembered dismissal stops hiding the nudge (0 when nothing was dismissed). */
 export function dismissedUntil(dismissedAt: number | null | undefined, kind: DismissKind = "dismissed"): number {
   if (!dismissedAt || !Number.isFinite(dismissedAt)) return 0;

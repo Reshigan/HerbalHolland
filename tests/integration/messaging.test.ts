@@ -70,7 +70,7 @@ describe("Sign-in codes by email", () => {
     const log = await db.messageLog.findFirstOrThrow({ orderBy: { createdAt: "desc" } });
     expect(log).toMatchObject({ channel: "EMAIL", to: "new.member@example.com", status: "SENT", kind: "TRANSACTIONAL" });
     expect(log.body).not.toMatch(/\d{6}/);
-    expect(log.body).toContain("Your Herbal Holland code is ••••••");
+    expect(log.body).toContain("your sign-in code is ••••••");
 
     // A member's own email carries codes only once a code has reached it; an address typed into the profile hasn't.
     const member = await db.customer.update({ where: { id: w.patient.id }, data: { email: "patient@example.co.za", emailVerifiedAt: null }, select: { phone: true, email: true } });
