@@ -1,6 +1,7 @@
 // Storefront catalogue: product cards with display prices (price lists and member
 // prices, exactly as quote() resolves them online), live deal badges, stock at the
 // shopper's store or across the network, and verified-review ratings.
+import { SHOWN_RANGE } from "@/lib/range";
 import { cache } from "react";
 import { db } from "@/server/db";
 import { activePriceLists, activePromotions, priceContext, type PromotionRow } from "@/server/pricing";
@@ -204,7 +205,7 @@ export async function buildCards(products: CatalogueProduct[], who: Shopper): Pr
 /** Cards for arbitrary products, restricted to the given classes. */
 export async function cardsWhere(where: Prisma.ProductWhereInput, classes: RegClass[], who: Shopper, take?: number) {
   const products = await db.product.findMany({
-    where: { AND: [where, { status: "ACTIVE", regClass: { in: classes } }] },
+    where: { AND: [where, { status: "ACTIVE", regClass: { in: classes }, ...SHOWN_RANGE }] },
     include: PRODUCT_INCLUDE,
     orderBy: [{ featured: "desc" }, { heritage: "desc" }, { name: "asc" }],
     take,
@@ -229,7 +230,7 @@ export const PAGE_SIZE = 36;
 export async function listCatalogue(scope: "public" | "licensed", q: ListQuery, who: Shopper) {
   const classes = await getClasses();
   const products = await db.product.findMany({
-    where: { status: "ACTIVE", regClass: { in: scope === "public" ? classes.public : classes.licensed } },
+    where: { status: "ACTIVE", regClass: { in: scope === "public" ? classes.public : classes.licensed }, ...SHOWN_RANGE },
     include: PRODUCT_INCLUDE,
   });
   const all = await buildCards(products, who);

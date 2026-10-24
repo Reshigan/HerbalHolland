@@ -95,8 +95,6 @@ export const FACTS = {
   shelf: {
     cbd: "/shop?category=wellness",
     food: "/shop?category=coffee-drinks",
-    skin: "/shop?category=skin-care",
-    supplements: "/shop?category=collagen-supplements",
     accessories: "/shop?category=accessories",
     apparel: "/shop?category=apparel",
     grow: "/shop?category=grow",

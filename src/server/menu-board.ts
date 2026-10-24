@@ -1,6 +1,7 @@
 // The in-store menu board's data: this store's ranged public catalogue with live availability, walk-in prices and
 // the member price where the law lets us offer one (never on licensed medicines or CBD supplements; see incentiveExcluded).
 // Sold-out items stay on the board, greyed, so the screen doesn't jump; /menu/[slug]/live serves the 60 s refresh.
+import { SHOWN_RANGE } from "@/lib/range";
 import { db } from "./db";
 import { availability, availKey } from "./inventory";
 import { activePriceLists } from "./pricing";
@@ -43,7 +44,7 @@ async function priced(storeId: string, includeLicensed: boolean) {
   const [store, ranged, lists] = await Promise.all([
     db.store.findUniqueOrThrow({ where: { id: storeId }, select: { id: true, regionId: true } }),
     db.storeVariant.findMany({
-      where: { storeId, variant: { active: true, product: { status: "ACTIVE", regClass: { in: regClasses } } } },
+      where: { storeId, variant: { active: true, product: { status: "ACTIVE", regClass: { in: regClasses }, ...SHOWN_RANGE } } },
       select: {
         priceCents: true,
         variant: {

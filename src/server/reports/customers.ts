@@ -311,7 +311,7 @@ export const rewardsSavings: ReportDef = {
 };
 
 // ── Where members joined: tagged join links and QR codes (/club/join?src=…) ──
-const JOINED_AT: Record<string, string> = { WEB: "Website (untagged)", REFERRAL: "A friend's link", POS: "At the till", ADMIN: "Added by a store" };
+export const JOINED_AT: Record<string, string> = { WEB: "Website (untagged)", REFERRAL: "A friend's link", POS: "At the till", ADMIN: "Added by a store" };
 
 export const joinSources: ReportDef = {
   key: "join-sources",

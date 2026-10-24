@@ -1,5 +1,6 @@
 // A store's live, in-stock menu at its own shelf prices (franchisees set their own
 // prices in store), grouped by category. Shared by the store page and the TV menu board.
+import { SHOWN_RANGE } from "@/lib/range";
 import { db } from "@/server/db";
 import { activePriceLists, activePromotions } from "@/server/pricing";
 import { availability, availKey } from "@/server/inventory";
@@ -28,7 +29,7 @@ export async function storeMenu(storeId: string, opts: { tier?: string | null; i
   const [store, ranged, lists] = await Promise.all([
     db.store.findUniqueOrThrow({ where: { id: storeId }, select: { id: true, regionId: true } }),
     db.storeVariant.findMany({
-      where: { storeId, variant: { active: true, product: { status: "ACTIVE", regClass: { in: regClasses } } } },
+      where: { storeId, variant: { active: true, product: { status: "ACTIVE", regClass: { in: regClasses }, ...SHOWN_RANGE } } },
       select: {
         priceCents: true,
         variant: {

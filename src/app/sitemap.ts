@@ -1,3 +1,4 @@
+import { SHOWN_RANGE } from "@/lib/range";
 import type { MetadataRoute } from "next";
 import { db } from "@/server/db";
 import { getClasses } from "@/server/shop/access";
@@ -19,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const b = siteUrl();
   const classes = await getClasses();
   const now = new Date();
-  const publicProduct = { status: "ACTIVE" as const, regClass: { in: classes.public } };
+  const publicProduct = { status: "ACTIVE" as const, regClass: { in: classes.public }, ...SHOWN_RANGE };
   const [products, stores, categoryStamps, drops, events] = await Promise.all([
     db.product.findMany({ where: publicProduct, select: { slug: true, updatedAt: true }, orderBy: { updatedAt: "desc" }, take: MAX_PRODUCTS }),
     db.store.findMany({ where: { kind: "RETAIL", status: { in: ["ACTIVE", "OPENING_SOON"] } }, select: { slug: true }, orderBy: { slug: "asc" }, take: MAX_STORES }),

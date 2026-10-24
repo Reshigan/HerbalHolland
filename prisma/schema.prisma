@@ -2453,3 +2453,20 @@ model DisplayFeed {
   snapshot Json
   at       DateTime
 }
+
+/// First-party analytics for the shop and the Rewards app (src/app/api/a, src/lib/analytics.ts): one row per page view
+/// or install. No cookies and no member link: the visitor is a random id the browser keeps. Deleted after 400 days.
+model PageView {
+  id       String   @id @default(cuid())
+  at       DateTime @default(now())
+  kind     String   @default("view") // view | install
+  visitor  String // random id kept in the browser's localStorage, no personal details
+  path     String // without the query string
+  entry    Boolean  @default(false) // the first page of a visit (a fresh page load): what visits and sources count
+  app      Boolean // opened as the installed app (display-mode standalone)
+  src      String? // ?src= tag on the landing URL (entry pages only)
+  referrer String? // host only, never our own (entry pages only)
+  platform String // android | ios | desktop | other (detectPlatform, @/lib/install)
+
+  @@index([at])
+}

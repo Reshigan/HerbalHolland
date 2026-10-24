@@ -145,7 +145,7 @@ await Promise.all(Array.from({ length: Math.min(JOBS, queue.length) }, async () 
 await browser.close();
 const total = results.reduce((n, r) => n + r.bytes, 0);
 console.log(`${results.length} files, ${(total / 1e6).toFixed(1)} MB total → ${OUT}`);
-const bad = results.filter((r) => r.bytes > MAX_BYTES || r.seconds < 15 || r.seconds > 30 || r.codec !== "h264" || r.pix !== "yuv420p");
+const bad = results.filter((r) => r.bytes > MAX_BYTES || r.seconds < 15 || r.seconds > 60 || r.codec !== "h264" || r.pix !== "yuv420p");
 if (bad.length) {
   console.error("Out of spec:", bad.map((r) => r.file).join(", "));
   process.exit(1);

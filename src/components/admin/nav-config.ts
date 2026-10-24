@@ -86,6 +86,7 @@ export const hqNav: NavGroup[] = [
       { label: "Network overview", href: "/hq", icon: "LayoutDashboard", exact: true, keywords: "home dashboard today" },
       { label: "Stores", href: "/hq/stores", icon: "Store", keywords: "franchisees branches" },
       { label: "Reports", href: "/hq/reports", icon: "ChartColumn", keywords: "insight sales analytics export" },
+      { label: "Analytics", href: "/hq/analytics", icon: "Activity", keywords: "visitors traffic app installs joins sources web" },
       { label: "Franchise leads", href: "/hq/franchise", icon: "Handshake", roles: ["HQ_ADMIN", "HQ_STAFF"], keywords: "enquiries applications" },
     ],
   },

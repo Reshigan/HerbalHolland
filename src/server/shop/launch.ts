@@ -1,5 +1,6 @@
 // Storefront reads for the launch programme: drops, events and tickets, welcome gifts and My Deals.
 // Business rules live in the domain services (drops, events, offers, launch); this shapes their data for pages.
+import { SHOWN_RANGE } from "@/lib/range";
 import { db } from "@/server/db";
 import { availability, availKey } from "@/server/inventory";
 import { activePromotions } from "@/server/pricing";
@@ -114,7 +115,7 @@ export async function welcomeGifts(c: { visits: number } | null | undefined, sto
   const ids = gifts.flatMap((g) => g.rewardProductIds);
   const products = ids.length
     ? await db.product.findMany({
-        where: { id: { in: ids }, status: "ACTIVE", regClass: { in: classes.public } },
+        where: { id: { in: ids }, status: "ACTIVE", regClass: { in: classes.public }, ...SHOWN_RANGE },
         select: { id: true, slug: true, name: true, strain: true, regClass: true, variants: { where: { active: true }, orderBy: { sortOrder: "asc" }, take: 1, select: { id: true } } },
       })
     : [];

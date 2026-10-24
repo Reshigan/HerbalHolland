@@ -3,6 +3,7 @@
 // from the product's facts, the batch's certificate of analysis as a panel, delivery and returns in one glance,
 // verified reviews with members' photos, related products, and a sticky buy bar on phones. Licensed medicines
 // stay behind the dispensary gate, without reviews, promotions or structured data.
+import { isHiddenCategory } from "@/lib/range";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -64,7 +65,7 @@ type SP = { v?: string; reviews?: string };
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug } = await params;
   const [p, classes] = await Promise.all([getProductBySlug(slug), getClasses()]);
-  if (!p || p.status !== "ACTIVE") return { title: "Not found" };
+  if (!p || p.status !== "ACTIVE" || isHiddenCategory(p.category.slug)) return { title: "Not found" };
   // Licensed medicines are never advertised: generic title, kept out of search.
   if (classes.licensed.includes(p.regClass)) return { title: "Dispensary", robots: { index: false, follow: false } };
   const description = metaDescription(p.tagline, p.description, `${p.category.name} from ${SITE_NAME}: click & collect in store or delivered nationwide. Adults 18+.`, "Free to join Herbal Holland Rewards.");
@@ -102,7 +103,7 @@ function howToUse(p: { regClass: RegClass; cbdMgPerDay: number | null; netConten
 export default async function ProductPage({ params, searchParams }: { params: Promise<Params>; searchParams: Promise<SP> }) {
   const [{ slug }, sp] = await Promise.all([params, searchParams]);
   const product = await getProductBySlug(slug);
-  if (!product || product.status !== "ACTIVE" || !product.variants.length) notFound();
+  if (!product || product.status !== "ACTIVE" || !product.variants.length || isHiddenCategory(product.category.slug)) notFound();
   const [classes, settings, customer, store] = await Promise.all([getClasses(), getSettings(), getCustomer(), getPreferredStore()]);
   const licensed = classes.licensed.includes(product.regClass);
   const access = licensed ? await getDispensaryAccess() : null;

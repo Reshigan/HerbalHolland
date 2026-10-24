@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { isHiddenCategory } from "@/lib/range";
 import Link from "next/link";
 import { categoryImage } from "@/lib/category-images";
 import Form from "next/form";
@@ -45,6 +47,7 @@ const CLASS_GUIDE: Partial<Record<RegClass, string>> = { CBD: "cbd-schedule-0", 
 /** One indexable URL per category (or mood); searches and filtered/sorted views canonicalise to it and stay out of the index. */
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
   const sp = await searchParams;
+  if (sp.category && isHiddenCategory(sp.category)) notFound();
   const cat = sp.category ? await db.category.findUnique({ where: { slug: sp.category }, select: { name: true, blurb: true } }) : null;
   const mood = !cat && sp.mood && /^[a-z]{1,20}$/.test(sp.mood) ? sp.mood : null;
   const title = cat ? cat.name : mood ? `For ${mood}` : "Shop the range";
@@ -68,6 +71,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const defaultSort: SortKey = q ? "relevance" : "featured";
   const sort = (SORTS.find((s) => s.key === sp.sort && (q || s.key !== "relevance"))?.key ?? defaultSort) as SortKey;
   const query = { category: sp.category || undefined, mood: sp.mood || undefined, sort, min: num(sp.min), max: num(sp.max), q: q || undefined, page: pageParam(sp.page) };
+  if (query.category && isHiddenCategory(query.category)) notFound();
   const [res, cat] = await Promise.all([
     listCatalogue("public", query, { tier: customer?.tier ?? null, storeId: store?.id, storeName: store?.name }),
     query.category ? db.category.findUnique({ where: { slug: query.category } }) : null,
