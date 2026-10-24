@@ -1,8 +1,7 @@
-// The eight brand videos. Each scene is HTML + CSS keyframes on a timeline in seconds (render.tsx steps the
+// The brand videos. Each scene is HTML + CSS keyframes on a timeline in seconds (render.tsx steps the
 // animations frame by frame). Brand-led only: no prices, no consumption, no medical claims; product renders appear
 // only in `range`, as the-range artwork. The only call to action is the end card ("Join free").
-import QRCode from "qrcode";
-import { Build, captions, CREAM, dataUri, EASE, EASE_BOUNCE, EASE_IO, endCard, mark, markDrawCss, page, Scene, TICK_HELPERS } from "./scene";
+import { Build, captions, dataUri, EASE, EASE_BOUNCE, EASE_IO, endCard, mark, markDrawCss, page, Scene, TICK_HELPERS } from "./scene";
 
 const CATEGORIES = ["flower", "pre-rolls", "edibles", "vapes", "wellness", "skin-care", "coffee-drinks", "protein-nutrition", "collagen-supplements", "accessories", "apparel", "grow", "concentrates"];
 
@@ -89,54 +88,6 @@ var n=292-Math.round(250*ease(clamp(t,12.3,14.2)));txt("cardno",String(n).padSta
 };
 
 // ---------------------------------------------------------------------------------------------------------------
-// lab-tested: a batch code types in, becomes a QR, and five safety panels tick.
-const labTested: Scene = {
-  name: "lab-tested",
-  seconds: 20,
-  async html(ctx) {
-    const b = new Build(ctx, 20);
-    const end = endCard(b, 16.2);
-    const code = "HH-2609-0192";
-    const qr = await QRCode.toString(`https://shop.herbalholland.com/batch/${code}`, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: CREAM, light: "#0000" } });
-    const panels = ["Microbials", "Pesticides", "Heavy metals", "Mycotoxins", "Residual solvents"];
-    const tick = `function(t){${TICK_HELPERS}
-var code=${JSON.stringify(code)};var k=Math.round(code.length*clamp(t,0.9,3.2));txt("code",code.slice(0,k)+(k<code.length&&Math.floor(t*4)%2?"_":""));}`;
-    const css = `
-.eye{position:absolute;left:0;right:0;top:${ctx.portrait ? 14 : 9}vmin;text-align:center;${b.win(0.4, 15.9)}}
-.p1{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;${b.win(0.6, 5.6, { enter: "opacity:0", hold: "opacity:1", exit: "opacity:0;transform:scale(.9)", outS: 0.6 })}}
-.code{font-weight:600;font-size:${ctx.portrait ? 12.4 : 12.4}vmin;letter-spacing:.02em;line-height:1;color:var(--cream);min-height:1em}
-.p1 .sub{margin-top:2.4vmin;${b.win(3.4, 5.6)}}
-.p2{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;${b.win(5.6, 10.8, { enter: "opacity:0;transform:scale(.6)", hold: "opacity:1;transform:none", exit: "opacity:0;transform:scale(1.08)", inS: 1.2, outS: 0.6 })}}
-.qrbox{position:relative;width:44vmin;height:44vmin;padding:3vmin;background:var(--ink900);border-radius:4vmin;border:.4vmin solid var(--ink700);overflow:hidden}
-.qrbox svg{width:100%;height:100%;display:block}
-.scan{position:absolute;left:0;right:0;height:1.2vmin;background:var(--orange);box-shadow:0 0 3vmin rgba(245,145,60,.9);${b.tween(7.0, 9.4, "top:-2vmin", "top:102%", EASE_IO)}}
-.p2 .sub{margin-top:3vmin;font-size:4.4vmin;color:var(--ink300)}
-.p2 .sub b{color:var(--cream);font-weight:600}
-.p3{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2vmin;${b.win(10.8, 16.1, { enter: "opacity:0", hold: "opacity:1", exit: "opacity:0", outS: 0.5 })}}
-.row{display:flex;align-items:center;justify-content:space-between;width:${ctx.portrait ? 80 : 60}vmin;background:var(--ink900);border-radius:999px;padding:2vmin 2.4vmin 2vmin 4vmin;font-size:4.4vmin;font-weight:500;color:var(--cream)}
-.row .tick{width:6.4vmin;height:6.4vmin;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center}
-.row .tick svg{width:3.6vmin;height:3.6vmin;stroke:var(--black);stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 1}
-${panels.map((_, i) => `.row:nth-child(${i + 1}){${b.win(11 + i * 0.35, 16.1, { enter: "opacity:0;transform:translateX(-4vmin)", exit: "opacity:0", outS: 0.4 })}}
-.row:nth-child(${i + 1}) .tick{${b.tween(11.6 + i * 0.35, 12.2 + i * 0.35, "transform:scale(0)", "transform:scale(1)", EASE_BOUNCE)}}
-.row:nth-child(${i + 1}) .tick svg path{${b.tween(11.9 + i * 0.35, 12.5 + i * 0.35, "stroke-dashoffset:1", "stroke-dashoffset:0", EASE_IO)}}`).join("\n")}
-.all{margin-top:2vmin;font-size:3.6vmin;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--orange);${b.win(13.8, 16.1)}}
-${end.css}`;
-    const body = `
-<div class="eye eyebrow">Lab-tested, every batch</div>
-<div class="p1"><div class="code" id="code"></div><div class="sub">the batch code, on every pack</div></div>
-<div class="p2"><div class="qrbox">${qr}<div class="scan"></div></div><div class="sub">Batch <b>${code}</b></div></div>
-<div class="p3">${panels.map((p) => `<div class="row"><span>${p}</span><span class="tick"><svg viewBox="0 0 24 24"><path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>`).join("")}<div class="all">Certificate on file</div></div>
-${captions(b, [
-  [0.9, 5.4, "Every batch has a certificate."],
-  [5.9, 10.6, "Scan the code on the pack to read it."],
-  [11.0, 16.0, "Tested for microbials, pesticides, heavy metals, mycotoxins and solvents."],
-])}
-${end.html}`;
-    return page(ctx, b, body, css, tick);
-  },
-};
-
-// ---------------------------------------------------------------------------------------------------------------
 // rewards: join → points → tiers. No money amounts.
 const rewards: Scene = {
   name: "rewards",
@@ -207,10 +158,19 @@ ${end.html}`;
 };
 
 // ---------------------------------------------------------------------------------------------------------------
-// hillcrest / hilton: contour rings, a pin drops, the town name rises, "opening soon".
-function town(name: string, area: string): Scene {
+// a town: contour rings, a pin drops, the town name rises, and where the store stands: "Now open" (with its street),
+// an opening day, or "Opening soon".
+type TownState = { kind: "open"; street: string } | { kind: "opens"; day: string } | { kind: "soon" };
+function town(name: string, area: string, state: TownState = { kind: "soon" }, key = name.toLowerCase()): Scene {
+  const eyebrow = state.kind === "open" ? "Now open" : state.kind === "opens" ? `Opens ${state.day}` : "Opening soon";
+  const lines: [string, string] =
+    state.kind === "open"
+      ? [`Herbal Holland is open in ${name}.`, `${state.street}. Join free at the till or on your phone. Adults 18+.`]
+      : state.kind === "opens"
+        ? ["Herbal Holland is coming to the Hills.", `Opening ${state.day} in ${name}. Join free and be first through the door.`]
+        : ["Herbal Holland is coming to the Hills.", `Opening soon in ${name}. Join free and be first through the door.`];
   return {
-    name: name.toLowerCase(),
+    name: key,
     seconds: 16,
     html(ctx) {
       const b = new Build(ctx, 16);
@@ -229,7 +189,7 @@ function town(name: string, area: string): Scene {
 .rip:nth-child(2){animation-delay:1.6s}.rip:nth-child(3){animation-delay:2.5s}.rip:nth-child(4){animation-delay:3.4s}
 .shadow{position:absolute;left:-7vmin;top:-1vmin;width:14vmin;height:3vmin;border-radius:50%;background:rgba(245,145,60,.5);filter:blur(1.4vmin);${b.tween(1.2, 1.9, "transform:scale(.2);opacity:0", "transform:scale(1);opacity:1")}}
 .name{position:absolute;left:0;right:0;top:${ctx.portrait ? 42 : 40}%;text-align:center}
-.name .t{display:inline-block;overflow:hidden;font-weight:700;font-size:${ctx.portrait ? 17.5 : 18}vmin;line-height:1.05;letter-spacing:-.03em;color:var(--cream);padding:0 .1em}
+.name .t{display:inline-block;overflow:hidden;font-weight:700;font-size:${Math.min(ctx.portrait ? 17.5 : 18, (ctx.portrait ? 150 : 260) / name.length)}vmin;line-height:1.05;letter-spacing:-.03em;color:var(--cream);padding:0 .1em}
 .name .t span{display:inline-block}
 .name .sub{margin-top:1vmin;font-size:4.6vmin;${b.win(3.6, 12.2)}}
 .name .eyebrow{margin-top:5vmin;font-size:3.6vmin;${b.win(5.2, 12.2, { enter: "opacity:0;transform:translateY(1.6vmin)" })}}
@@ -240,11 +200,11 @@ ${end.css}`;
   <div class="pinwrap"><div class="rip"></div><div class="rip"></div><div class="rip"></div><div class="rip"></div><div class="shadow"></div>
     <div class="pin"><svg viewBox="0 0 18 24"><path d="M9 23s7.5-8.2 7.5-14A7.5 7.5 0 0 0 1.5 9c0 5.8 7.5 14 7.5 14z"/><circle cx="9" cy="9" r="2.8"/></svg></div>
   </div>
-  <div class="name"><div class="t">${letters}</div><div class="sub">${area} · KwaZulu-Natal</div><div class="eyebrow">Opening soon</div></div>
+  <div class="name"><div class="t">${letters}</div><div class="sub">${area} · KwaZulu-Natal</div><div class="eyebrow">${eyebrow}</div></div>
 </div>
 ${captions(b, [
-  [1.2, 5.0, "Herbal Holland is coming to the Hills."],
-  [5.5, 11.6, `Opening soon in ${name}. Join free and be first through the door.`],
+  [1.2, 5.0, lines[0]],
+  [5.5, 11.6, lines[1]],
 ])}
 ${end.html}`;
       return page(ctx, b, body, css);
@@ -391,7 +351,7 @@ ${end.css}`;
 <div class="title"><div class="eyebrow">Herbal Holland</div><div class="h1">The <b>range.</b></div></div>
 <div class="tick"><div class="in">${run}${run}</div></div>
 ${captions(b, [
-  [2.0, 7.4, "Thirteen ranges, one standard: lab-tested, adults only."],
+  [2.0, 7.4, "Thirteen ranges under one roof, for members 18+."],
   [8.0, 15.6, "From the Windmill to the Hills. In store and online, soon."],
 ])}
 ${end.html}`;
@@ -399,4 +359,11 @@ ${end.html}`;
   },
 };
 
-export const SCENES: Scene[] = [welcome, founding, labTested, rewards, town("Hillcrest", "Upper Highway"), town("Hilton", "The Midlands"), join, range];
+export const SCENES: Scene[] = [
+  welcome, founding, rewards,
+  town("Bluff", "Durban", { kind: "open", street: "208 Tara Road, Bluff" }, "open-bluff"),
+  town("Pietermaritzburg", "Raisethorpe", { kind: "open", street: "575 Chota Motala Road, Raisethorpe" }, "open-pietermaritzburg"),
+  town("Hillcrest", "Upper Highway", { kind: "opens", day: "1 December" }),
+  town("Hilton", "The Midlands", { kind: "opens", day: "1 December" }),
+  join, range,
+];
