@@ -416,6 +416,22 @@ export const PRESS = {
     empty: "No releases yet: our first one is on its way. For news in the meantime, email",
     read: "Read the release",
     items: [
+      // The first release: the KZN stores. Held back until the owner approves it and sets the day it goes out.
+      {
+        slug: "kwazulu-natal-stores-open",
+        date: null,
+        title: "Herbal Holland opens in KwaZulu-Natal, with stores in Pietermaritzburg and on the Bluff",
+        pageTitle: "Herbal Holland opens in KwaZulu-Natal",
+        description: "Herbal Holland's first stores are open in Pietermaritzburg and on the Bluff in Durban, for members aged 18+; Hillcrest and Hilton follow on 1 December 2026.",
+        summary:
+          "Herbal Holland, a South African network of members-only cannabis wellness stores for adults 18+, has opened its first two stores in KwaZulu-Natal, in Pietermaritzburg and on the Bluff in Durban. Two more, in Hillcrest and Hilton, open on Tuesday 1 December 2026.",
+        body: [
+          "Herbal Holland's stores in Pietermaritzburg and on the Bluff in Durban are open, for members aged 18 and over. Joining Herbal Holland Rewards is free, takes about a minute in store or on a phone, and gives members their member price from the first visit.",
+          "Two more stores, in Hillcrest and Hilton, open on Tuesday 1 December 2026. Every Herbal Holland store is owned and run by a local franchisee, on one shared platform for the till, stock and membership.",
+          "The name nods to Amsterdam, where many of Southern Africa's landraces became famous; the roots are here. The stores carry CBD wellness, accessories, grow gear and Herbal Holland apparel.",
+          "Every batch is tested by an independent laboratory before it's sold, and the code on each pack opens that batch's result. ID is checked at the till. Licensed medicines are supplied only to registered patients with a SAHPRA authorisation, through a pharmacist, and are never advertised.",
+        ],
+      },
       // Held back until the online shop is live (FACTS.shop.url): set its date to that day, and check every line then.
       {
         slug: "online-shop-opens",

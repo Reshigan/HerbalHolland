@@ -40,8 +40,14 @@ live, then national.
       the event: the friend joins free with the referral and RSVPs for their own ticket (still one per member).
 - [ ] **Growth dashboard in HQ:** joins per store per week, share from referrals, invites per member, the referral ratio
       (target 0.4 in the first quarter).
-- [ ] **Press kit page and pitches:** facts, photos, founder quote; pitches drafted for The Witness, Highway Mail,
-      Southlands Sun and Durban news sites, for the owner to send.
+- [x] **Press kit and pitches:** the press room was already live (herbalholland.com/press: fact sheet, logos, notes on
+      how to write about us). Added the first release, "Herbal Holland opens in KwaZulu-Natal", as a draft, and
+      docs/press/PITCHES.md: angles, outlets, three pitch emails and a send log. The owner approves the release (sets its
+      date), adds a founder quote and sends the pitches from press@.
+- [ ] **Media plan (owner approved 24 Oct): monthly newsletter** to consented members only, drafted for approval.
+- [ ] **Media plan: Telegram channel** page and join button (the owner creates the channel), then its posts.
+- [ ] **Media plan: lifestyle content pack:** 30 platform-safe posts (no product, no prices) and backup-handle notes.
+- [ ] **Media plan: op-ed draft** "the law, plainly", for the owner to send to a national opinion editor.
 - [ ] **Counter printables:** QR stand, receipt line, neighbour swap cards from the QR maker.
 - [ ] **Claude in the Rewards app** (blocked: needs an Anthropic API key on the Worker): a guide that answers
       questions about membership, stores, events and lab results, recommends Learn and quests, never gives medical advice.
@@ -56,5 +62,7 @@ live, then national.
 - Publish the real product range.
 - Decide whether staff earn anything per sign-up (an amount per member who joins with them, paid by the store owner).
   The count is on the till already; paying it needs the amount and is a staff incentive, never on medicines.
+- Press: approve the KZN release (set its date), send a two-sentence founder quote, shopfront pictures, then send the
+  pitches in docs/press/PITCHES.md from press@herbalholland.com.
 - For the area pages: each store's hours, parking, nearby landmarks, local events and who's on the team.
 - Forward your own referral link to people you know; the first members come from people who trust you.
