@@ -13,8 +13,8 @@ const VO = new URL("./assets/vo/", import.meta.url).pathname;
 const OUT = new URL("../../public/brand/video/", import.meta.url).pathname;
 // [file, start in seconds]: each line lands inside its scene (scripts/video/launch.ts timelines).
 const CUES: Record<string, [string, number][]> = {
-  launch: [["stories-travel", 4.3], ["seventies-seed", 6.0], ["second-home", 10.8], ["coming-home", 14.3], ["meet-the-hills", 18.6], ["members-club-long", 22.4], ["cbd-coffee", 26.6], ["learn-to-grow-long", 30.2], ["founding", 34.3], ["hillcrest-hilton", 36.3], ["join", 40.0]],
-  "launch-30": [["stories-travel", 3.2], ["seed-short", 4.9], ["coming-home", 10.1], ["meet-the-hills", 13.3], ["members-club", 16.3], ["cbd-coffee", 18.6], ["learn-to-grow", 21.7], ["founding", 23.6], ["join", 25.8]],
+  launch: [["stories-travel", 4.3], ["seventies-seed", 6.0], ["second-home", 10.8], ["coming-home", 14.3], ["meet-the-hills", 18.6], ["redefining", 22.4], ["cbd-coffee", 26.6], ["learn-to-grow-long", 30.2], ["founding", 34.3], ["hillcrest-hilton", 36.3], ["join", 40.0]],
+  "launch-30": [["stories-travel", 3.2], ["seed-short", 4.9], ["coming-home", 10.1], ["meet-the-hills", 13.3], ["redefining", 16.3], ["cbd-coffee", 18.9], ["learn-to-grow", 21.7], ["founding", 23.6], ["join", 25.8]],
 };
 
 for (const [film, cues] of Object.entries(CUES))

@@ -21,7 +21,7 @@ const timeline = (d: Record<Part, number>) => {
 const asset = (f: string) => dataUri(new URL(`./assets/${f}`, import.meta.url).pathname, "image/jpeg");
 // The tour: [file, width/height, eyebrow, headline]
 const SHOTS: [string, number, string, string][] = [
-  ["store-wide.jpg", 2330 / 665, "Members only", "A members' club for <b>cannabis culture.</b>"],
+  ["store-wide.jpg", 2330 / 665, "Members only", "Redefining cannabis culture <b>in South Africa.</b>"],
   ["store-display.jpg", 1110 / 700, "On the shelves", "CBD wellness <b>and coffee.</b>"],
   ["store-merch.jpg", 1170 / 700, "Wear it, grow it", "Apparel, accessories, <b>and learn to grow.</b>"],
 ];
