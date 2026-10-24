@@ -36,7 +36,8 @@ live, then national.
       it; free, no account). The key is public/<key>.txt. Google doesn't use IndexNow: it reads the sitemap.
 - [x] **Monthly specials page:** /specials (in the main nav and the sitemap) lists the network's live automatic
       specials, online and in store; members share it through their join link, with the Status card.
-- [ ] **Events: the plus-one joins to RSVP.**
+- [x] **Events: the plus-one joins to RSVP.** Under a member's ticket, "Bring a friend" shares their join link back to
+      the event: the friend joins free with the referral and RSVPs for their own ticket (still one per member).
 - [ ] **Growth dashboard in HQ:** joins per store per week, share from referrals, invites per member, the referral ratio
       (target 0.4 in the first quarter).
 - [ ] **Press kit page and pitches:** facts, photos, founder quote; pitches drafted for The Witness, Highway Mail,
