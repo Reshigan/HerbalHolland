@@ -1,11 +1,11 @@
 // Store signage, drawn at actual size in millimetres. Outside: the fascia (two sizes), the projecting blade sign, the
 // window poster, door vinyl, window stickers, the "Join free" window QR panel and the A-frame pavement board. Inside: the
 // counter QR stand, till and counter signs, the welcome and members signs, a header for every shelving bay and the wall
-// art. Store-specific pieces (door vinyl, window poster, town name, QR panels) are made for every store in STORES.
+// art. One generic set serves every store: no town, hours or address on any sign.
 // Lettering is outlined (scripts/text-outline.py), so the files cut as they are; the Mark is drawn as strokes (Outline
 // Stroke before routing). Writes SVG, PDF (actual size), a PNG preview and a preview on the panel's colour per design to
 // public/brand/signage, plus a night mock-up of a shopfront (storefront.png), a contact sheet and README.md.
-//   npx tsx scripts/signage-art.tsx [STORE_CODE|slug]   (one store: only its own pieces)
+//   npx tsx scripts/signage-art.tsx            (HD=<dir> also writes 300 dpi PNGs there)
 // Content rules: no prices, offers, health claims or testing / certificate / traceability claims; no leaf or smoke
 // imagery; never "dispensary" outside; "Adults 18+" on every sign with a message; brand colours only; no em dashes.
 import { execFileSync } from "node:child_process";
@@ -22,17 +22,11 @@ const SUNSET = "#f5913c", INK = "#0c0a09", CREAM = "#fbf7f3";
 
 // ── The stores (from the live database, 24 Oct 2026). hours: null = not confirmed yet, so no sign shows hours. ─────
 type Store = { code: string; slug: string; town: string; address: string; opening: string | null; hours: Hours | null };
+// One generic set for every store (no town, hours or address): "now" is the store that's trading, "soon" the one that
+// isn't open yet (its window poster says Opening soon; everything else is the same).
 const STORES: Store[] = [
-  { code: "DBN01", slug: "bluff", town: "Bluff", address: "208 Tara Road, Bluff, Durban 4052", opening: null, hours: null },
-  { code: "PMB01", slug: "pietermaritzburg", town: "Pietermaritzburg", address: "575 Chota Motala Road, Raisethorpe, Pietermaritzburg 3201", opening: null, hours: null },
-  {
-    code: "HIL01", slug: "hillcrest", town: "Hillcrest", address: "Shop 10B, Christians Village Shopping Centre, cnr Old Main Road and Inanda Road, Hillcrest 3610", opening: "1 December",
-    hours: { mon: ["09:00", "21:00"], tue: ["09:00", "21:00"], wed: ["09:00", "21:00"], thu: ["09:00", "21:00"], fri: ["09:00", "21:00"], sat: ["09:00", "22:00"], sun: ["09:00", "22:00"] },
-  },
-  {
-    code: "HLT01", slug: "hilton", town: "Hilton", address: "Shop 14, Hilton Village Centre, Hilton Avenue, Hilton 3245", opening: "1 December",
-    hours: { mon: ["08:00", "17:00"], tue: ["08:00", "17:00"], wed: ["08:00", "17:00"], thu: ["08:00", "17:00"], fri: ["08:00", "17:00"], sat: ["08:00", "13:00"], sun: ["09:00", "13:00"] },
-  },
+  { code: "ALL", slug: "", town: "", address: "", opening: null, hours: null },
+  { code: "SOON", slug: "soon", town: "", address: "", opening: "soon", hours: null },
 ];
 const JOIN = (src: string) => `https://shop.herbalholland.com/club/join?src=${src}`;
 
@@ -154,17 +148,17 @@ function doorVinyl(s: Store): Design {
   const top = 168, step = 26, after = lines.length ? top + 34 + lines.length * step : top + 14;
   const town = s.town.toUpperCase();
   return {
-    key: `door-vinyl-${s.slug}`, name: `Door vinyl, ${s.town}${s.hours ? "" : " (no hours yet)"}`, store: s.slug,
+    key: `door-vinyl${s.slug ? `-${s.slug}` : ""}`, name: "Door vinyl (every store)", store: s.slug,
     w, h: after + 150, ink: SUNSET, ground: null, side: "Outside",
     where: "Outside face of the entrance door glass, centre 1,500 mm from the floor",
     material: "Cut Sunset cast vinyl, weeded, transfer tape",
     qty: "1 per entrance door",
-    how: `Cut Sunset vinyl, applied to the outside of the door glass at eye level (centre 1,500 mm from the floor). One colour, no background.${s.hours ? "" : " Hours not confirmed yet, so none are shown: when they are, add them to STORES in scripts/signage-art.tsx and re-run, or cut a separate hours strip to sit under the rule."}`,
+    how: `Cut Sunset vinyl, applied to the outside of the door glass at eye level (centre 1,500 mm from the floor). One colour, no background. The same for every store: cut a separate hours strip per store to sit under the rule if wanted.`,
     body: (
       <>
         <M x={cx - 40} y={0} size={80} />
         <Words x={cx} y={96} width={190} size={30} />
-        <T text={town} weight={500} size={17} width={Math.min(300, Math.max(widthOf(town, 500, 17, 0.2), town.length * 17))} x={cx} y={top} />
+        {town && <T text={town} weight={500} size={17} width={Math.min(300, Math.max(widthOf(town, 500, 17, 0.2), town.length * 17))} x={cx} y={top} />}
         <rect x={cx - 150} y={top + 14} width={300} height={1.6} fill="currentColor" />
         {lines.map((l, i) => (
           <T key={l} text={l} weight={400} size={15} width={widthOf(l, 400, 15, 0.02)} x={cx} y={top + 46 + i * step} />
@@ -181,20 +175,20 @@ function doorVinyl(s: Store): Design {
 /** Window poster in the window-poster frame: the Mark, the wordmark, the town and the news (now open / opening on a date). */
 function windowPoster(s: Store): Design {
   const t = 44, mark = 340, cx = 500;
-  const status = s.opening ? ["OPENING", s.opening.toUpperCase()] : ["NOW OPEN"];
+  const status = s.opening === "soon" ? ["OPENING SOON"] : s.opening ? ["OPENING", s.opening.toUpperCase()] : ["NOW OPEN"];
   return {
-    key: `window-poster-${s.slug}`, name: `Window poster, ${s.town}: ${s.opening ? `Opening ${s.opening}` : "Now open"}`, store: s.slug,
+    key: `window-poster${s.slug ? `-${s.slug}` : ""}`, name: `Window poster: ${s.opening === "soon" ? "Opening soon" : "Now open"}`, store: s.slug,
     w: 1000, h: 1250, ink: SUNSET, ground: INK, side: "Outside",
     where: "Main shop window, behind the glass, centre 1,500 mm from the floor",
     material: "Reverse-printed clear window film (or 5 mm black foamboard hung 50 mm behind the glass)",
     qty: s.opening ? "1 (until opening day, then swap for the Now open version)" : "1",
-    how: `Printed on the back of clear window film (or on a black foamboard panel hung 50 mm behind the glass). The window-poster frame: our oldest brand code, the store window itself.${s.opening ? ` Up until ${s.opening}; on opening day reprint with opening: null in STORES for the Now open version.` : ""}`,
+    how: `Printed on the back of clear window film (or on a black foamboard panel hung 50 mm behind the glass). The window-poster frame: our oldest brand code, the store window itself.${s.opening ? " For a store that isn't trading yet; on opening day swap it for the Now open version." : ""}`,
     body: (
       <>
         <rect x={t / 2} y={t / 2} width={1000 - t} height={1250 - t} rx={96} fill="none" stroke="currentColor" strokeWidth={t} />
         <M x={cx - mark / 2} y={110} size={mark} />
         <Words x={cx} y={500} width={540} size={96} />
-        <Fit text={s.town.toUpperCase()} weight={500} size={56} maxW={720} tracking={0.22} x={cx} y={752} />
+        {s.town ? <Fit text={s.town.toUpperCase()} weight={500} size={56} maxW={720} tracking={0.22} x={cx} y={752} /> : <T text={TAGLINE} weight={500} size={40} width={640} x={cx} y={752} />}
         <rect x={180} y={800} width={640} height={5} fill="currentColor" />
         {status.length === 1 ? (
           <Fit text={status[0]} weight={800} size={130} maxW={720} tracking={0.06} x={cx} y={985} />
@@ -214,18 +208,18 @@ function windowPoster(s: Store): Design {
 function windowQr(s: Store): Design {
   const w = 420, h = 594, cx = w / 2;
   return {
-    key: `window-qr-${s.slug}`, name: `Join free window QR panel, ${s.town}, A2 420 × 594 mm`, store: s.slug,
+    key: `window-qr${s.slug ? `-${s.slug}` : ""}`, name: "Join free window QR panel, A2 420 × 594 mm", store: s.slug,
     w, h, ink: SUNSET, ground: INK, side: "Outside",
     where: "Shop window beside the door, centre 1,300 mm from the floor (reachable for a phone)",
     material: "3 mm Forex (PVC foam) or 5 mm foamboard stood 20 mm behind the glass; or printed opaque window vinyl, face-mounted",
     qty: "1",
-    how: `Printed full colour (black ground, Sunset lettering, cream QR tile). The QR opens ${JOIN(`window-${s.slug}`)}: test-scan the proof through the glass before printing in quantity. Keep the glass in front of the code clean and unfrosted.`,
+    how: `Printed full colour (black ground, Sunset lettering, cream QR tile). The QR opens ${JOIN("window")}: test-scan the proof through the glass before printing in quantity. Keep the glass in front of the code clean and unfrosted.`,
     body: (
       <>
         <rect x={16} y={16} width={w - 32} height={h - 32} rx={44} fill="none" stroke="currentColor" strokeWidth={10} />
         <Fit text="JOIN FREE" weight={800} size={76} maxW={320} tracking={0.06} x={cx} y={112} />
         <T text="HERBAL HOLLAND REWARDS" weight={600} size={17} width={320} x={cx} y={148} />
-        <QR url={JOIN(`window-${s.slug}`)} x={cx - 130} y={172} size={260} />
+        <QR url={JOIN("window")} x={cx - 130} y={172} size={260} />
         {center("Scan to join in a minute", 500, 21, 474, cx, 0.01)}
         {center("shop.herbalholland.com", 400, 14, 502, cx, 0.02)}
         <T text={AGE} weight={700} size={14} width={300} x={cx} y={540} />
@@ -238,18 +232,18 @@ function windowQr(s: Store): Design {
 function counterQr(s: Store): Design {
   const w = 148, h = 210, cx = w / 2;
   return {
-    key: `counter-qr-${s.slug}`, name: `Counter QR stand, ${s.town}, A5 148 × 210 mm`, store: s.slug,
+    key: `counter-qr${s.slug ? `-${s.slug}` : ""}`, name: "Counter QR stand, A5 148 × 210 mm", store: s.slug,
     w, h, ink: SUNSET, ground: INK, side: "Inside",
     where: "On the cash wrap beside each card machine, facing the customer",
     material: "350 g silk card (or 3 mm Forex) in a clear acrylic A5 T-stand",
     qty: "1 per till",
-    how: `Printed full colour, slotted into a clear A5 acrylic stand. The QR opens ${JOIN(`counter-${s.slug}`)}, so joins at the till are counted separately from the window.`,
+    how: `Printed full colour, slotted into a clear A5 acrylic stand. The QR opens ${JOIN("counter")}, so joins at the till are counted separately from the window.`,
     body: (
       <>
         <rect x={6} y={6} width={w - 12} height={h - 12} rx={16} fill="none" stroke="currentColor" strokeWidth={3} />
         <Fit text="JOIN FREE" weight={800} size={30} maxW={112} tracking={0.06} x={cx} y={42} />
         <T text="HERBAL HOLLAND REWARDS" weight={600} size={7.2} width={112} x={cx} y={57} />
-        <QR url={JOIN(`counter-${s.slug}`)} x={cx - 46} y={67} size={92} />
+        <QR url={JOIN("counter")} x={cx - 46} y={67} size={92} />
         {center("Scan to join in a minute", 500, 8.6, 174, cx, 0.01)}
         <T text={AGE} weight={700} size={6.4} width={112} x={cx} y={191} />
       </>
@@ -257,24 +251,6 @@ function counterQr(s: Store): Design {
   };
 }
 
-/** Store name for the top of the window. */
-function windowTown(s: Store): Design {
-  const town = s.town.toUpperCase();
-  return {
-    key: `window-town-${s.slug}`, name: `Store name, ${s.town}, 900 × 200 mm`, store: s.slug, w: 900, h: 200, ink: SUNSET, ground: null, side: "Outside",
-    where: "Top of the main window (letters 100 mm below the frame) or the fanlight over the door",
-    material: "Cut Sunset vinyl, weeded, transfer tape",
-    qty: "1",
-    how: `${CUT} Sunset, along the top of the main window (top of the letters 100 mm below the frame), or on the fanlight above the door. A name sign only, so no age line: the door vinyl and stickers carry it.`,
-    body: (
-      <>
-        <M x={20} y={20} size={160} heavy />
-        <T text="HERBAL HOLLAND" weight={600} size={30} width={420} x={210} y={62} anchor="start" />
-        <Fit text={town} weight={800} size={92} maxW={670} tracking={0.06} x={206} y={168} anchor="start" />
-      </>
-    ),
-  };
-}
 
 const DESIGNS: Design[] = [
   fascia("fascia-4800", "Fascia, 4,800 × 900 mm (street front)", 4800, 900, "Black aluminium composite panel (3 mm ACM). The frame is 40 mm Sunset LED neon flex; the Mark and lettering are built-up channel letters, 50 mm deep, Sunset acrylic faces, face-lit (warm white LEDs behind Sunset acrylic). The age line is 5 mm flat-cut Sunset acrylic, unlit. Lit dusk to closing on a timer.", {
@@ -704,13 +680,17 @@ function Storefront({ door, fasciaD, blade, poster, qr, board }: { door: Design;
 const arg = process.argv[2]?.toLowerCase();
 const only = arg ? STORES.find((s) => s.code.toLowerCase() === arg || s.slug === arg) : undefined;
 if (arg && !only) throw new Error(`No store ${arg}: one of ${STORES.map((s) => `${s.code} (${s.slug})`).join(", ")}`);
-const perStore = (s: Store) => [doorVinyl(s), windowPoster(s), windowTown(s), windowQr(s), counterQr(s)];
+const perStore = (s: Store) => (s.slug ? [windowPoster(s)] : [doorVinyl(s), windowPoster(s), windowQr(s), counterQr(s)]);
 const STORE_DESIGNS = STORES.flatMap(perStore);
 const all = only ? perStore(only) : [...DESIGNS, ...WINDOW, ...STORE_DESIGNS, ...INSIDE, ...BAYS, ...ART];
 
 // Retired files: the generic door vinyl (it showed sample hours) and the generic window poster (no age line), replaced
 // by one per store.
-if (!only) for (const k of ["door-vinyl", "window-poster"]) for (const ext of ["svg", "preview.svg", "png", "pdf"]) rmSync(`${OUT}/${k}.${ext}`, { force: true });
+// The per-store sets are retired for one generic set: clear their files.
+if (!only)
+  for (const town of ["bluff", "pietermaritzburg", "hillcrest", "hilton"])
+    for (const k of ["door-vinyl", "window-poster", "window-town", "window-qr", "counter-qr"])
+      for (const ext of ["svg", "preview.svg", "png", "pdf"]) rmSync(`${OUT}/${k}-${town}.${ext}`, { force: true });
 
 const svgOf = (d: Design, size: { width: string; height: string }, ground = false) =>
   renderToStaticMarkup(
@@ -735,13 +715,19 @@ for (const d of all) {
   await png(svgOf(d, { width: `${w}px`, height: `${h}px` }, true), w, h, `${OUT}/${d.key}.png`);
   await page.setContent(`<style>@page{margin:0}body{margin:0}</style>${svgOf(d, { width: `${d.w}mm`, height: `${d.h}mm` })}`);
   writeFileSync(`${OUT}/${d.key}.pdf`, await page.pdf({ width: `${d.w}mm`, height: `${d.h}mm`, margin: { top: "0", right: "0", bottom: "0", left: "0" }, pageRanges: "1" }));
+  if (process.env.HD) {
+    // 300 dpi, capped at 8,000 px on the long edge (the fascia, mural and bands are large: print those from the PDF).
+    const k2 = Math.min(300 / 25.4, 8000 / Math.max(d.w, d.h)), w2 = Math.round(d.w * k2), h2 = Math.round(d.h * k2);
+    mkdirSync(process.env.HD, { recursive: true });
+    await png(svgOf(d, { width: `${w2}px`, height: `${h2}px` }, true), w2, h2, `${process.env.HD}/${d.key}.png`);
+  }
   console.log(`${d.key}: ${d.w} × ${Math.round(d.h)} mm`);
 }
 
 if (!only) {
   const byKey = Object.fromEntries([...DESIGNS, ...STORE_DESIGNS].map((d) => [d.key, d]));
   const scene = renderToStaticMarkup(
-    <Storefront door={byKey["door-vinyl-bluff"]} fasciaD={byKey["fascia-4800"]} blade={byKey["blade-600"]} poster={byKey["window-poster-bluff"]} qr={byKey["window-qr-bluff"]} board={byKey["a-board"]} />,
+    <Storefront door={byKey["door-vinyl"]} fasciaD={byKey["fascia-4800"]} blade={byKey["blade-600"]} poster={byKey["window-poster"]} qr={byKey["window-qr"]} board={byKey["a-board"]} />,
   );
   writeFileSync(`${OUT}/storefront.svg`, scene);
   await png(scene, 1600, 1050, `${OUT}/storefront.png`);
@@ -762,10 +748,10 @@ if (!only) {
     .art{height:150px;display:flex;align-items:center;justify-content:center;background:#e7e0d9;border-radius:10px;padding:8px}
     .art img{max-width:100%;max-height:100%;box-shadow:0 1px 3px rgba(0,0,0,.25)}figcaption{font-size:11px;margin-top:4px;word-break:break-all}
     .scene img{width:560px;border-radius:10px}</style>
-    <h1>Herbal Holland store signs: KwaZulu-Natal</h1><p>Bluff (DBN01) · Pietermaritzburg (PMB01) · Hillcrest (HIL01) · Hilton (HLT01). Generated ${new Date().toISOString().slice(0, 10)} by scripts/signage-art.tsx. Files and placement: README.md.</p>
+    <h1>Herbal Holland store signs</h1><p>One set for every store. Generated ${new Date().toISOString().slice(0, 10)} by scripts/signage-art.tsx. Files and placement: README.md.</p>
     <div class="scene"><img src="data:image/png;base64,${readFileSync(`${OUT}/storefront.png`).toString("base64")}"></div>
     ${group("Outside: every store", generic.filter((d) => d.side === "Outside"))}
-    ${STORES.map((s) => group(`${s.town} (${s.code}): ${s.opening ? `opening ${s.opening}` : "open"}`, perStore(s))).join("")}
+    ${group("Door, window posters and QR: every store", STORE_DESIGNS)}
     ${group("Inside: every store", [...generic.filter((d) => d.side === "Inside"), ...INSIDE])}
     ${group("Bay headers", BAYS)}
     ${group("Wall art", ART)}`;
@@ -781,7 +767,7 @@ if (!only) {
   const shared = [...DESIGNS, ...WINDOW, ...INSIDE, ...BAYS, ...ART];
   const readme = `# Store signs: ready-to-print files
 
-Generated by \`npx tsx scripts/signage-art.tsx\` (one store only: \`npx tsx scripts/signage-art.tsx HIL01\`). Do not edit the
+Generated by \`npx tsx scripts/signage-art.tsx\`. Do not edit the
 files by hand: change the script and re-run. Every design is drawn at actual size in millimetres.
 
 - \`<key>.pdf\`: actual size, vector, for the printer or sign maker.
@@ -798,23 +784,23 @@ lab-testing, batch-testing, certificate or traceability claims; no leaf, smoke o
 "dispensary" only on the inside dispensary sign of a licensed store, never outside; "Adults 18+" on every sign that carries
 a message (the Mark, the manifestation band, the store name and the wall art are brand graphics with no message).
 
-## Stores
-
-| Store | Code | Address | Status | Hours on the door |
-|---|---|---|---|---|
-${STORES.map((s) => `| ${s.town} | ${s.code} | ${s.address} | ${s.opening ? `Opens ${s.opening} 2026` : "Open"} | ${s.hours ? hoursLine(s.hours) : "**Not confirmed: left off the door vinyl**"} |`).join("\n")}
-
 ## Signs for every store
 
 ${table(shared)}
 
-## Store-specific signs
+## Door, window posters and QR codes (every store)
 
-${STORES.map((s) => `### ${s.town} (${s.code})\n\n${table(perStore(s))}\n\nQR codes: window \`${JOIN(`window-${s.slug}`)}\`, counter \`${JOIN(`counter-${s.slug}`)}\`.`).join("\n\n")}
+${table(STORE_DESIGNS)}
+
+The window poster comes in two versions: \`window-poster\` (Now open) and \`window-poster-soon\` (Opening soon, for a store
+that isn't trading yet). QR codes: window \`${JOIN("window")}\`, counter \`${JOIN("counter")}\`.
+
+High-resolution PNGs (300 dpi, at most 8,000 px on the long edge) come from \`HD=<dir> npx tsx scripts/signage-art.tsx\`; the
+PDFs and SVGs are vector and print sharp at any size.
 
 ## Shopping list per store
 
-Outside: fascia (one of the two sizes, to suit the front), blade sign (where allowed), window poster, store name, window
+Outside: fascia (one of the two sizes, to suit the front), blade sign (where allowed), window poster, window
 Mark, door vinyl, members-only notice, three round stickers (18+, members only, ID checked), manifestation bands on every
 pane, the Join free QR panel and the A-board (two prints).
 Inside: feature-wall Mark, Pay here and Click & collect hanging signs, the ID till sign and the counter QR stand at every
@@ -823,14 +809,10 @@ with apparel), the dispensary sign (licensed stores with an authorised dispenser
 
 ## Still to confirm
 
-- Opening hours for Bluff and Pietermaritzburg: their door vinyl has no hours. Add them to \`STORES\` in the script and re-run
-  (or cut a hours strip to sit under the town name on the door).
-- Hillcrest and Hilton window posters say "Opening 1 December". From opening day, print the "Now open" version (set
-  \`opening: null\` for the store in \`STORES\` and re-run).
-- No sign carries a phone number or email yet (none confirmed). Add one only once the store number is live.
+- The door vinyl carries no hours (they differ by store): cut a separate hours strip per store to sit under the rule.
+- No sign carries a phone number or email yet. Add one only once the store number is live.
 - Fascia size and blade sign per store depend on the landlord's or centre's signage criteria: get approval on the proofs first.
 - Test-scan every QR proof (window panel through the glass, counter stand at arm's length) before the print run.
-- Retired: \`door-vinyl\` (generic, with sample hours) and \`window-poster\` (generic, no age line), replaced by one per store.
 `;
   writeFileSync(`${OUT}/README.md`, readme);
 }
