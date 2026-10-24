@@ -13,6 +13,8 @@ import { QrCode } from "@/components/shop/qr";
 import { Container, Meter, Panel, Tag } from "@/components/shop/ui";
 import { ButtonLink, buttonClass } from "@/components/ui/button";
 import { fmtTime } from "@/lib/format";
+import { APP_URL } from "@/server/invoices";
+import { ShareLink } from "@/components/shop/club-client";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const e = await db.storeEvent.findUnique({ where: { slug: (await params).slug }, select: { title: true, blurb: true, slug: true, store: { select: { name: true } } } });
@@ -87,7 +89,23 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
         <aside className="lg:sticky lg:top-28 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
           {e.mine ? (
-            <Ticketed title={e.title} when={fmtSpan(e.startsAt, e.endsAt)} store={s.name} code={e.mine.code} checkedInAt={e.mine.checkedInAt} ended={ended} slug={e.slug} cancel={cancelRsvpAction.bind(null, e.id)} />
+            <>
+              <Ticketed title={e.title} when={fmtSpan(e.startsAt, e.endsAt)} store={s.name} code={e.mine.code} checkedInAt={e.mine.checkedInAt} ended={ended} slug={e.slug} cancel={cancelRsvpAction.bind(null, e.id)} />
+              {/* One ticket per member, so a plus-one joins Rewards with the member's link and lands back here to RSVP. */}
+              {customer && !ended && !full && (
+                <Panel className="mt-4 p-5">
+                  <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+                    <Users className="h-5 w-5 text-brand-500" /> Bring a friend
+                  </h2>
+                  <p className="mb-4 mt-1 text-sm text-ink-300">Send them your link: they join Rewards free (adults 18+) and come straight back here for their own ticket.</p>
+                  <ShareLink
+                    url={`${APP_URL()}/club/join?ref=${customer.referralCode}&next=${encodeURIComponent(next)}`}
+                    text={`I'm going to ${e.title} at Herbal Holland ${s.name}. It's free for members: join with my link and grab a ticket too (adults 18+):`}
+                    shareLabel="Invite a friend"
+                  />
+                </Panel>
+              )}
+            </>
           ) : (
             <Panel className="p-5 sm:p-6">
               <h2 className="font-display text-2xl font-semibold text-white">{ended ? "This event has ended" : full ? "Fully booked" : "Reserve your place"}</h2>
@@ -131,7 +149,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                 <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" /> Adults 18+ only. Bring your ID; it&apos;s checked at the door.
               </li>
               <li className="flex gap-2.5">
-                <Ticket className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" /> Free for Herbal Holland Rewards members. RSVP to hold your place. It&apos;s one ticket per member.
+                <Ticket className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" /> Free for Herbal Holland Rewards members. RSVP to hold your place. It&apos;s one ticket per member, so a friend joins free with your link and RSVPs too.
               </li>
               <li className="flex gap-2.5">
                 <QrIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" /> Your ticket is a QR code in Rewards. Show it at the till when you arrive.
