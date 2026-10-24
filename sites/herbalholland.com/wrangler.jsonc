@@ -16,7 +16,7 @@
     "not_found_handling": "404-page",
     // The franchise page's old addresses match no asset, so a browser opening one would get the 404 page without the
     // Worker running: it runs first for them, to redirect.
-    "run_worker_first": ["/api/*", "/franchise", "/franchise/", "/franchise.html"]
+    "run_worker_first": ["/api/*", "/franchise", "/franchise/", "/franchise.html", "/join", "/join/"]
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "herbalholland-com-eu", "database_id": "8e145c20-d05a-4c4f-84f1-013a82b8846f", "migrations_dir": "migrations" }
