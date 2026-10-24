@@ -284,7 +284,7 @@ try {
   const entries = await page.locator("main li").filter({ hasText: /[+−][\d,]+ pts$/ }).count();
   assert(points === ledger && entries === Math.min(lines, 20), `balance ${points} pts shown, equal to the ledger total; ${entries} of ${lines} entries listed (20 a page)`);
 
-  await timed("Rewards tab: Invoices", () => nav.getByRole("link", { name: "Invoices" }).click(), () => page.getByRole("heading", { name: "Invoices & receipts" }).waitFor());
+  await timed("Rewards tab: Purchases", () => nav.getByRole("link", { name: "Purchases" }).click(), () => page.getByRole("heading", { name: "Purchase history" }).waitFor());
   const invLink = page.locator('main a[href^="/invoice/"]').first();
   const invHref = await invLink.getAttribute("href");
   const saleId = invHref.split("/").pop().split("?")[0];

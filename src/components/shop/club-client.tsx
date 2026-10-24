@@ -10,7 +10,7 @@ const TABS = [
   { href: "/club", label: "Card", icon: CreditCard },
   { href: "/club/orders", label: "Orders", icon: Package },
   { href: "/club/points", label: "Points", icon: History },
-  { href: "/club/invoices", label: "Invoices", icon: Receipt },
+  { href: "/club/invoices", label: "Purchases", icon: Receipt },
   { href: "/club/support", label: "Help", icon: LifeBuoy },
   { href: "/club/settings", label: "Settings", icon: Settings },
 ];

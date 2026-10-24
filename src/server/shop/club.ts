@@ -101,6 +101,7 @@ export async function memberInvoices(customerId: string, page: number, pageSize 
         id: true, number: true, kind: true, channel: true, totalCents: true, vatCents: true, pointsEarned: true, createdAt: true, invoiceSentAt: true, invoiceEmail: true,
         store: { select: { name: true, company: { select: { vatNumber: true } } } },
         _count: { select: { lines: true } },
+        lines: { take: 3, select: { qty: true, variant: { select: { product: { select: { name: true } } } } } },
       },
     }),
     db.sale.count({ where }),
