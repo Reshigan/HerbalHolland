@@ -34,7 +34,8 @@ live, then national.
       Next: reading a product label.
 - [x] **IndexNow:** every production deploy sends the sitemap's URLs to IndexNow (Bing, Yandex, Seznam and others share
       it; free, no account). The key is public/<key>.txt. Google doesn't use IndexNow: it reads the sitemap.
-- [ ] **Monthly specials page:** shareable with the member's link (the earlier plan, no newsfeed).
+- [x] **Monthly specials page:** /specials (in the main nav and the sitemap) lists the network's live automatic
+      specials, online and in store; members share it through their join link, with the Status card.
 - [ ] **Events: the plus-one joins to RSVP.**
 - [ ] **Growth dashboard in HQ:** joins per store per week, share from referrals, invites per member, the referral ratio
       (target 0.4 in the first quarter).
