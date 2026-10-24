@@ -12,7 +12,7 @@ rendered or shot, follows the same lines:
   is screened by `screenCopy`. Licensed (THC) medicines are never shown or named on social.
 - **Adults 18+** on every end card and in every caption block, last. Anyone on camera is over 25 and has signed a
   release; no one who looks under 25, no children in frame, no school uniforms.
-- **One call to action**: "Join free: shop.herbalholland.com/club/join". The first 2,026 members get a numbered
+- **One call to action**: "Join free: herbalholland.com/join". The first 2,026 members get a numbered
   Founding card; every friend who joins with your link moves you up 250 places. Nothing else is promised.
 - **Silent-safe.** Captions burned in; music optional. No voice-over that says what captions don't.
 - Tone: warm, plain English, confident. No exclamation marks, no emoji, three hashtags at most, one of them local.
@@ -21,7 +21,7 @@ rendered or shot, follows the same lines:
 
 `npx tsx scripts/video/render.tsx` makes each in 9:16 (Reels, TikTok, Stories) and 16:9 (YouTube, the menu board,
 the website) at 30 fps, H.264, under 4 MB each. Every one ends on the end card: the mark draws in, "Join free",
-`shop.herbalholland.com/club/join`, "Adults 18+". Times are seconds.
+`herbalholland.com/join`, "Adults 18+". Times are seconds.
 
 ### welcome · 18 s · "Welcome to the Windmill"
 | t | Picture | Caption |
@@ -54,14 +54,19 @@ the website) at 30 fps, H.264, under 4 MB each. Every one ends on the end card: 
 | 2–12 | The town name rises letter by letter; "Upper Highway · KwaZulu-Natal" (Hillcrest) or "The Midlands · KwaZulu-Natal" (Hilton); OPENING SOON. | Opening soon in Hillcrest / Hilton. Join free and be first through the door. |
 | 12–16 | End card. | |
 
-### launch · 21 s · "We're online" (WhatsApp Status: post it, then `join` straight after)
-| t | Picture | Caption |
+### launch · 44 s (and launch-30, the 30 s WhatsApp cut) · "Holland, meet the Hills"
+The brand's first hello, with its own soundtrack (synthesised, 120 bpm, cuts on the beat). The 30 s cut keeps every
+beat, shorter. Store pictures are concept renders, tagged "Store concept" on screen.
+| t (44 s) | Picture | Words |
 |---|---|---|
-| 0–4.6 | THE 1970S. "Seeds from **the hills behind Durban**", "travelled to Amsterdam." A soft orange glow grows. | |
-| 4.6–9 | THE WINDMILL. "They found a second **home in Holland.**", "Herbal Holland is named for that journey." | |
-| 9–13 | NOW. "We're bringing it **home.**", "Premium quality. Members only, run by the book." | |
-| 13–17 | The mark draws in; "We're **online.**", `shop.herbalholland.com`. | Members only, adults 18+. Joining is free. |
-| 17–21 | End card. | |
+| 0–4 | Wind. The mark draws in; HERBAL HOLLAND sharpens letter by letter. | |
+| 4–9 | Dawn over line-art hills; a spark drifts north. | THE 1970S · "Some stories **travel.**" · "A seed left the hills behind Durban…" |
+| 9–14 | Amsterdam canal houses and a windmill draw in. | AMSTERDAM · "…and found a home in **Holland,**" · "where cannabis culture grew up." |
+| 14–18 | The hills return; a soft beat starts; a riser. | FIFTY YEARS ON · "It's coming **home.**" · "Dutch heritage. African soil." |
+| 18–22 | Impact, flash. | "Holland, meet **the Hills.**" · HILLCREST · HILTON |
+| 22–34 | The store: three concept renders pan past on a full beat. | "A members' club for **cannabis culture.**" / "CBD wellness **and coffee.**" / "Our own apparel, **accessories and grow.**" |
+| 34–39 | A numbered Founding card spins in. | "Be a **founding member.**" · "The first 2,026 get a numbered card. Free for adults 18+." |
+| 39–44 | End card. | OPENING 1 DECEMBER · Hillcrest · Hilton · Join free · herbalholland.com/join · Members only · Adults 18+ |
 
 ### join · 24 s · "Join in 20 seconds"
 | t | Picture | Caption |

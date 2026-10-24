@@ -1,7 +1,7 @@
 // The brand videos. Each scene is HTML + CSS keyframes on a timeline in seconds (render.tsx steps the
 // animations frame by frame). Brand-led only: no prices, no consumption, no medical claims; product renders appear
 // only in `range`, as the-range artwork. The only call to action is the end card ("Join free").
-import { launch } from "./launch";
+import { launch, launch30 } from "./launch";
 import { Build, captions, dataUri, EASE, EASE_BOUNCE, EASE_IO, endCard, mark, markDrawCss, page, Scene, TICK_HELPERS } from "./scene";
 
 // THC categories (flower, pre-rolls, edibles, vapes, concentrates) never appear in brand videos.
@@ -367,5 +367,5 @@ export const SCENES: Scene[] = [
   town("Pietermaritzburg", "Raisethorpe", { kind: "open", street: "575 Chota Motala Road, Raisethorpe" }, "open-pietermaritzburg"),
   town("Hillcrest", "Upper Highway", { kind: "opens", day: "1 December" }),
   town("Hilton", "The Midlands", { kind: "opens", day: "1 December" }),
-  launch, join, range,
+  launch, launch30, join, range,
 ];
