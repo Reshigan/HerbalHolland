@@ -47,6 +47,15 @@ export const QUESTS: Record<string, Quest> = {
       { q: "Can licensed medicines be discounted or earn points?", options: ["Yes, double points on Fridays", "No. The Medicines Act prohibits incentives on medicines", "Only for Harvest members"], answer: 1 },
     ],
   },
+  "caring-for-accessories": {
+    title: "Caring for your accessories",
+    points: 10,
+    questions: [
+      { q: "What should you never do with glass?", options: ["Rinse it with warm water", "Pour boiling water onto it when it's cold", "Let it dry before use"], answer: 1 },
+      { q: "How do you clear a sticky grinder?", options: ["Freeze it, then brush it", "Run it under boiling water", "Oil the teeth"], answer: 0 },
+      { q: "Where should accessories be stored?", options: ["On a sunny windowsill", "In the car", "Somewhere cool, dry and locked away"], answer: 2 },
+    ],
+  },
   points: {
     title: "How Rewards points work",
     points: 10,

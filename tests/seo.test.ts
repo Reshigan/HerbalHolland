@@ -20,6 +20,7 @@ import {
   websiteJsonLd,
 } from "@/lib/seo";
 import { ARTICLES, resolveArticle } from "@/components/shop/learn/articles";
+import { dayKey } from "@/lib/format";
 import { resolvePrice, type PriceListRule } from "@/lib/pricing-rules";
 
 const base = "https://shop.herbalholland.com";
@@ -84,7 +85,7 @@ describe("article dates and aliases", () => {
     expect(articleDateProblems([ok, { slug: "b", aliases: ["a"], published: "2026-09-01", updated: "2026-09-01" }], "2026-09-28").join()).toContain("already");
   });
   it("ships with valid dates and resolves aliases to one canonical article", () => {
-    expect(articleDateProblems(ARTICLES, "2026-10-07")).toEqual([]);
+    expect(articleDateProblems(ARTICLES, dayKey(new Date()))).toEqual([]); // as the build checks it
     expect(resolveArticle("heritage-landraces")).toMatchObject({ alias: false, article: { slug: "heritage-landraces" } });
     expect(resolveArticle("heritage-landraces-story")).toMatchObject({ alias: true, article: { slug: "heritage-landraces" } });
     expect(resolveArticle("nope")).toBeNull();
