@@ -7,6 +7,7 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { chromium } from "@playwright/test";
 import { MarkGlyph } from "../src/components/brand/logo";
+import { JOIN_QR, qrSvg } from "./qr";
 
 const OUT = "public/brand/social";
 const SUNSET = "#f5913c", INK = "#0c0a09", CREAM = "#fbf7f1", INK_450 = "#8f8780";
@@ -121,11 +122,14 @@ const CARDS = [
       <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Free to join</div>
       <div class="h" style="margin-top:${tall ? 32 : 22}px;font-size:${tall ? 104 : 92}px;color:${CREAM}">How to join<br>in 20 seconds</div>
       <ol style="list-style:none;margin:${tall ? 64 : 44}px 0 0;padding:0;display:flex;flex-direction:column;gap:${tall ? 34 : 24}px">
-        ${["Tap the link, or ask at any till", "Your name and mobile number", "Your card is ready: show it at any store"]
+        ${["Scan the code, or ask at any till", "Your name and mobile number", "Your card is ready: show it at any store"]
           .map((t, i) => `<li style="display:flex;align-items:center;gap:30px"><span style="flex:none;width:${tall ? 92 : 80}px;height:${tall ? 92 : 80}px;border-radius:50%;background:${SUNSET};color:${INK};font-weight:800;font-size:${tall ? 46 : 40}px;display:flex;align-items:center;justify-content:center">${i + 1}</span><span class="p" style="font-size:${tall ? 44 : 38}px;color:${CREAM}">${t}</span></li>`)
           .join("")}
       </ol>
-      <div class="small" style="margin-top:${tall ? 60 : 40}px;font-size:${tall ? 26 : 22}px;color:${SUNSET};opacity:1">${JOIN}</div>`,
+      <div style="margin-top:${tall ? 60 : 22}px;display:flex;align-items:center;gap:${tall ? 36 : 28}px">
+        <div style="flex:none;width:${tall ? 240 : 150}px;height:${tall ? 240 : 150}px">${qrSvg(JOIN_QR, INK, CREAM)}</div>
+        <div><div class="p" style="font-size:${tall ? 34 : 28}px;color:${CREAM}">Scan to join</div><div class="small" style="margin-top:8px;font-size:${tall ? 26 : 22}px;color:${SUNSET};opacity:1">${JOIN}</div></div>
+      </div>`,
   },
   ...[
     ["4-bluff", "Bluff", "208 Tara Road, Bluff, Durban"],

@@ -5,6 +5,7 @@
 // on the beat of its own soundtrack (120 bpm, one beat = 0.5 s), synthesised in the page so nothing needs a licence.
 // Words: cannabis for the story and the culture; the products named are CBD only. No THC products, prices or claims.
 import { Build, dataUri, EASE, EASE_IO, mark, markDrawCss, page, Scene, JOIN_URL } from "./scene";
+import { JOIN_QR, qrSvg } from "../qr";
 
 type Part = "open" | "seed" | "holland" | "home" | "hills" | "tour" | "founding" | "end";
 const ORDER: Part[] = ["open", "seed", "holland", "home", "hills", "tour", "founding", "end"];
@@ -155,12 +156,13 @@ ${windows.map((_, i) => `.ams rect:nth-of-type(${i + 1}){${b.tween(h0 + 1.2 + i 
 
 /* the end card */
 .end{${b.tween(e0, e0 + 0.4, "opacity:0", "opacity:1", EASE_IO)};background:var(--black);gap:2.2vmin;z-index:20}
-.end .mark{width:${P ? 24 : 20}vmin;height:${P ? 24 : 20}vmin;color:var(--orange)}
+.end .mark{width:${P ? 18 : 12}vmin;height:${P ? 18 : 12}vmin;color:var(--orange)}
 ${markDrawCss(b, ".end", e0 + 0.05, 22)}
 .end .o1{font-size:${P ? 3.2 : 2.8}vmin;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--orange);${b.win(e0 + 0.3, SECONDS + 5)}}
 .end .twn{font-size:${P ? 6.4 : 5.4}vmin;font-weight:700;color:var(--cream);${b.win(e0 + 0.4, SECONDS + 5)}}
 .end .j{margin-top:2vmin;font-size:${P ? 5.4 : 4.6}vmin;font-weight:300;color:var(--cream);${b.win(e0 + 0.6, SECONDS + 5)}}
 .end .u{font-size:${P ? 8.4 : 7.2}vmin;font-weight:800;letter-spacing:-.02em;color:var(--orange);white-space:nowrap;${b.win(e0 + 0.8, SECONDS + 5, { enter: "opacity:0;transform:scale(.9)", hold: "opacity:1;transform:none", ease: "cubic-bezier(.34,1.56,.64,1)" })}}
+.end .qr{width:${P ? 30 : 22}vmin;height:${P ? 30 : 22}vmin;${b.win(e0 + 1.0, SECONDS + 5, { enter: "opacity:0;transform:scale(.92)", hold: "opacity:1;transform:none", ease: EASE })}}
 .end .s{font-size:${P ? 2.9 : 2.5}vmin;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--ink300);${b.win(e0 + 1.1, SECONDS + 5)}}
 `;
 
@@ -184,7 +186,7 @@ ${shots.map((s) => s.bg).join("")}
 <div class="cardwrap">${shots.map((s) => s.card).join("")}</div>
 <div class="center founding pad"><div class="fcard"><div class="top">${mark()}<span>Founding Member</span></div><div class="no"><small>#</small>0001</div><div class="bt">Herbal Holland Rewards</div></div>
   <div class="h1">Be a <b>founding member.</b></div><div class="sub2">The first 2,026 get a numbered card. Free for adults 18+.</div></div>
-<div class="center end">${mark()}<div class="o1">Opening 1 December</div><div class="twn">Hillcrest · Hilton</div><div class="j">Join free</div><div class="u">${JOIN_URL}</div><div class="s">Members only · Adults 18+</div></div>
+<div class="center end">${mark()}<div class="o1">Opening 1 December</div><div class="twn">Hillcrest · Hilton</div><div class="j">Join free</div><div class="u">${JOIN_URL}</div><div class="qr">${qrSvg(JOIN_QR, "#0c0a09", "#fbf7f1")}</div><div class="s">Members only · Adults 18+</div></div>
 <div class="flash"></div>
 <div class="vig"></div>
 <svg class="grain"><filter id="gn"><feTurbulence id="turb" type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="1"/></filter><rect width="100%" height="100%" filter="url(#gn)"/></svg>`;
