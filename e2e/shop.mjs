@@ -408,8 +408,8 @@ try {
 
   step("Reorder reminder on an everyday product (every 30 days by SMS), then stop it");
   const everyday = await one(
-    `select p.slug, p.name from "Product" p
-     where p.status = 'ACTIVE' and p."regClass" = 'CBD_FOOD' and exists (select 1 from "Variant" v where v."productId" = p.id and v.active)
+    `select p.slug, p.name from "Product" p join "Category" c on c.id = p."categoryId"
+     where p.status = 'ACTIVE' and p."regClass" = 'CBD_FOOD' and c.slug not in ('skin-care', 'protein-nutrition', 'collagen-supplements') and exists (select 1 from "Variant" v where v."productId" = p.id and v.active)
        and not exists (select 1 from "ReorderReminder" r join "Variant" v on v.id = r."variantId" where v."productId" = p.id and r."customerId" = $1 and r.active)
      order by p.name limit 1`,
     [member.id],

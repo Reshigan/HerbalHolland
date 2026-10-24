@@ -1,3 +1,4 @@
+import { HIDDEN_CATEGORIES } from "@/lib/range";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -74,7 +75,7 @@ export default async function Home() {
     cardsWhere({}, classes.public, who),
     cardsWhere({ heritage: true }, classes.public, who, 3),
     listCatalogue("public", { page: 1 }, who),
-    db.category.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { products: { where: { status: "ACTIVE", regClass: { in: classes.public } } } } } } }),
+    db.category.findMany({ where: { slug: { notIn: HIDDEN_CATEGORIES } }, orderBy: { sortOrder: "asc" }, include: { _count: { select: { products: { where: { status: "ACTIVE", regClass: { in: classes.public } } } } } } }),
     upcomingEvents({ take: 3 }),
     featuredDrop((customer?.tier ?? null) as TierKey | null),
     pre && customer ? waitlistPlace(customer.id) : null,

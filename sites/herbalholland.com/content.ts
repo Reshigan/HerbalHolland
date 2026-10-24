@@ -156,12 +156,10 @@ export const HOME = {
   range: {
     eyebrow: "What's in store",
     title: "Wellness, clearly labelled",
-    intro: "CBD wellness, coffee and food, skin care and supplements, for members aged 18 and over.",
+    intro: "CBD wellness, coffee and food, accessories, apparel and grow, for members aged 18 and over.",
     items: [
       { key: "cbd", title: "CBD wellness", body: "Within Schedule 0 limits." },
       { key: "food", title: "CBD coffee & food", body: "Ingredients and allergens on every pack." },
-      { key: "skin", title: "CBD skin care", body: "Creams and balms." },
-      { key: "supplements", title: "Collagen & protein", body: "Clearly labelled." },
       { key: "accessories", title: "Accessories", body: "Storage, tools and everyday extras." },
       { key: "apparel", title: "Apparel", body: "Wear the windmill." },
       { key: "grow", title: "Grow", body: "Soil, pots and tools." },
@@ -316,7 +314,7 @@ export const ABOUT = {
     paragraphs: [
       "Our name nods to Amsterdam, where many of Southern Africa's landraces became famous. Our roots, and our growers, are here.",
       "Dutch heritage is the coffee-shop tradition of hospitality: a warm welcome, and knowing exactly what you're offering. African soil is the bigger half: South African growers, makers and places.",
-      "In store and online, that means CBD wellness, functional coffee and protein, skin care and collagen, for members aged 18 and over.",
+      "In store and online, that means CBD wellness, functional coffee, accessories, apparel and grow gear, for members aged 18 and over.",
     ],
     windmill: {
       label: "The Herbal Holland windmill",
@@ -465,7 +463,7 @@ export const PRESS = {
     },
     values: {
       what: "A South African network of cannabis wellness stores and an online shop, for members aged 18 and over.",
-      range: "CBD wellness, functional coffee and protein, skin care and collagen, accessories, grow gear and apparel.",
+      range: "CBD wellness, functional coffee, accessories, grow gear and apparel.",
       model: "Franchise: each store is independently owned and run by a local franchisee, on one shared platform.",
       membership: "Members only. Herbal Holland Rewards is free to join and works in every store and online.",
       founding: "The first {cap} members of Herbal Holland Rewards get a numbered Founding Member card.",
