@@ -444,7 +444,8 @@ sent: every email is written to the message log, so HQ → Messages (`/hq/messag
 `EMAIL_FROM` sets the sender (with Microsoft 365, the mailbox it sends from); keep it on a domain with SPF/DKIM for the provider.
 
 **Texts.** Order updates, sign-in codes and recall notices go by SMS (`MESSAGING_PROVIDER=smsportal`; without it they're
-only logged). A member can ask for their sign-in code by email instead ("Get my code by email" on the join page): a new
+only logged). `wrangler.jsonc` sets `smsportal` for the live shop; local, CI and staging Workers override it with
+`MESSAGING_PROVIDER=log` (put it in your `.dev.vars`), since they have no SMS keys. A member can ask for their sign-in code by email instead ("Get my code by email" on the join page): a new
 number's own address, or the email already on the member's account; a new member who joined by email gets a welcome
 email with their card and the app. Copy rules in `src/lib/sms.ts`: "Herbal Holland:" first, the order code next, one GSM-7 segment where
 possible, links as `APP_URL` paths without the scheme, and "Reply STOP" on marketing only (`senderFooter` in

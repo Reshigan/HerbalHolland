@@ -22,7 +22,7 @@ one call to action) are in `docs/VIDEO-SHOTLIST.md`.
 ## Render
 
 ```bash
-FFMPEG=/path/to/ffmpeg npx tsx scripts/video/render.tsx            # all eight, both orientations
+FFMPEG=/path/to/ffmpeg npx tsx scripts/video/render.tsx            # all, both orientations
 FFMPEG=/path/to/ffmpeg npx tsx scripts/video/render.tsx join range  # some
 ```
 

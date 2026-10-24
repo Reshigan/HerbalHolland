@@ -67,7 +67,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Start the Worker (wrangler dev with the local D1 and R2, secrets from .dev.vars)
         run: |
-          printf 'SESSION_SECRET=%s\nDEMO_MODE=%s\nAPP_URL=%s\nCRON_SECRET=%s\n' "$SESSION_SECRET" "$DEMO_MODE" "$APP_URL" "$CRON_SECRET" > .dev.vars
+          printf 'SESSION_SECRET=%s\nDEMO_MODE=%s\nAPP_URL=%s\nCRON_SECRET=%s\nMESSAGING_PROVIDER=log\n' "$SESSION_SECRET" "$DEMO_MODE" "$APP_URL" "$CRON_SECRET" > .dev.vars
           (npx wrangler dev --port 3000 --ip 127.0.0.1 > server.log 2>&1 &)
           for i in $(seq 1 90); do curl -sf http://127.0.0.1:3000/api/health && break; sleep 2; done
       - run: node e2e/checkout.mjs test-results/e2e-checkout

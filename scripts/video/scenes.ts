@@ -1,9 +1,11 @@
 // The brand videos. Each scene is HTML + CSS keyframes on a timeline in seconds (render.tsx steps the
 // animations frame by frame). Brand-led only: no prices, no consumption, no medical claims; product renders appear
 // only in `range`, as the-range artwork. The only call to action is the end card ("Join free").
+import { launch } from "./launch";
 import { Build, captions, dataUri, EASE, EASE_BOUNCE, EASE_IO, endCard, mark, markDrawCss, page, Scene, TICK_HELPERS } from "./scene";
 
-const CATEGORIES = ["flower", "pre-rolls", "edibles", "vapes", "wellness", "skin-care", "coffee-drinks", "protein-nutrition", "collagen-supplements", "accessories", "apparel", "grow", "concentrates"];
+// THC categories (flower, pre-rolls, edibles, vapes, concentrates) never appear in brand videos.
+const CATEGORIES = ["wellness", "skin-care", "coffee-drinks", "protein-nutrition", "collagen-supplements", "accessories", "apparel", "grow"];
 
 // ---------------------------------------------------------------------------------------------------------------
 // welcome: the mark draws itself in, the wordmark rises, "Holland, meet the Hills."
@@ -330,7 +332,7 @@ const range: Scene = {
       const style = b.tween(0, 20, `transform:translateY(${up ? 0 : -dist}vmin)`, `transform:translateY(${up ? -dist : 0}vmin)`, "linear");
       return `<div class="col" style="${style}">${doubled.map((src) => `<div class="tile"><img src="${src}"></div>`).join("")}</div>`;
     }).join("");
-    const labels = ["Flower", "Pre-rolls", "Edibles", "Vapes", "Wellness", "Skin care", "Coffee", "Nutrition", "Accessories", "Apparel", "Grow"];
+    const labels = ["CBD wellness", "Skin care", "Coffee & tea", "Nutrition", "Collagen", "Accessories", "Apparel", "Grow"];
     const css = `
 .grid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-6deg);display:flex;gap:${gap}vmin;${b.win(0, 16.4, { enter: "opacity:0;transform:translate(-50%,-50%) rotate(-6deg) scale(1.08)", hold: "opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(1)", exit: "opacity:0;transform:translate(-50%,-50%) rotate(-6deg) scale(1.04)", inS: 2.2, outS: 0.8, ease: EASE_IO })}}
 .col{display:flex;flex-direction:column;gap:${gap}vmin;will-change:transform}
@@ -351,7 +353,7 @@ ${end.css}`;
 <div class="title"><div class="eyebrow">Herbal Holland</div><div class="h1">The <b>range.</b></div></div>
 <div class="tick"><div class="in">${run}${run}</div></div>
 ${captions(b, [
-  [2.0, 7.4, "Thirteen ranges under one roof, for members 18+."],
+  [2.0, 7.4, "Eight ranges under one roof, for members 18+."],
   [8.0, 15.6, "From the Windmill to the Hills. In store and online, soon."],
 ])}
 ${end.html}`;
@@ -365,5 +367,5 @@ export const SCENES: Scene[] = [
   town("Pietermaritzburg", "Raisethorpe", { kind: "open", street: "575 Chota Motala Road, Raisethorpe" }, "open-pietermaritzburg"),
   town("Hillcrest", "Upper Highway", { kind: "opens", day: "1 December" }),
   town("Hilton", "The Midlands", { kind: "opens", day: "1 December" }),
-  join, range,
+  launch, join, range,
 ];

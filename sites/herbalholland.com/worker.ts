@@ -16,11 +16,14 @@ const HOUR = 3_600_000;
 /** The franchise page's old addresses. wrangler.jsonc runs the Worker first for these: otherwise a browser opening one
  *  would get the 404 page straight from the assets, without the Worker seeing the request. */
 const FRANCHISE_PAGE = new Set(["/franchise", "/franchise/", "/franchise.html"]);
+/** The short join link said in videos and on signs: herbalholland.com/join, straight to Rewards sign-up. */
+const JOIN = "https://shop.herbalholland.com/club/join?src=join";
 
 export default {
   async fetch(req: Request, env: Env) {
     const url = new URL(req.url);
     if (FRANCHISE_PAGE.has(url.pathname)) return Response.redirect(new URL("/about", url).href, 301);
+    if (url.pathname === "/join" || url.pathname === "/join/") return Response.redirect(JOIN, 302);
     if (url.pathname === "/api/early-access") return req.method === "POST" ? earlyAccess(req, env) : json(405, { ok: false, error: "Method not allowed" });
     return env.ASSETS.fetch(req);
   },
