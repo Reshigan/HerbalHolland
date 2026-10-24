@@ -10,7 +10,7 @@ import { MarkGlyph } from "../src/components/brand/logo";
 
 const OUT = "public/brand/social";
 const SUNSET = "#f5913c", INK = "#0c0a09", CREAM = "#fbf7f1", INK_450 = "#8f8780";
-const JOIN = "shop.herbalholland.com/club/join";
+const JOIN = "herbalholland.com/join";
 mkdirSync(OUT, { recursive: true });
 
 const font = readFileSync("node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2").toString("base64");
@@ -50,7 +50,7 @@ const cover: Spec = {
       <div class="m" style="width:320px;height:320px;flex:none">${mark(SUNSET)}</div>
       <div style="flex:none;max-width:820px">
         ${wordmark}
-        <div class="p" style="margin-top:34px;font-size:40px;color:${CREAM};max-width:820px">Now open on the Bluff and in Pietermaritzburg, with Hillcrest and Hilton from 1 December. A neighbourhood brand for adults 18+.</div>
+        <div class="p" style="margin-top:34px;font-size:40px;color:${CREAM};max-width:820px">Holland, meet the Hills. Hillcrest and Hilton, opening Tuesday 1 December. Members only, adults 18+.</div>
         <div class="small" style="margin-top:30px;font-size:22px;color:${SUNSET};opacity:1">Join Herbal Holland Rewards, free</div>
         <div class="small" style="margin-top:8px;font-size:22px;color:${INK_450}">${JOIN}</div>
       </div>
@@ -102,9 +102,9 @@ const CARDS = [
   {
     slug: "1-welcome", ground: INK, ink: SUNSET,
     inner: (tall: boolean) => `
-      <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Now open in KwaZulu-Natal</div>
-      <div class="h" style="margin-top:${tall ? 40 : 28}px;font-size:${tall ? 148 : 128}px;color:${CREAM}">Sawubona,<br>KZN.</div>
-      <div class="p" style="margin-top:${tall ? 56 : 40}px;font-size:${tall ? 44 : 38}px;color:${INK_450};max-width:${tall ? 860 : 820}px">Herbal Holland is open on the Bluff and in Pietermaritzburg, with Hillcrest and Hilton from 1 December. Plain-spoken, members only, and glad to be your neighbour.</div>`,
+      <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Since the 1970s</div>
+      <div class="h" style="margin-top:${tall ? 40 : 28}px;font-size:${tall ? 132 : 112}px;color:${CREAM}">Holland,<br>meet <span style="color:${SUNSET}">the Hills.</span></div>
+      <div class="p" style="margin-top:${tall ? 56 : 40}px;font-size:${tall ? 44 : 38}px;color:${INK_450};max-width:${tall ? 860 : 820}px">A seed left the hills behind Durban and found a home in Holland. Fifty years on, it's coming home: Hillcrest and Hilton, from 1 December.</div>`,
   },
   {
     slug: "2-founding", ground: SUNSET, ink: INK,
