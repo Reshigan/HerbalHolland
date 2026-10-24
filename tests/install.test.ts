@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DAY_MS, detectPlatform, dismissedUntil, installKey, installState, parseDismissal } from "@/lib/install";
+import { browserHandoff, DAY_MS, detectPlatform, dismissedUntil, installKey, installState, parseDismissal } from "@/lib/install";
 
 const UA = {
   iphoneSafari: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
@@ -86,5 +86,19 @@ describe("install: dismissal windows", () => {
     expect(parseDismissal(null)).toBeNull();
     expect(installKey("till")).toBe("hh-install:till:dismissed");
     expect(installKey("rewards", "seen")).toBe("hh-install:rewards:seen");
+  });
+});
+
+describe("browserHandoff", () => {
+  const url = "https://shop.herbalholland.com/club?welcome=1";
+  it("reopens an Android in-app browser's page in Chrome, falling back to the page", () => {
+    const h = browserHandoff(UA.androidWhatsApp, url);
+    expect(h).toEqual({ platform: "android", href: `intent://shop.herbalholland.com/club?welcome=1#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end` });
+  });
+  it("tells iPhone in-app browsers and other iOS browsers to open Safari", () => {
+    for (const ua of [UA.iphoneInstagram, UA.iphoneFacebook, UA.iphoneChrome]) expect(browserHandoff(ua, url)).toEqual({ platform: "ios" });
+  });
+  it("stays out of the way where the app installs, and on desktop", () => {
+    for (const ua of [UA.iphoneSafari, UA.androidChrome, UA.androidSamsung, UA.desktopChrome]) expect(browserHandoff(ua, url)).toBeNull();
   });
 });

@@ -2,7 +2,8 @@
 // "Add to home screen" for the three installable apps: Rewards (members), the till and the back office. One component:
 // it keeps the browser's `beforeinstallprompt` event and shows a native install button where the browser offers one
 // (Chrome, Edge and Samsung Internet on Android and desktop), or the two-step route on iPhone/iPad Safari. It never
-// renders on the server, in an installed app, in a browser that can't install, or inside a remembered dismissal
+// renders on the server, in an installed app, in a browser that can't install (except right after joining, where it
+// says how to open the page in Chrome or Safari), or inside a remembered dismissal
 // (30 days; "Not now" on the till is a day). Everything it remembers stays in localStorage; nothing goes to the server.
 //
 // Variants: "card" (a rounded card: Rewards home, the pair screen), "bar" (a slim strip under a mobile header),
@@ -10,9 +11,9 @@
 // over the shop from the visitor's second page, a few seconds in).
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Download, Share, SquarePlus, X } from "lucide-react";
+import { Compass, Download, Share, SquarePlus, X } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { installKey, installState, parseDismissal, type DismissKind, type InstallApp, type InstallPlatform, type InstallState } from "@/lib/install";
+import { browserHandoff, installKey, installState, parseDismissal, type DismissKind, type InstallApp, type InstallPlatform, type InstallState } from "@/lib/install";
 
 type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
 declare global {
@@ -91,6 +92,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
   const [gone, setGone] = useState(false);
   const [open, setOpen] = useState(false); // menu/button: the iOS steps unfolded
   const [busy, setBusy] = useState(false);
+  const [handoff, setHandoff] = useState<ReturnType<typeof browserHandoff>>(null);
   const copy = COPY[app];
   const passive = variant === "menu" || variant === "button"; // a menu entry is never "dismissed"; it just sits there until the app is installed
 
@@ -106,6 +108,8 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
       seenAt,
     });
     setState(s);
+    // Right after joining, a browser that can't install (WhatsApp, Instagram, Facebook…) still gets the way there.
+    if (priority && !s.installed && s.mode === "none") setHandoff(browserHandoff(navigator.userAgent, location.href, navigator.maxTouchPoints));
     if (!s.show) return;
     const sync = () => setEvt(window.__hhInstall ?? null);
     sync();
@@ -185,6 +189,33 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
     }
   };
 
+  if (handoff && !gone && state)
+    return (
+      <section className={cn("rounded-2xl border border-brand-500/40 bg-brand-500/[0.06] p-4 text-ink-100 sm:p-5", className)} aria-label={copy.title(state.platform)}>
+        <div className="eyebrow mb-3 text-[0.62rem] text-brand-500">One more step</div>
+        <div className="flex items-start gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500 text-ink-950">
+            <Download className="h-5 w-5" strokeWidth={1.9} aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-lg font-semibold leading-snug text-white">{copy.title(state.platform)}</h2>
+            <p className="mt-0.5 text-sm text-ink-400">{copy.benefit} This app&apos;s browser can&apos;t add it, so open the page in {handoff.platform === "ios" ? "Safari" : "Chrome"} first.</p>
+            {handoff.platform === "android" ? (
+              <a href={handoff.href} className="mt-3 inline-flex h-11 items-center gap-2 rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 hover:bg-brand-400">
+                <Compass className="h-4 w-4" aria-hidden /> Open in Chrome
+              </a>
+            ) : (
+              <p className="mt-3 text-sm leading-relaxed text-ink-300">
+                Tap <b className="font-semibold text-white">⋯</b> or <Share className="inline h-4 w-4 text-brand-400" strokeWidth={1.9} aria-hidden /> and choose <b className="font-semibold text-white">Open in Safari</b>. There, tap <b className="font-semibold text-white">Share</b>, then <b className="font-semibold text-white">Add to Home Screen</b>.
+              </p>
+            )}
+          </div>
+          <button type="button" onClick={() => setGone(true)} aria-label={copy.dismissLabel} title={copy.dismissLabel} className="-mr-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+      </section>
+    );
   if (!visible || !state) return null;
   const ios = state.mode === "ios-steps";
   const title = copy.title(state.platform);

@@ -19,6 +19,8 @@ import { fileURLToPath } from "node:url";
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-shop";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
+// The ranges the shop hides (HIDDEN_CATEGORIES in src/lib/range.ts): their pages answer 404, so the journey never picks them.
+const HIDDEN = ["skin-care", "protein-nutrition", "collagen-supplements"].map((s) => `'${s}'`).join(", ");
 mkdirSync(out, { recursive: true });
 const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
@@ -111,7 +113,7 @@ try {
       join "Store" s on s.id = sl."storeId" and s.status = 'ACTIVE' group by 1)
     select p.id, p.slug, p.name, p."categoryId", c.slug cat, c.name "catName", v.id "variantId"
     from "Product" p join "Category" c on c.id = p."categoryId" join "Variant" v on v."productId" = p.id and v.active join avail a on a."variantId" = v.id
-    where p.status = 'ACTIVE' and p."regClass" in ('CBD', 'HEMP', 'ACCESSORY', 'GROW') and not p."tobaccoRelated" and v."podSku" is null and a.qty >= 10
+    where p.status = 'ACTIVE' and p."regClass" in ('CBD', 'HEMP', 'ACCESSORY', 'GROW') and not p."tobaccoRelated" and c.slug not in (${HIDDEN}) and v."podSku" is null and a.qty >= 10
       and (select count(*) from "Variant" x where x."productId" = p.id and x.active) = 1
       and not exists (select 1 from "Drop" d where v.id = any(d."variantIds") and (d."endsAt" is null or d."endsAt" > now()))`;
   const target = await one(`${inStock} order by random() limit 1`);
@@ -124,6 +126,7 @@ try {
      join "Product" p on p.id = (
        select b.id from "Sale" s join "SaleLine" l on l."saleId" = s.id join "Variant" v on v.id = l."variantId" join "Product" b on b.id = v."productId"
        where s."customerId" = c.id and s.kind = 'SALE' and b.status = 'ACTIVE' and b."regClass" in ('CBD', 'HEMP', 'ACCESSORY', 'GROW', 'APPAREL')
+         and b."categoryId" not in (select id from "Category" where slug in (${HIDDEN}))
          and exists (select 1 from "Variant" x where x."productId" = b.id and x.active)
          and not exists (select 1 from "Review" r where r."productId" = b.id and r."customerId" = c.id)
        limit 1)
@@ -409,7 +412,7 @@ try {
   step("Reorder reminder on an everyday product (every 30 days by SMS), then stop it");
   const everyday = await one(
     `select p.slug, p.name from "Product" p join "Category" c on c.id = p."categoryId"
-     where p.status = 'ACTIVE' and p."regClass" = 'CBD_FOOD' and c.slug not in ('skin-care', 'protein-nutrition', 'collagen-supplements') and exists (select 1 from "Variant" v where v."productId" = p.id and v.active)
+     where p.status = 'ACTIVE' and p."regClass" = 'CBD_FOOD' and c.slug not in (${HIDDEN}) and exists (select 1 from "Variant" v where v."productId" = p.id and v.active)
        and not exists (select 1 from "ReorderReminder" r join "Variant" v on v.id = r."variantId" where v."productId" = p.id and r."customerId" = $1 and r.active)
      order by p.name limit 1`,
     [member.id],

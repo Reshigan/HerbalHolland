@@ -7,10 +7,11 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { chromium } from "@playwright/test";
 import { MarkGlyph } from "../src/components/brand/logo";
+import { JOIN_QR, qrSvg } from "./qr";
 
 const OUT = "public/brand/social";
 const SUNSET = "#f5913c", INK = "#0c0a09", CREAM = "#fbf7f1", INK_450 = "#8f8780";
-const JOIN = "shop.herbalholland.com/club/join";
+const JOIN = "herbalholland.com/join";
 mkdirSync(OUT, { recursive: true });
 
 const font = readFileSync("node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2").toString("base64");
@@ -50,7 +51,7 @@ const cover: Spec = {
       <div class="m" style="width:320px;height:320px;flex:none">${mark(SUNSET)}</div>
       <div style="flex:none;max-width:820px">
         ${wordmark}
-        <div class="p" style="margin-top:34px;font-size:40px;color:${CREAM};max-width:820px">Now open on the Bluff and in Pietermaritzburg, with Hillcrest and Hilton from 1 December. A neighbourhood brand for adults 18+.</div>
+        <div class="p" style="margin-top:34px;font-size:40px;color:${CREAM};max-width:820px">Holland, meet the Hills. Hillcrest and Hilton, opening Tuesday 1 December. Members only, adults 18+.</div>
         <div class="small" style="margin-top:30px;font-size:22px;color:${SUNSET};opacity:1">Join Herbal Holland Rewards, free</div>
         <div class="small" style="margin-top:8px;font-size:22px;color:${INK_450}">${JOIN}</div>
       </div>
@@ -102,9 +103,9 @@ const CARDS = [
   {
     slug: "1-welcome", ground: INK, ink: SUNSET,
     inner: (tall: boolean) => `
-      <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Now open in KwaZulu-Natal</div>
-      <div class="h" style="margin-top:${tall ? 40 : 28}px;font-size:${tall ? 148 : 128}px;color:${CREAM}">Sawubona,<br>KZN.</div>
-      <div class="p" style="margin-top:${tall ? 56 : 40}px;font-size:${tall ? 44 : 38}px;color:${INK_450};max-width:${tall ? 860 : 820}px">Herbal Holland is open on the Bluff and in Pietermaritzburg, with Hillcrest and Hilton from 1 December. Plain-spoken, members only, and glad to be your neighbour.</div>`,
+      <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Since the 1970s</div>
+      <div class="h" style="margin-top:${tall ? 40 : 28}px;font-size:${tall ? 132 : 112}px;color:${CREAM}">Holland,<br>meet <span style="color:${SUNSET}">the Hills.</span></div>
+      <div class="p" style="margin-top:${tall ? 56 : 40}px;font-size:${tall ? 44 : 38}px;color:${INK_450};max-width:${tall ? 860 : 820}px">A seed left the hills behind Durban and found a home in Holland. Fifty years on, it's coming home: Hillcrest and Hilton, from 1 December.</div>`,
   },
   {
     slug: "2-founding", ground: SUNSET, ink: INK,
@@ -121,11 +122,14 @@ const CARDS = [
       <div class="eyebrow" style="font-size:${tall ? 30 : 26}px;color:${SUNSET}">Free to join</div>
       <div class="h" style="margin-top:${tall ? 32 : 22}px;font-size:${tall ? 104 : 92}px;color:${CREAM}">How to join<br>in 20 seconds</div>
       <ol style="list-style:none;margin:${tall ? 64 : 44}px 0 0;padding:0;display:flex;flex-direction:column;gap:${tall ? 34 : 24}px">
-        ${["Tap the link, or ask at any till", "Your name and mobile number", "Your card is ready: show it at any store"]
+        ${["Scan the code, or ask at any till", "Your name and mobile number", "Your card is ready: show it at any store"]
           .map((t, i) => `<li style="display:flex;align-items:center;gap:30px"><span style="flex:none;width:${tall ? 92 : 80}px;height:${tall ? 92 : 80}px;border-radius:50%;background:${SUNSET};color:${INK};font-weight:800;font-size:${tall ? 46 : 40}px;display:flex;align-items:center;justify-content:center">${i + 1}</span><span class="p" style="font-size:${tall ? 44 : 38}px;color:${CREAM}">${t}</span></li>`)
           .join("")}
       </ol>
-      <div class="small" style="margin-top:${tall ? 60 : 40}px;font-size:${tall ? 26 : 22}px;color:${SUNSET};opacity:1">${JOIN}</div>`,
+      <div style="margin-top:${tall ? 60 : 22}px;display:flex;align-items:center;gap:${tall ? 36 : 28}px">
+        <div style="flex:none;width:${tall ? 240 : 150}px;height:${tall ? 240 : 150}px">${qrSvg(JOIN_QR, INK, CREAM)}</div>
+        <div><div class="p" style="font-size:${tall ? 34 : 28}px;color:${CREAM}">Scan to join</div><div class="small" style="margin-top:8px;font-size:${tall ? 26 : 22}px;color:${SUNSET};opacity:1">${JOIN}</div></div>
+      </div>`,
   },
   ...[
     ["4-bluff", "Bluff", "208 Tara Road, Bluff, Durban"],

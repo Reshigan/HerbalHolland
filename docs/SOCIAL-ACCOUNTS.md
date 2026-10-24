@@ -28,7 +28,7 @@ Files for the profiles:
 | Profile picture (all three) | `avatar-ink.png` (the mark on warm black; `avatar-brand.png` on orange is the alternative) | 1024×1024 |
 | Facebook cover | `facebook-cover.png` (everything important sits in the centre, which is all a phone shows) | 1640×624 |
 | TikTok profile video poster / story frame | `story-cover.png` | 1080×1920 |
-| Instagram highlight covers | `highlight-rewards.png`, `highlight-stores.png`, `highlight-lab-tested.png`, `highlight-founding.png`, `highlight-learn.png` | 1080×1080 |
+| Instagram highlight covers | `highlight-rewards.png`, `highlight-stores.png`, `highlight-specials.png`, `highlight-founding.png`, `highlight-learn.png` | 1080×1080 |
 | The pinned set, square | `post-1-welcome.png`, `post-2-founding.png`, `post-3-join.png` | 1080×1080 |
 | The pinned set, story | `story-1-welcome.png`, `story-2-founding.png`, `story-3-join.png` | 1080×1920 |
 
@@ -53,7 +53,7 @@ Instagram account are owned by the company and not by whoever's personal profile
    (Accounts → Instagram accounts) confirm it shows under the portfolio. Settings → Privacy → set the **minimum age to
    18** (Instagram → Settings → Audience: 18+).
 4. Profile picture `avatar-ink.png`. Bio below. Website: https://shop.herbalholland.com/go. Add the five highlights
-   as empty highlights first (Rewards, Stores, Lab-tested, Founding, Learn), with the highlight covers, then fill
+   as empty highlights first (Rewards, Stores, Specials, Founding, Learn), with the highlight covers, then fill
    them from the stories you post.
 
 ## 3. TikTok
@@ -76,18 +76,18 @@ All three under 150 characters, with "Adults 18+", the place, and the /go link. 
 
 **Instagram** (140 characters):
 
-> Sawubona, Hillcrest & Hilton. Lab-tested, plain-spoken, glad to be your neighbour. Adults 18+. Join Rewards free ⤵
+> Holland, meet the Hills. Hillcrest & Hilton from 1 Dec. Members only, adults 18+. Be a founding member: join free ⤵
 > shop.herbalholland.com/go
 
 **TikTok** (132 characters, TikTok shows the link separately):
 
-> Sawubona, Hillcrest & Hilton. Lab-tested, plain-spoken, glad to be your neighbour. Adults 18+. Join Rewards free ⤵
+> Holland, meet the Hills. Hillcrest & Hilton from 1 Dec. Members only, adults 18+. Be a founding member: join free ⤵
 > (link in profile)
 
 **Facebook** ("Intro" box, and the About page gets the longer version):
 
-> Herbal Holland is a neighbourhood brand opening in Hillcrest and Hilton, KwaZulu-Natal. Lab-tested, plain-spoken,
-> and glad to be your neighbour. Adults 18+. Join Herbal Holland Rewards free: shop.herbalholland.com/go
+> Herbal Holland: Dutch heritage, African soil. Our first stores open in Hillcrest and Hilton, KwaZulu-Natal, on
+> 1 December. Members only, adults 18+. Join Herbal Holland Rewards free: shop.herbalholland.com/go
 
 What **not** to put in a bio, username, name or category (each one has got brands reviewed and removed):
 
