@@ -85,7 +85,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
       </P>
       <Important>
         <p>
-          <b>Adults only.</b> You must be {compliance.minAge} or older to join and to buy. You join with your own South African mobile number and either your SA ID number or, if you&apos;re not a South African citizen, a passport we&apos;ve seen. One membership per person.
+          <b>Adults only.</b> You must be {compliance.minAge} or older to join and to buy. You join with your own South African mobile number and your date of birth, and before you buy we check your SA ID number or, if you&apos;re not a South African citizen, a passport we&apos;ve seen. One membership per person.
         </p>
         <p>
           <b>True, current details.</b> Keep your details up to date in Rewards → Settings. We may ask to see your ID at any time (at the till, on collection or on delivery), and we won&apos;t sell or hand over age-restricted products if we can&apos;t confirm your age.

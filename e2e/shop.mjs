@@ -4,8 +4,8 @@
 // (list, search, choose) → an existing member signs in by phone → Rewards (card, orders → tracking, points, invoices →
 // tax invoice, settings: profile, marketing consent, personalised deals) → verified review → restock alert → drop
 // alert → ask for help (a support request, then a reply from Rewards → Help) → return an item from a delivered order →
-// event RSVP + cancel → sign out → a friend opens the member's share link and joins with the referral (with a
-// passport; a refused first try keeps everything filled in) → Learn quest (points once only) → unsubscribe link →
+// event RSVP + cancel → sign out → a friend opens the member's share link and joins with the referral (with a date
+// of birth; a refused first try keeps everything filled in) → Learn quest (points once only) → unsubscribe link →
 // age verification with an SA ID number → staff sign-in (wrong and right password), forced password change on a
 // throwaway user → sign out (/logout).
 // Everything it changes on seeded records is put back, and what it creates is removed (the friend stays a member,
@@ -569,7 +569,7 @@ try {
   const phone = `07${Math.floor(10_000_000 + Math.random() * 89_999_999)}`;
   await phoneCode(friend, phone, "Join");
   await timed("Join: verify → details step", () => friend.getByRole("button", { name: "Verify" }).click(), () => friend.getByText("Welcome: one quick step").waitFor());
-  // First try with an email address another member already uses (with a passport, so the age check waits for later).
+  // First try with an email address another member already uses (joining asks a date of birth; the ID check waits for later).
   const homes = await friend.getByLabel("Home store").locator("option:not([disabled])").evaluateAll((els) => els.map((o) => o.value));
   const home = homes[Math.floor(Math.random() * homes.length)];
   const dob = "1994-05-17";
@@ -577,8 +577,10 @@ try {
   await friend.getByLabel("First name").fill("Zanele");
   await friend.getByLabel("Surname").fill("Mthembu");
   await friendEmail.fill(taken);
-  await friend.getByRole("radio", { name: "Passport" }).click();
-  await friend.getByLabel("Date of birth").fill(dob);
+  const [dy, dm, dd] = dob.split("-");
+  await friend.getByLabel("Day").selectOption(String(+dd));
+  await friend.getByLabel("Month").selectOption(String(+dm));
+  await friend.getByLabel("Year").selectOption(dy);
   await friend.getByLabel("Home store").selectOption(home);
   await friend.getByLabel("SMS").check();
   await friend.getByLabel("Email", { exact: true }).check();
@@ -591,7 +593,7 @@ try {
     (await friend.getByLabel("First name").inputValue()) === "Zanele",
     (await friend.getByLabel("Surname").inputValue()) === "Mthembu",
     (await friendEmail.inputValue()) === taken,
-    (await friend.getByLabel("Date of birth").inputValue()) === dob,
+    (await friend.locator('input[name="dob"]').inputValue()) === dob,
     (await friend.getByLabel("Home store").inputValue()) === home,
     await friend.getByLabel("SMS").isChecked(),
     await friend.getByLabel("Email", { exact: true }).isChecked(),
@@ -605,7 +607,7 @@ try {
   const pal = await one(`select id, "referredById", source, "consentSms", "consentEmail", "consentWhatsapp", interests, "homeStoreId", points, "termsVersion", "ageVerifiedAt" from "Customer" where phone = $1`, [`+27${phone.slice(1)}`]);
   assert(pal?.referredById === member.id && pal.source === "REFERRAL", `joined as a referral of ${member.memberNo} (referredById + source REFERRAL)`);
   assert(pal.consentSms && pal.consentEmail && !pal.consentWhatsapp && pal.interests.includes("CBD") && pal.homeStoreId === home && pal.termsVersion, "SMS and email marketing opted in, into CBD, home store as chosen; membership terms recorded");
-  assert(!pal.ageVerifiedAt, "joined with a passport: age not verified yet");
+  assert(!pal.ageVerifiedAt, "joined with a date of birth: age not verified yet");
   await shot(friend, "friend-club");
 
   // ── 7. Learn quest: points once only ───────────────────────────────────────────────────────────────

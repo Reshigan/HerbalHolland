@@ -80,7 +80,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
           <ul className="mt-10 space-y-4 text-sm">
             {[
               [<Smartphone key="s" className="h-5 w-5" />, "Confirm your mobile number with a one-time code"],
-              [<ShieldCheck key="i" className="h-5 w-5" />, "Add your SA ID number (or passport date of birth): we're adults-only by law"],
+              [<ShieldCheck key="i" className="h-5 w-5" />, "Add your date of birth: we're adults-only by law"],
               [<Gift key="g" className="h-5 w-5" />, `Start earning: ${fmtPoints(settings.loyalty.signupBonus)} are yours the moment you join`],
             ].map(([icon, t], i) => (
               <li key={i} className="flex items-center gap-4 text-ink-200">
