@@ -1,4 +1,4 @@
-// The link in our social bios (@herbalholland on Facebook, Instagram and TikTok): one screen of big buttons on a phone.
+// The link in our social bios (@herbalhollandza on Instagram, and our Facebook and TikTok): one screen of big buttons on a phone.
 // Social is brand-led only, so the join links carry ?src=bio and this page stays out of search.
 import type { Metadata } from "next";
 import { ArrowRight, BookOpen, Hash, MapPin, MessageCircle, ShoppingBag, Sparkles } from "lucide-react";
@@ -11,7 +11,7 @@ import { tierInfo } from "@/lib/loyalty-rules";
 import { num } from "@/lib/format";
 
 export const metadata: Metadata = {
-  title: "@herbalholland",
+  title: "@herbalhollandza",
   description: "Herbal Holland on social: join Rewards free, the Founding Members list, our stores and Learn. Adults 18+.",
   robots: { index: false, follow: false },
 };
@@ -35,7 +35,7 @@ export default async function GoPage() {
         <span className="flex h-24 w-24 items-center justify-center rounded-full bg-ink-900 text-brand-500 ring-1 ring-ink-800">
           <Mark className="h-16 w-16" />
         </span>
-        <h1 className="mt-5 font-display text-2xl font-semibold tracking-tight text-white">@herbalholland</h1>
+        <h1 className="mt-5 font-display text-2xl font-semibold tracking-tight text-white">@herbalhollandza</h1>
         <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-300">Sawubona, Hillcrest and Hilton. Plain-spoken, members-only, and glad to be your neighbour. Adults 18+.</p>
 
         <nav aria-label="Links" className="mt-8 flex w-full flex-col gap-3">
