@@ -19,12 +19,15 @@ export function BuyBar({ variantId, name, priceCents, wasCents, note, anchor = "
     return () => io.disconnect();
   }, [anchor]);
   return (
+    <>
+    {/* In the installed app the bar sits on the tab bar, so the page ends one bar-height lower. */}
+    <div aria-hidden className="hidden h-[4.5rem] app:block lg:hidden" />
     <form
       action={action}
       aria-hidden={!show}
       inert={!show}
       className={cn(
-        "hh-buybar fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-ink-800 bg-ink-950/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden",
+        "hh-buybar fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-ink-800 bg-ink-950/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur app:bottom-[calc(4rem+env(safe-area-inset-bottom))] app:z-30 app:pb-3 lg:hidden",
         show ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-full opacity-0",
       )}
     >
@@ -49,5 +52,6 @@ export function BuyBar({ variantId, name, priceCents, wasCents, note, anchor = "
       )}
       {state.error && <span className="sr-only" role="alert">{state.error}</span>}
     </form>
+    </>
   );
 }

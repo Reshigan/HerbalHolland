@@ -36,7 +36,7 @@ export function ClubNav() {
   const active = (href: string) => (href === "/club" ? path === "/club" : path.startsWith(href));
   return (
     <>
-      <nav ref={bar} aria-label="Rewards" data-slide={slide ? "" : undefined} className="scrollbar-none group/nav relative -mx-4 hidden gap-1 overflow-x-auto border-b border-ink-850 px-4 sm:mx-0 sm:flex sm:px-0">
+      <nav ref={bar} aria-label="Rewards" data-slide={slide ? "" : undefined} className="scrollbar-none group/nav relative -mx-4 hidden gap-1 overflow-x-auto border-b border-ink-850 px-4 app:flex sm:mx-0 sm:flex sm:px-0">
         {TABS.map((t) => (
           <Link key={t.href} href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors", active(t.href) ? "border-brand-500 text-white group-data-[slide]/nav:border-transparent" : "border-transparent text-ink-400 hover:text-white")}>
             <t.icon className="h-4 w-4" /> {t.label}
@@ -44,7 +44,7 @@ export function ClubNav() {
         ))}
         {slide && <span aria-hidden className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-px origin-left bg-brand-500 transition-transform duration-[var(--dur)] ease-[var(--ease-out-expo)] motion-reduce:transition-none" style={{ transform: slide }} />}
       </nav>
-      <nav aria-label="Rewards" className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-800 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
+      <nav aria-label="Rewards" className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-800 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur app:hidden sm:hidden">
         <ul className="grid grid-cols-6">
           {TABS.map((t) => (
             <li key={t.href}>

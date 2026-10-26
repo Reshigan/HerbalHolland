@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* The installed app (home-screen PWA): `app:` styles apply only there, never in a browser tab. */
+@custom-variant app (@media (display-mode: standalone));
+
+@media (display-mode: standalone) {
+  html { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
+}
+
 /*
  * Herbal Holland design tokens.
  * Brand: Holland orange on warm black, lifted from the store-window lock-up.

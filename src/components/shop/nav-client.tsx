@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Check, ChevronDown, LocateFixed, MapPin, Menu, Search, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, CreditCard, House, LocateFixed, MapPin, Menu, Search, ShoppingBag, Store, X } from "lucide-react";
 import { choosePreferredStore, pickerStores } from "@/server/shop/actions";
 import { cn } from "@/lib/cn";
 
@@ -22,6 +22,40 @@ export type PickerStore = {
 };
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`));
+
+/**
+ * The installed app's tab bar (display-mode standalone only; a browser tab keeps the website footer). `bag` is the
+ * item count while online shopping is open, or null, when Learn takes its place.
+ */
+export function AppTabBar({ bag }: { bag: number | null }) {
+  const path = usePathname();
+  const tabs = [
+    { href: "/", label: "Home", icon: House },
+    { href: "/shop", label: "Shop", icon: Store },
+    { href: "/stores", label: "Stores", icon: MapPin },
+    { href: "/club", label: "Rewards", icon: CreditCard },
+    bag === null ? { href: "/learn", label: "Learn", icon: BookOpen } : { href: "/cart", label: "Bag", icon: ShoppingBag },
+  ];
+  return (
+    <nav aria-label="App" className="fixed inset-x-0 bottom-0 z-40 hidden border-t border-ink-800 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur app:block">
+      <ul className="mx-auto grid max-w-xl grid-cols-5">
+        {tabs.map((t) => {
+          const on = isActive(path, t.href);
+          return (
+            <li key={t.href}>
+              <Link href={t.href} aria-current={on ? "page" : undefined} className={cn("relative flex h-16 select-none flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold transition-colors", on ? "text-brand-400" : "text-ink-400 active:text-ink-200")}>
+                {on && <span aria-hidden className="absolute top-0 h-0.5 w-8 rounded-full bg-brand-500" />}
+                <t.icon className="h-5 w-5" strokeWidth={on ? 2.4 : 1.9} />
+                {t.label}
+                {t.href === "/cart" && !!bag && <span className="tnum absolute left-1/2 top-2 ml-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-500 px-1 text-[0.6rem] font-bold text-ink-950">{bag}</span>}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
 
 export function NavLinks({ items, className }: { items: NavItem[]; className?: string }) {
   const path = usePathname();

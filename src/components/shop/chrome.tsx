@@ -16,7 +16,7 @@ import { tierMeta } from "@/server/shop/club";
 import { Logo, Mark, Wordmark } from "@/components/brand/logo";
 import { buttonClass } from "@/components/ui/button";
 import { ServiceWorker } from "@/components/ui/service-worker";
-import { MobileMenu, NavLinks, StorePicker, type NavItem } from "./nav-client";
+import { AppTabBar, MobileMenu, NavLinks, StorePicker, type NavItem } from "./nav-client";
 import { Container } from "./ui";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { screenCopy } from "@/lib/compliance";
@@ -99,7 +99,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       <div className="flex min-h-dvh flex-col bg-ink-950 text-ink-100">
-        <nav aria-label="Offers" className="bg-brand-500 text-ink-950">
+        <nav aria-label="Offers" className="bg-brand-500 pt-[env(safe-area-inset-top)] text-ink-950">
           <Container className="flex h-9 items-center justify-center gap-6 text-[0.78rem] font-semibold">
             {messages.map((m, i) => (
               <Link key={m.text} href={m.href} className={cn("truncate hover:underline", i > 0 && "hidden md:inline", i > 1 && "md:hidden lg:inline")}>
@@ -184,13 +184,13 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main id="main" className="flex-1">
+        <main id="main" className="flex-1 app:pb-[calc(5rem+env(safe-area-inset-bottom))]">
           {children}
         </main>
 
         {/* Already-rendered content inside a Suspense boundary hydrates later, in small slices, instead of in the first long task. */}
         <Suspense>
-        <footer className="mt-24 border-t border-ink-850 bg-ink-950">
+        <footer className="mt-24 border-t border-ink-850 bg-ink-950 app:hidden">
           <Container className="grid grid-cols-1 gap-12 py-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
             <div>
               <Link href="/" className="inline-flex items-center gap-3 text-brand-500" aria-label="Herbal Holland home">
@@ -248,6 +248,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         </footer>
         </Suspense>
       </div>
+      <AppTabBar bag={canBuyOnline(phase) ? count : null} />
       {age === "unknown" && <AgeGate />}
       {/* The Rewards worker (push only) registers once the page is idle, so the app is installable from any consumer page. */}
       <ServiceWorker src="/rewards-sw.js" scope="/" />
