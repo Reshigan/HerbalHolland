@@ -1,4 +1,4 @@
-// The social account kit for @herbalholland (Facebook, Instagram, TikTok): the profile avatars, the Facebook cover, the
+// The social account kit for @herbalhollandza (Instagram; Facebook and TikTok match): the profile avatars, the Facebook cover, the
 // story-size cover, the Instagram highlight covers and the pinned set (three square posts, three stories), rendered
 // from HTML with the brand font and the Mark into public/brand/social. Brand-led only: no products, prices or
 // consumption on social (docs/SOCIAL-ACCOUNTS.md has the rules and the setup steps).
@@ -68,7 +68,7 @@ const storyCover: Spec = {
       <div style="margin-top:40px">${wordmark}</div>
       <div class="rule" style="width:110px;margin:72px 0 56px"></div>
       <div class="h" style="font-size:84px;color:${CREAM}">Bluff.<br>Pietermaritzburg.<br>Now open.</div>
-      <div class="small" style="position:absolute;bottom:120px;font-size:26px;color:${SUNSET}">@herbalholland · Adults 18+</div>
+      <div class="small" style="position:absolute;bottom:120px;font-size:26px;color:${SUNSET}">@herbalhollandza · Adults 18+</div>
     </div>`,
   css: `.wm{font-size:72px;text-align:center}`,
 };
@@ -89,7 +89,7 @@ const highlight = ([slug, label, flip]: [string, string, boolean]): Spec => {
 
 // ── The pinned set: three square posts and the same three as stories ─────────────────────────────────────────────────
 /** A layout that works at both sizes: the content column, a small lock-up at the top, the footer line at the bottom. */
-const frame = (tall: boolean, ink: string, inner: string, footer = `Adults 18+ · @herbalholland`) => `
+const frame = (tall: boolean, ink: string, inner: string, footer = `Adults 18+ · @herbalhollandza`) => `
   <div style="position:absolute;inset:0;padding:${tall ? "160px 96px 150px" : "88px 88px 84px"};display:flex;flex-direction:column">
     <div style="display:flex;align-items:center;gap:22px">
       <div class="m" style="width:${tall ? 110 : 96}px;height:${tall ? 110 : 96}px">${mark(ink)}</div>
