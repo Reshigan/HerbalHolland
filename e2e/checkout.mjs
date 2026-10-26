@@ -77,9 +77,9 @@ console.log("welcome callout:", await page.getByText(/Welcome to Herbal Holland 
 // Joined with a date of birth: the SA ID is checked once, before the first online order of age-restricted items.
 if (await page.getByText("Confirm your age to order online").count()) {
   await page.getByLabel("SA ID number").fill(saId);
-  await page.getByRole("button", { name: "Verify" }).click();
-  await page.getByText(/you're verified/).waitFor({ timeout: 30000 });
-  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Verify", exact: true }).click();
+  // A good ID refreshes the page: the age check is gone and the order can go ahead.
+  await page.getByText("Confirm your age to order online").waitFor({ state: "detached", timeout: 30000 });
 }
 
 // 3. Fulfilment + payment
