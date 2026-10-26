@@ -76,7 +76,8 @@ const write = (key: string, value: string) => {
 function IosSteps({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex flex-wrap items-center gap-x-1.5 gap-y-1", className)}>
-      Tap <Share className="h-4 w-4 text-brand-400" strokeWidth={1.9} aria-hidden /> <b className="font-semibold text-white">Share</b>, then <SquarePlus className="h-4 w-4 text-brand-400" strokeWidth={1.9} aria-hidden />{" "}
+      Tap <Share className="h-4 w-4 text-brand-400" strokeWidth={1.9} aria-hidden /> <b className="font-semibold text-white">Share</b> (on newer iPhones it&apos;s under{" "}
+      <b className="font-semibold text-white">⋯</b> at the bottom), then <SquarePlus className="h-4 w-4 text-brand-400" strokeWidth={1.9} aria-hidden />{" "}
       <b className="font-semibold text-white">Add to Home Screen</b>
     </span>
   );

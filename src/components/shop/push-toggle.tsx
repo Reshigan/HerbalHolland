@@ -117,7 +117,7 @@ export function PushToggle({ vapidKey, devices, enable, disable }: { vapidKey: s
       <p className={cn("mt-3 flex gap-2.5 rounded-xl px-3.5 py-3 text-xs leading-relaxed", mode === "ios" ? "border border-brand-500/35 bg-brand-500/10 text-brand-100" : "bg-ink-850 text-ink-400")}>
         <Smartphone className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
         <span>
-          <strong className="font-semibold text-ink-100">On iPhone?</strong> Notifications need iOS 16.4 or later and the app on your Home Screen: tap Share, then “Add to Home Screen”, open Herbal Holland from there and switch them on here.
+          <strong className="font-semibold text-ink-100">On iPhone?</strong> Notifications need iOS 16.4 or later and the app on your Home Screen: tap Share (under ⋯ on newer iPhones), then “Add to Home Screen”, open Herbal Holland from there and switch them on here.
         </span>
       </p>
     </div>

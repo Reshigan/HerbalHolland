@@ -75,7 +75,7 @@ export async function sendWelcome(c: { id: string; firstName: string; email: str
     body: [
       `Hi ${c.firstName},`,
       `You're in. Your member number is ${c.memberNo}, and your card is ready at ${url}/club. Show it in any store to earn points on every purchase.`,
-      `Keep it on your phone: open ${url}/club, then add Herbal Holland to your Home Screen (on iPhone, Share → Add to Home Screen). You can switch on notifications there too, so you hear about drops and events first.`,
+      `Keep it on your phone: open ${url}/club, then add Herbal Holland to your Home Screen (on iPhone, Share → Add to Home Screen; on newer iPhones Share is under ⋯ at the bottom of Safari). You can switch on notifications there too, so you hear about drops and events first.`,
       ...(share ? [share] : []),
       `Sign in any time with your mobile number: we send a one-time code, no password to remember.`,
       `See you in store.`,
