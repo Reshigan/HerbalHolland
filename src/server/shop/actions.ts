@@ -168,10 +168,12 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
     if (!v.firstName || v.firstName.length > 60) fields.firstName = "Tell us your first name";
     if (!v.lastName || v.lastName.length > 60) fields.lastName = "Tell us your surname";
     if (v.email && !isEmail(v.email)) fields.email = "That email address doesn't look right";
+    // The join form asks for a date of birth ("dob"); the SA ID is checked before the first online order or at a store.
+    const byDob = v.idType === "dob" || v.idType === "passport";
     let dob: Date | undefined;
-    if (v.idType === "passport") {
+    if (byDob) {
       dob = /^\d{4}-\d{2}-\d{2}$/.test(v.dob) ? new Date(`${v.dob}T00:00:00Z`) : undefined;
-      if (!dob || Number.isNaN(dob.getTime()) || dob.getUTCFullYear() < 1900) fields.dob = "Enter your date of birth";
+      if (!dob || Number.isNaN(dob.getTime()) || dob.toISOString().slice(0, 10) !== v.dob || dob.getUTCFullYear() < 1900) fields.dob = "Enter your date of birth";
     } else {
       const id = checkSaId(v.idNumber);
       if (!id.valid) fields.idNumber = v.idNumber ? id.reason : "Enter your 13-digit SA ID number";
@@ -189,8 +191,8 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
           firstName: v.firstName,
           lastName: v.lastName,
           email: v.email || undefined,
-          idNumber: v.idType === "passport" ? undefined : v.idNumber,
-          dob: v.idType === "passport" ? dob : undefined,
+          idNumber: byDob ? undefined : v.idNumber,
+          dob: byDob ? dob : undefined,
           homeStoreId: store!.id,
           referralCode: referrer ? v.ref : undefined,
           consents: Object.fromEntries(CHANNELS.map((ch) => [ch, form.get(`consent_${ch}`) === "on"])),
@@ -212,7 +214,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
       if (collision === "email") return { step: "register", phone, fields: { email: "That email is already linked to another member" }, values: v };
       if (e instanceof CustomerError) {
         const msg = e.message;
-        const field: Field | null = /ID number|Check digit|citizenship|13 digits|date of birth in id/i.test(msg) ? "idNumber" : /adults/i.test(msg) ? (v.idType === "passport" ? "dob" : "idNumber") : null;
+        const field: Field | null = /ID number|Check digit|citizenship|13 digits|date of birth in id/i.test(msg) ? "idNumber" : /adults/i.test(msg) ? (byDob ? "dob" : "idNumber") : null;
         return field ? { step: "register", phone, fields: { [field]: msg }, values: v } : { step: "register", phone, error: msg, values: v };
       }
       throw e;

@@ -5,7 +5,8 @@ import { ArrowRight, CheckCircle2, KeyRound, Mail, MessageSquareText, Smartphone
 import { authFlow, type AuthState } from "@/server/shop/actions";
 import { buttonClass } from "@/components/ui/button";
 import { CheckRow, FieldRow, SelectInput, TextInput } from "./ui";
-import { checkSaId, displayPhone } from "@/lib/sa";
+import { displayPhone } from "@/lib/sa";
+import { clampDay, daysInMonth, dobValue } from "@/lib/dob";
 import { cn } from "@/lib/cn";
 import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
 import { INTERESTS, type InterestKey } from "@/lib/rfm";
@@ -196,24 +197,55 @@ function CodeStep({ state, action, pending, hidden }: StepProps) {
   );
 }
 
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/**
+ * Date of birth as three pickers (day, month, year: no typing, no scrolling a calendar back decades), sent as one
+ * `dob` (YYYY-MM-DD). Years run from 18 years ago back; days follow the month. Age is checked again on the server.
+ */
+function DobPicker({ initial, error }: { initial?: string; error?: string }) {
+  const [y0, m0, d0] = /^\d{4}-\d{2}-\d{2}$/.test(initial ?? "") ? initial!.split("-").map(Number) : [0, 0, 0];
+  const [day, setDay] = useState(d0);
+  const [month, setMonth] = useState(m0);
+  const [year, setYear] = useState(y0);
+  const top = new Date().getFullYear() - 18;
+  const days = daysInMonth(year, month);
+  const shown = day && clampDay(year, month, day); // a shorter month moves the day with it (31 → 30), shown and sent alike
+  const dob = dobValue(year, month, day);
+  const pick = (set: (n: number) => void) => (e: React.ChangeEvent<HTMLSelectElement>) => set(Number(e.target.value));
+  return (
+    <fieldset>
+      <legend className="mb-2 text-[0.8rem] font-semibold text-ink-200">Date of birth</legend>
+      <input type="hidden" name="dob" value={dob} />
+      <div className="grid grid-cols-[1fr_1.6fr_1.2fr] gap-2">
+        <SelectInput aria-label="Day" value={shown || ""} onChange={pick(setDay)} required aria-invalid={!!error}>
+          <option value="" disabled>Day</option>
+          {Array.from({ length: days }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+        </SelectInput>
+        <SelectInput aria-label="Month" value={month || ""} onChange={pick(setMonth)} required aria-invalid={!!error}>
+          <option value="" disabled>Month</option>
+          {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+        </SelectInput>
+        <SelectInput aria-label="Year" value={year || ""} onChange={pick(setYear)} required aria-invalid={!!error}>
+          <option value="" disabled>Year</option>
+          {Array.from({ length: top - 1919 }, (_, i) => top - i).map((n) => <option key={n} value={n}>{n}</option>)}
+        </SelectInput>
+      </div>
+      {error ? <p className="mt-1.5 text-xs font-medium text-rose-100" role="alert">{error}</p> : <p className="mt-1.5 text-xs text-ink-400">We&apos;re for adults 18+. We check your ID once, before your first online order or at your first store visit.</p>}
+    </fieldset>
+  );
+}
+
 function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, referral, consentWording }: StepProps & { stores: StoreOpt[]; defaultStoreId?: string | null; referral?: { code: string; name: string } | null; consentWording: string }) {
   const v = state.values ?? {};
-  const [idType, setIdType] = useState<"sa" | "passport">(v.idType === "passport" ? "passport" : "sa");
-  const [id, setId] = useState(v.idNumber ?? "");
-  const idCheck = useMemo(() => (id.replace(/\s/g, "").length === 13 ? checkSaId(id) : null), [id]);
   const cities = useMemo(() => [...new Set(stores.map((s) => s.city))].sort(), [stores]);
-  const maxDob = useMemo(() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 18);
-    return d.toISOString().slice(0, 10);
-  }, []);
 
   return (
     <form action={action} className="space-y-5">
       {hidden}
       <input type="hidden" name="intent" value="register" />
       {referral && <input type="hidden" name="ref" value={referral.code} />}
-      <input type="hidden" name="idType" value={idType} />
+      <input type="hidden" name="idType" value="dob" />
       <div>
         <h2 className="font-display text-2xl font-semibold text-white">Welcome: one quick step</h2>
         <p className="mt-1 text-sm text-ink-400">
@@ -232,42 +264,7 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         </FieldRow>
       </div>
 
-      <fieldset>
-        <legend className="mb-2 text-[0.8rem] font-semibold text-ink-200">Confirm you&apos;re 18 or older</legend>
-        <div className="mb-3 inline-flex rounded-full border border-ink-700 p-1" role="radiogroup">
-          {[
-            ["sa", "SA ID number"],
-            ["passport", "Passport"],
-          ].map(([k, l]) => (
-            <button
-              key={k}
-              type="button"
-              role="radio"
-              aria-checked={idType === k}
-              onClick={() => setIdType(k as "sa" | "passport")}
-              className={cn("rounded-full px-4 py-1.5 text-sm font-semibold transition", idType === k ? "bg-brand-500 text-ink-950" : "text-ink-300 hover:text-white")}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-        {/* Keyed: the ID number (controlled) and the date of birth are different inputs, not one input changing type. */}
-        {idType === "sa" ? (
-          <FieldRow
-            key="sa"
-            label="SA ID number"
-            htmlFor="reg-id"
-            error={state.fields?.idNumber ?? (idCheck && !idCheck.valid ? idCheck.reason : undefined)}
-            hint={idCheck?.valid ? "Looks good. We check the number instantly and store only a secure fingerprint of it." : "13 digits. We verify your age from it and never share it."}
-          >
-            <TextInput id="reg-id" name="idNumber" inputMode="numeric" autoComplete="off" maxLength={16} value={id} onChange={(e) => setId(e.target.value.replace(/[^\d\s]/g, ""))} aria-invalid={!!state.fields?.idNumber || (idCheck ? !idCheck.valid : false)} className="tnum tracking-wider" />
-          </FieldRow>
-        ) : (
-          <FieldRow key="passport" label="Date of birth" htmlFor="reg-dob" error={state.fields?.dob} hint="Using a passport? Show it at your first store visit or collection and our team will verify it. Until then, online orders need a verified age.">
-            <TextInput id="reg-dob" name="dob" type="date" max={maxDob} min="1900-01-01" defaultValue={v.dob} aria-invalid={!!state.fields?.dob} />
-          </FieldRow>
-        )}
-      </fieldset>
+      <DobPicker initial={v.dob} error={state.fields?.dob} />
 
       <FieldRow label="Home store" htmlFor="reg-store" error={state.fields?.homeStoreId} hint="Where you'll usually collect. You can change it any time.">
         {/* Keyed: a select keeps its first default through React's post-action form reset, so it remounts with the store sent. */}

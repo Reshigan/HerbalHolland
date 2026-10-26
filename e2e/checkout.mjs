@@ -61,7 +61,9 @@ await page.getByText("Welcome: one quick step").waitFor();
 await page.getByLabel("First name").fill("Lindiwe");
 await page.getByLabel("Surname").fill("Dlamini");
 await page.getByLabel(/Email for invoices/).fill(`lindiwe.${phone}@example.co.za`);
-await page.getByLabel("SA ID number").fill(saId);
+await page.getByLabel("Day").selectOption("12");
+await page.getByLabel("Month").selectOption({ label: "June" });
+await page.getByLabel("Year").selectOption("1990");
 await page.getByLabel("Home store").selectOption({ label: "Hatfield" });
 await page.getByLabel("SMS").check();
 await page.getByLabel("CBD & wellness").check();
@@ -72,6 +74,13 @@ await page.getByText("Signed in as").waitFor({ timeout: 30000 });
 await page.waitForLoadState("networkidle");
 await shot("checkout-signed-in");
 console.log("welcome callout:", await page.getByText(/Welcome to Herbal Holland Rewards/).count(), "| url:", page.url());
+// Joined with a date of birth: the SA ID is checked once, before the first online order of age-restricted items.
+if (await page.getByText("Confirm your age to order online").count()) {
+  await page.getByLabel("SA ID number").fill(saId);
+  await page.getByRole("button", { name: "Verify", exact: true }).click();
+  // A good ID refreshes the page: the age check is gone and the order can go ahead.
+  await page.getByText("Confirm your age to order online").waitFor({ state: "detached", timeout: 30000 });
+}
 
 // 3. Fulfilment + payment
 if (fulfil !== "COLLECT") {
