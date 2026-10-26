@@ -28,7 +28,7 @@ describe("Messaging", () => {
     expect(url).toBe("https://rest.smsportal.com/v3/BulkMessages");
     const sent = JSON.parse(String(init.body)).messages[0];
     expect(sent.destination).toBe("27825550101");
-    expect(sent.content).toMatch(/code is \d{6}\./);
+    expect(sent.content).toMatch(/^Herbal Holland: \d{6} is your code\. Valid 10 minutes\.$/); // the short wording networks deliver
     const log = await lastLog();
     expect(log.status).toBe("SENT");
     expect(log.body).not.toMatch(/\d{6}/);
@@ -70,7 +70,7 @@ describe("Sign-in codes by email", () => {
     const log = await db.messageLog.findFirstOrThrow({ orderBy: { createdAt: "desc" } });
     expect(log).toMatchObject({ channel: "EMAIL", to: "new.member@example.com", status: "SENT", kind: "TRANSACTIONAL" });
     expect(log.body).not.toMatch(/\d{6}/);
-    expect(log.body).toContain("your sign-in code is ••••••");
+    expect(log.body).toContain("•••••• is your code");
 
     // A member's own email carries codes only once a code has reached it; an address typed into the profile hasn't.
     const member = await db.customer.update({ where: { id: w.patient.id }, data: { email: "patient@example.co.za", emailVerifiedAt: null }, select: { phone: true, email: true } });

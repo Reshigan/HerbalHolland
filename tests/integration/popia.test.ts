@@ -116,7 +116,7 @@ beforeAll(async () => {
   await db.messageLog.createMany({
     data: [
       { customerId, to: PHONE, channel: "SMS", kind: "TRANSACTIONAL", status: "SENT", body: "Herbal Holland: Hi Thandiwe, order TEKORD is on its way." },
-      { to: PHONE, channel: "SMS", kind: "TRANSACTIONAL", status: "SENT", body: "Herbal Holland: your sign-in code is ••••••" }, // a sign-in code: no member id
+      { to: PHONE, channel: "SMS", kind: "TRANSACTIONAL", status: "SENT", body: "Herbal Holland: •••••• is your code. Valid 10 minutes." }, // a sign-in code: no member id
     ],
   });
   // Their photos: one with a review, one with a return, one with a support message.

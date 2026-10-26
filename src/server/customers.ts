@@ -46,11 +46,12 @@ export async function requestOtp(raw: string, opts?: { ip: string | null; email?
     throw e instanceof OtpLimitError ? new CustomerError(e.message) : e;
   });
   if (!code) throw new CustomerError("Too many codes requested. Try again in 10 minutes");
-  // One SMS segment: plain GSM characters, under 160 with the autofill line below.
-  const text = (c: string) => `Herbal Holland: your sign-in code is ${c}. It expires in 10 minutes. We'll never ask for it, so please don't share it.`;
+  // Short and plain on purpose: South African networks silently dropped a longer wording ("sign-in code… don't share it",
+  // with the browser-autofill line), while this one is delivered.
+  const text = (c: string) => `Herbal Holland: ${c} is your code. Valid 10 minutes.`;
   const sent = email
     ? await send({ channel: "EMAIL", to: email, subject: "Your Herbal Holland sign-in code", body: `${text(code)}\n\nIf you didn't ask for a code, you can ignore this email.`, logBody: text("••••••"), kind: "TRANSACTIONAL" })
-    : await send({ channel: "SMS", to: phone, body: `${text(code)}\n\n@${new URL(APP_URL()).hostname} #${code}`, logBody: text("••••••"), kind: "TRANSACTIONAL" });
+    : await send({ channel: "SMS", to: phone, body: text(code), logBody: text("••••••"), kind: "TRANSACTIONAL" });
   if (sent.status === "FAILED") throw new CustomerError("We couldn't send your code just now. Please try again in a minute");
   return { phone, email: email ?? undefined, demoCode: process.env.DEMO_MODE === "true" ? code : undefined };
 }
