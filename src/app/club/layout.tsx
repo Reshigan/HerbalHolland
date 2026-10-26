@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { getCustomer } from "@/server/auth";
 import { ShopChrome } from "@/components/shop/chrome";
 import { ClubNav } from "@/components/shop/club-client";
@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   appleWebApp: { startupImage: splashStartupImages() },
 };
 
+// Edge to edge in the installed app: the offers bar and the tab bar pad themselves for the notch and home indicator.
+export const viewport: Viewport = { viewportFit: "cover" };
+
 export default async function ClubLayout({ children }: { children: React.ReactNode }) {
   const customer = await getCustomer();
   return (
@@ -23,7 +26,7 @@ export default async function ClubLayout({ children }: { children: React.ReactNo
           <ClubNav />
         </Container>
       )}
-      <div className={customer ? "pb-20 sm:pb-0" : undefined}>
+      <div className={customer ? "pb-20 app:pb-0 sm:pb-0" : undefined}>
         {children}
       </div>
       <AnalyticsBeacon />
