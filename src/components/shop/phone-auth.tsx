@@ -6,6 +6,7 @@ import { authFlow, type AuthState } from "@/server/shop/actions";
 import { buttonClass } from "@/components/ui/button";
 import { CheckRow, FieldRow, SelectInput, TextInput } from "./ui";
 import { displayPhone } from "@/lib/sa";
+import { clampDay, daysInMonth, dobValue } from "@/lib/dob";
 import { cn } from "@/lib/cn";
 import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
 import { INTERESTS, type InterestKey } from "@/lib/rfm";
@@ -208,15 +209,16 @@ function DobPicker({ initial, error }: { initial?: string; error?: string }) {
   const [month, setMonth] = useState(m0);
   const [year, setYear] = useState(y0);
   const top = new Date().getFullYear() - 18;
-  const days = new Date(Date.UTC(year || 2000, month || 1, 0)).getUTCDate();
-  const dob = day && month && year && day <= days ? `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}` : "";
+  const days = daysInMonth(year, month);
+  const shown = day && clampDay(year, month, day); // a shorter month moves the day with it (31 → 30), shown and sent alike
+  const dob = dobValue(year, month, day);
   const pick = (set: (n: number) => void) => (e: React.ChangeEvent<HTMLSelectElement>) => set(Number(e.target.value));
   return (
     <fieldset>
       <legend className="mb-2 text-[0.8rem] font-semibold text-ink-200">Date of birth</legend>
       <input type="hidden" name="dob" value={dob} />
       <div className="grid grid-cols-[1fr_1.6fr_1.2fr] gap-2">
-        <SelectInput aria-label="Day" value={day || ""} onChange={pick(setDay)} required aria-invalid={!!error}>
+        <SelectInput aria-label="Day" value={shown || ""} onChange={pick(setDay)} required aria-invalid={!!error}>
           <option value="" disabled>Day</option>
           {Array.from({ length: days }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
         </SelectInput>
