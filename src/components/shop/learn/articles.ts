@@ -96,6 +96,28 @@ export const ARTICLES: ArticleMeta[] = [
     updated: "2026-10-24",
     art: { slug: "caring-for-accessories", regClass: "ACCESSORY" },
   },
+  {
+    slug: "is-cannabis-legal-in-south-africa",
+    aliases: ["cannabis-law-south-africa"],
+    kicker: "The law, plainly",
+    title: "Is cannabis legal in South Africa?",
+    dek: "Private use by adults, the Cannabis for Private Purposes Act, why buying and selling is still closed, and where CBD and hemp fit: the law as it stands in 2026.",
+    minutes: 5,
+    published: "2026-10-27",
+    updated: "2026-10-27",
+    art: { slug: "cannabis-law-south-africa", regClass: "HEMP" },
+  },
+  {
+    slug: "kwazulu-natal-stores",
+    aliases: ["herbal-holland-kzn"],
+    kicker: "Our stores",
+    title: "Herbal Holland in KwaZulu-Natal",
+    dek: "Pietermaritzburg and the Bluff today; Hillcrest and Hilton from 1 December. Where we are, what's on the shelves, and how members shop in store or online.",
+    minutes: 3,
+    published: "2026-10-27",
+    updated: "2026-10-27",
+    art: { slug: "kwazulu-natal-stores", regClass: "APPAREL" },
+  },
 ];
 
 assertArticleDates(ARTICLES);

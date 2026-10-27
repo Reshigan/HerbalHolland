@@ -341,6 +341,72 @@ function Accessories() {
   );
 }
 
+function CannabisLaw() {
+  return (
+    <>
+      <P>
+        Short answer: an adult may use and grow cannabis privately, but buying and selling it is still closed in South Africa, apart from medicines on a doctor&apos;s authorisation. CBD and hemp sit under their own rules. Here&apos;s how the pieces fit, as the law stands in October 2026.
+      </P>
+      <H2>Private use: the 2018 judgment and the 2024 Act</H2>
+      <P>
+        In September 2018 the Constitutional Court found that an adult using, possessing or growing cannabis in private, for their own use, may not be prosecuted for it. Parliament followed with the <strong className="text-white">Cannabis for Private Purposes Act 7 of 2024</strong>, signed in May 2024. It protects private use and cultivation by adults and opens a route to expunge old convictions for those acts.
+      </P>
+      <P>
+        The everyday limits (how much an adult may keep at home or carry, and how many plants) are set by regulations. The Department of Justice published draft regulations for comment in February 2026; until the final regulations are gazetted, any figures you read are proposals, not law.
+      </P>
+      <H2>What&apos;s still not allowed</H2>
+      <Table
+        head={["", "Where it stands"]}
+        rows={[
+          ["Buying or selling cannabis with THC", "Not allowed. There is no retail, club or dispensary licence for recreational cannabis in South Africa."],
+          ["Medicinal cannabis", "Only on a doctor's SAHPRA authorisation (Section 21), dispensed by an authorised dispenser."],
+          ["Use in public", "Not allowed."],
+          ["Driving after using", "Never. It's illegal and dangerous."],
+        ]}
+      />
+      <H2>CBD and hemp</H2>
+      <P>
+        CBD wellness products are sold over the counter under <A href="/learn/cbd-schedule-0">Schedule 0</A>: no more than 600 mg per pack and 20 mg a day, with only modest claims. Hemp (plant material with no more than 2% THC) has been regulated under the Plant Improvement Act since December 2025.
+      </P>
+      <H2>What this means at Herbal Holland</H2>
+      <Fact title="How we work">
+        <p>We&apos;re members only and adults 18+. We sell CBD wellness under Schedule 0, hemp skin care, accessories, grow gear and apparel. Licensed medicines are supplied only to registered patients with a valid SAHPRA authorisation, by an authorised dispenser (see <A href="/learn/section-21">Section 21</A>). We don&apos;t sell cannabis for recreational use, because the law doesn&apos;t allow anyone to.</p>
+      </Fact>
+      <p className="mt-10 text-sm text-ink-450">This is general information, not legal advice. The regulations under the 2024 Act were still in draft when this was written; we update this guide when they change.</p>
+    </>
+  );
+}
+
+function KznStores() {
+  return (
+    <>
+      <P>
+        Herbal Holland is Dutch heritage with its feet in KwaZulu-Natal soil. We&apos;re a members-only store for adults 18+: CBD wellness, hemp skin care, accessories, grow gear and apparel, with people behind the counter who know the shelf.
+      </P>
+      <H2>Where we are</H2>
+      <Table
+        head={["Store", "Address", ""]}
+        rows={[
+          [<A key="p" href="/stores/pietermaritzburg">Pietermaritzburg</A>, "575 Chota Motala Road, Raisethorpe", "Trading now"],
+          [<A key="b" href="/stores/bluff">Bluff, Durban</A>, "208 Tara Road, Bluff", "Trading now"],
+          [<A key="hc" href="/stores/hillcrest">Hillcrest</A>, "Shop 10B, Christians Village Shopping Centre, cnr Old Main Road and Inanda Road", "Opens 1 December 2026"],
+          [<A key="ht" href="/stores/hilton">Hilton</A>, "Shop 14, Hilton Village Centre, Hilton Avenue", "Opens 1 December 2026"],
+        ]}
+      />
+      <P>Each store&apos;s page has its hours, directions and what&apos;s in stock.</P>
+      <H2>Members only, and free to join</H2>
+      <P>
+        Everyone who shops with us is a member of Herbal Holland Rewards. Joining takes about a minute: your mobile number, a one-time code, your name and your date of birth. We check your ID once, before your first online order or at your first store visit. <A href="/club/join">Join free</A>.
+      </P>
+      <H2>Founding Members</H2>
+      <P>
+        Everyone who joins before 30 November is on the Founding Members list, and the first 2,026 places get a numbered Founding card. Every friend who joins with your link moves you 250 places up.
+      </P>
+      <p className="mt-10 text-sm text-ink-450">Adults 18+ only. Keep every product locked away and out of reach.</p>
+    </>
+  );
+}
+
 export function ArticleBody({ slug, settings }: { slug: string; settings: Settings }) {
   switch (slug) {
     case "heritage-landraces":
@@ -357,6 +423,10 @@ export function ArticleBody({ slug, settings }: { slug: string; settings: Settin
       return <Points settings={settings} />;
     case "caring-for-accessories":
       return <Accessories />;
+    case "is-cannabis-legal-in-south-africa":
+      return <CannabisLaw />;
+    case "kwazulu-natal-stores":
+      return <KznStores />;
     default:
       return null;
   }
