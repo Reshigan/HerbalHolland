@@ -26,6 +26,7 @@ import { purgeMessageBodies } from "./messaging";
 import { purgePageViews } from "./analytics";
 import { lowStockDigest, notifyAlerts, notifyAnnouncements, notifyDepositsDue, notifyExpiringBatches, notifyNewOrders, pruneStaffPushEvents } from "./staff-push";
 import { pruneExports, runDueExports } from "./exports";
+import { sendMembershipDigest } from "./membership-digest";
 import { purgeResolvedTickets } from "./support";
 import { sendDueReminders } from "./shop/reminders";
 import { expireVouchers } from "./shop/vouchers";
@@ -163,6 +164,8 @@ export const JOBS: Record<string, Steps> = {
     exports: runDueExports,
     pruned: { pushEvents: async () => (await pruneStaffPushEvents()).count, exports: pruneExports },
   },
+  // 05:00 SAST: the membership email (MEMBERSHIP_DIGEST_TO).
+  morning: { membership: sendMembershipDigest },
 };
 
 /**
