@@ -8,6 +8,7 @@ import { ProductArt } from "@/components/product/art";
 import { Callout, Container } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
 import { fmtDate } from "@/lib/format";
+import { isHiddenCategory } from "@/lib/range";
 
 export const metadata = { title: "Reorder reminders" };
 const CHANNEL: Record<string, string> = { SMS: "SMS", EMAIL: "email", PUSH: "app notification" };
@@ -26,11 +27,11 @@ export default async function ClubReminders() {
         <ul className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
           {rows.map((r) => (
             <li key={r.id} className="flex gap-4 rounded-2xl border border-ink-800 bg-ink-900/60 p-4">
-              <Link href={`/p/${r.variant.product.slug}?v=${r.variantId}`} className="shrink-0">
+              <Link href={isHiddenCategory(r.variant.product.category.slug) ? "/shop" : `/p/${r.variant.product.slug}?v=${r.variantId}`} className="shrink-0">
                 <ProductArt slug={r.variant.product.slug} strain={r.variant.product.strain} regClass={r.variant.product.regClass} label={r.variant.product.name} className="h-20 w-20 rounded-xl" />
               </Link>
               <div className="min-w-0 flex-1">
-                <Link href={`/p/${r.variant.product.slug}?v=${r.variantId}`} className="block truncate font-semibold text-white hover:text-brand-300">
+                <Link href={isHiddenCategory(r.variant.product.category.slug) ? "/shop" : `/p/${r.variant.product.slug}?v=${r.variantId}`} className="block truncate font-semibold text-white hover:text-brand-300">
                   {r.variant.product.name}
                 </Link>
                 <p className="text-sm text-ink-400">{r.variant.name}</p>

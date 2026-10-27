@@ -15,8 +15,9 @@ import { asList } from "@/lib/json-list";
 export class SocialError extends Error {}
 
 export type Picture = { image: string } | { file: { data: Uint8Array; name: string; type: string } };
-/** A video for the networks that take one: an Upload (MP4 or MOV in R2). */
-export type Video = { bytes: () => Promise<Uint8Array>; type: string; size: number };
+/** A video for the networks that take one: an Upload (MP4 or MOV in R2), or one of our films (public/brand/video), which
+ *  also has a public `url` so Facebook and Instagram can post it as a Reel. */
+export type Video = { bytes: () => Promise<Uint8Array>; type: string; size: number; url?: string };
 /** How one network took the post: its id and link, or why it refused. */
 export type PostResult = { network: string; name: string; id?: string; link?: string; error?: string };
 
@@ -58,9 +59,9 @@ const json = (body: unknown): RequestInit => ({ method: "POST", headers: { "Cont
 const form = (fields: Record<string, string | undefined>) => ({ method: "POST", body: new URLSearchParams(Object.entries(fields).filter((e): e is [string, string] => e[1] != null)) });
 
 /** Meta's two-step publish (Instagram, Threads): a media container, ready when its status says so, then published. */
-async function metaContainer(who: string, base: string, user: string, token: string, fields: Record<string, string | undefined>, statusField: string, publishPath: string) {
+async function metaContainer(who: string, base: string, user: string, token: string, fields: Record<string, string | undefined>, statusField: string, publishPath: string, tries = 15) {
   const c = await call<{ id: string }>(who, `${base}/${user}/${fields.__path ?? "media"}`, form({ ...fields, __path: undefined, access_token: token }));
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < tries; i++) {
     const s = await call<Record<string, string>>(who, `${base}/${c.id}?fields=${statusField},error_message&access_token=${token}`);
     if (s[statusField] === "FINISHED") break;
     if (s[statusField] === "ERROR" || s[statusField] === "EXPIRED") throw new SocialError(`${who} couldn't take the picture: ${s.error_message ?? s[statusField]}`);
@@ -74,8 +75,12 @@ async function metaContainer(who: string, base: string, user: string, token: str
 const NETWORKS: Record<string, Network> = {
   facebook: {
     connected: () => (env("META_PAGE_ID") && env("META_PAGE_TOKEN") ? "Page" : null),
-    async publish({ text, image }) {
+    async publish({ text, image, video }) {
       const page = env("META_PAGE_ID")!, token = env("META_PAGE_TOKEN")!;
+      if (video?.url) {
+        const r = await call<{ id: string }>("Facebook", `${GRAPH}/${page}/videos`, form({ file_url: video.url, description: text, access_token: token }));
+        return { id: r.id, link: `https://www.facebook.com/${page}/videos/${r.id}` };
+      }
       if (image) {
         const r = await call<{ id: string; post_id?: string }>("Facebook", `${GRAPH}/${page}/photos`, form({ url: image.url, message: text, access_token: token }));
         return { id: r.post_id ?? r.id, link: `https://www.facebook.com/${r.post_id ?? r.id}` };
@@ -86,7 +91,10 @@ const NETWORKS: Record<string, Network> = {
   },
   instagram: {
     connected: () => (env("META_IG_USER_ID") && env("META_PAGE_TOKEN") ? "Professional account" : null),
-    async publish({ text, image }) {
+    async publish({ text, image, video }) {
+      // A film goes up as a Reel (shared to the feed too); Instagram takes a minute or two to process a video.
+      if (video?.url)
+        return metaContainer("Instagram", GRAPH, env("META_IG_USER_ID")!, env("META_PAGE_TOKEN")!, { media_type: "REELS", video_url: video.url, caption: text, share_to_feed: "true" }, "status_code", "media_publish", 90);
       if (!image) throw new SocialError("Instagram needs a picture");
       return metaContainer("Instagram", GRAPH, env("META_IG_USER_ID")!, env("META_PAGE_TOKEN")!, { image_url: image.url, caption: text }, "status_code", "media_publish");
     },
@@ -283,6 +291,11 @@ export async function dropVideo(uploadId: string | null | undefined) {
 /** A stored video as the networks take it. */
 export async function videoOf(uploadId: string | null | undefined): Promise<Video | null> {
   if (!uploadId) return null;
+  // One of our films by its public path ("/brand/video/launch-30-9x16.mp4") instead of an Upload.
+  if (/^\/brand\/video\/[a-z0-9-]+\.mp4$/.test(uploadId)) {
+    const url = `${APP_URL()}${uploadId}`;
+    return { url, type: "video/mp4", size: 0, bytes: async () => new Uint8Array(await (await fetch(url)).arrayBuffer()) };
+  }
   const u = await db.upload.findUnique({ where: { id: uploadId }, select: { key: true, contentType: true, sizeBytes: true } });
   if (!u) return null;
   let cached: Uint8Array | null = null;

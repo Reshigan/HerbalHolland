@@ -131,6 +131,6 @@ export type WelcomeGift = Awaited<ReturnType<typeof welcomeGifts>>[number];
 export async function memberDeals(customerId: string) {
   const offers = await activeOffers(customerId);
   const ids = [...new Set(offers.flatMap((o) => asList<string>(o.productIds)))];
-  const products = ids.length ? await db.product.findMany({ where: { id: { in: ids } }, select: { id: true, slug: true, name: true, strain: true, regClass: true } }) : [];
+  const products = ids.length ? await db.product.findMany({ where: { id: { in: ids }, ...SHOWN_RANGE }, select: { id: true, slug: true, name: true, strain: true, regClass: true } }) : [];
   return offers.map((o) => ({ ...o, label: describePromo(offerPromo(o)), product: products.find((p) => asList<string>(o.productIds).includes(p.id)) ?? null }));
 }
