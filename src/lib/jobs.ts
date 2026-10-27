@@ -41,6 +41,7 @@ export const JOB_WINDOWS: Record<string, number> = {
   "staff-push": 15 * MIN, // every 5 minutes
   daily: 26 * 60 * MIN, // 02:00 SAST
   operations: 26 * 60 * MIN, // 03:00 SAST
+  morning: 26 * 60 * MIN, // 05:00 SAST
 };
 
 export type JobRunTimes = { job: string; startedAt: Date | null; okAt: Date | null; failedAt: Date | null };
