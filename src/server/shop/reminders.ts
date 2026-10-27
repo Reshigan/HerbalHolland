@@ -60,7 +60,7 @@ export const reminderFor = cache((customerId: string, variantId: string) => db.r
 export async function listReminders(customerId: string) {
   const rows = await db.reorderReminder.findMany({ where: { customerId, active: true }, orderBy: { nextAt: "asc" }, take: REMINDER_MAX });
   if (!rows.length) return [];
-  const variants = await db.variant.findMany({ where: { id: { in: rows.map((r) => r.variantId) } }, select: { id: true, name: true, product: { select: { name: true, slug: true, strain: true, regClass: true } } } });
+  const variants = await db.variant.findMany({ where: { id: { in: rows.map((r) => r.variantId) } }, select: { id: true, name: true, product: { select: { name: true, slug: true, strain: true, regClass: true, category: { select: { slug: true } } } } } });
   const byId = new Map(variants.map((v) => [v.id, v]));
   return rows.flatMap((r) => {
     const v = byId.get(r.variantId);

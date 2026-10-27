@@ -3,6 +3,7 @@
 // expected arrival, the items and totals (points and gift vouchers shown), "buy again", the invoice and returns.
 // A gift voucher purchase shows the voucher instead of a parcel.
 import Link from "next/link";
+import { isHiddenCategory } from "@/lib/range";
 import type { Metadata } from "next";
 import { CheckCircle2, Circle, Clock, CreditCard, FileText, Gift, IdCard, Loader2, MapPin, Navigation, Package, Phone, Truck, Undo2, XCircle } from "lucide-react";
 import { db } from "@/server/db";
@@ -51,7 +52,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
     where: { code: code.toUpperCase() },
     include: {
       store: { select: { name: true, slug: true, addressLine: true, suburb: true, city: true, phone: true, hours: true, lat: true, lng: true } },
-      lines: { include: { variant: { include: { product: { select: { id: true, name: true, slug: true, strain: true, regClass: true } } } } } },
+      lines: { include: { variant: { include: { product: { select: { id: true, name: true, slug: true, strain: true, regClass: true, category: { select: { slug: true } } } } } } } },
       sale: { select: { id: true, number: true, pointsEarned: true } },
     },
   });
@@ -317,9 +318,13 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                         <ProductArt slug={l.variant.product.slug} strain={l.variant.product.strain} regClass={l.variant.product.regClass} label={l.variant.product.name} className="h-14 w-14 shrink-0 rounded-xl" />
                       )}
                       <div className="min-w-0 flex-1">
-                        <Link href={`/p/${l.variant.product.slug}?v=${l.variantId}`} className="block truncate font-medium text-white hover:text-brand-300">
-                          {l.variant.product.name}
-                        </Link>
+                        {isHiddenCategory(l.variant.product.category.slug) ? (
+                          <span className="block truncate font-medium text-white">{l.variant.product.name}</span>
+                        ) : (
+                          <Link href={`/p/${l.variant.product.slug}?v=${l.variantId}`} className="block truncate font-medium text-white hover:text-brand-300">
+                            {l.variant.product.name}
+                          </Link>
+                        )}
                         <div className="text-sm text-ink-400">
                           {l.variant.name} · qty {l.qty}
                         </div>
