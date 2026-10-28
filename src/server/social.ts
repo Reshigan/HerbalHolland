@@ -61,10 +61,11 @@ const form = (fields: Record<string, string | undefined>) => ({ method: "POST", 
 /** Meta's two-step publish (Instagram, Threads): a media container, ready when its status says so, then published. */
 async function metaContainer(who: string, base: string, user: string, token: string, fields: Record<string, string | undefined>, statusField: string, publishPath: string, tries = 15) {
   const c = await call<{ id: string }>(who, `${base}/${user}/${fields.__path ?? "media"}`, form({ ...fields, __path: undefined, access_token: token }));
+  const detail = statusField === "status_code" ? "status" : "error_message"; // Instagram explains in `status`, Threads in `error_message`
   for (let i = 0; i < tries; i++) {
-    const s = await call<Record<string, string>>(who, `${base}/${c.id}?fields=${statusField},error_message&access_token=${token}`);
+    const s = await call<Record<string, string>>(who, `${base}/${c.id}?fields=${statusField},${detail}&access_token=${token}`);
     if (s[statusField] === "FINISHED") break;
-    if (s[statusField] === "ERROR" || s[statusField] === "EXPIRED") throw new SocialError(`${who} couldn't take the picture: ${s.error_message ?? s[statusField]}`);
+    if (s[statusField] === "ERROR" || s[statusField] === "EXPIRED") throw new SocialError(`${who} couldn't take the picture: ${s[detail] ?? s[statusField]}`);
     await sleep(2000);
   }
   const p = await call<{ id: string }>(who, `${base}/${user}/${publishPath}`, form({ creation_id: c.id, access_token: token }));
