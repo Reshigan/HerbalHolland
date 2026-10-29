@@ -298,8 +298,9 @@ export async function dropVideo(uploadId: string | null | undefined) {
 /** A stored video as the networks take it. */
 export async function videoOf(uploadId: string | null | undefined): Promise<Video | null> {
   if (!uploadId) return null;
-  // One of our films by its public path ("/brand/video/launch-30-9x16.mp4") instead of an Upload.
-  if (/^\/brand\/video\/[a-z0-9-]+\.mp4$/.test(uploadId)) {
+  // One of our films by its public path ("/brand/video/launch-30-9x16.mp4"), or a generated one the daily film job
+  // put in R2 ("/social/films/<name>.mp4", served by src/app/social/films), instead of an Upload.
+  if (/^\/(brand\/video|social\/films)\/[a-z0-9-]+\.mp4$/.test(uploadId)) {
     const url = `${APP_URL()}${uploadId}`;
     return { url, type: "video/mp4", size: 0, bytes: async () => new Uint8Array(await (await fetch(url)).arrayBuffer()) };
   }
