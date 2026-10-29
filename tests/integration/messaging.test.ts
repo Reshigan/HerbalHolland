@@ -74,7 +74,7 @@ describe("Sign-in codes by email", () => {
 
     // A member's own email carries codes only once a code has reached it; an address typed into the profile hasn't.
     const member = await db.customer.update({ where: { id: w.patient.id }, data: { email: "patient@example.co.za", emailVerifiedAt: null }, select: { phone: true, email: true } });
-    await expect(requestOtp(member.phone, { ip: null, email: member.email! })).rejects.toThrow(/isn't the email you joined with/);
+    await expect(requestOtp(member.phone, { ip: null, email: member.email! })).rejects.toThrow(/isn't confirmed yet/);
     await db.customer.update({ where: { id: w.patient.id }, data: { emailVerifiedAt: new Date() } });
     await expect(requestOtp(member.phone, { ip: null, email: "someone.else@example.com" })).rejects.toThrow(/isn't the email you joined with/);
     expect((await requestOtp(member.phone, { ip: null, email: member.email!.toUpperCase() })).email).toBe(member.email);

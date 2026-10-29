@@ -40,7 +40,7 @@ export async function requestOtp(raw: string, opts?: { ip: string | null; email?
     if (!graphConfigured() && process.env.DEMO_MODE !== "true") throw new CustomerError("Codes by email aren't available right now. Get your code by SMS");
     const member = await db.customer.findUnique({ where: { phone }, select: { email: true, emailVerifiedAt: true } });
     // Only an email that once received this member's code can carry another: an address typed into the profile hasn't.
-    if (member && !(member.email === email && member.emailVerifiedAt)) throw new CustomerError(member.email ? "That isn't the email you joined with. Use that one, or get your code by SMS" : "There's no email on your account yet. Get your code by SMS");
+    if (member && !(member.email === email && member.emailVerifiedAt)) throw new CustomerError(!member.email ? "There's no email on your account yet. Get your code by SMS" : member.email === email ? "That email isn't confirmed yet, so this time get your code by SMS" : "That isn't the email you joined with. Use that one, or get your code by SMS");
   }
   const code = await issueCode({ phone }, { ip: opts?.ip ?? null, sentTo: email }).catch((e) => {
     throw e instanceof OtpLimitError ? new CustomerError(e.message) : e;

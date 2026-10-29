@@ -73,11 +73,17 @@ async function metaContainer(who: string, base: string, user: string, token: str
   return { id: p.id, link: permalink };
 }
 
+/** Facebook posts as the Page only with the Page's own token; a user token that manages the Page is swapped for it. */
+async function pageToken(page: string, token: string) {
+  const r = await call<{ access_token?: string }>("Facebook", `${GRAPH}/${page}?fields=access_token&access_token=${token}`).catch(() => null);
+  return r?.access_token ?? token;
+}
+
 const NETWORKS: Record<string, Network> = {
   facebook: {
     connected: () => (env("META_PAGE_ID") && env("META_PAGE_TOKEN") ? "Page" : null),
     async publish({ text, image, video }) {
-      const page = env("META_PAGE_ID")!, token = env("META_PAGE_TOKEN")!;
+      const page = env("META_PAGE_ID")!, token = await pageToken(page, env("META_PAGE_TOKEN")!);
       if (video?.url) {
         const r = await call<{ id: string }>("Facebook", `${GRAPH}/${page}/videos`, form({ file_url: video.url, description: text, access_token: token }));
         return { id: r.id, link: `https://www.facebook.com/${page}/videos/${r.id}` };
