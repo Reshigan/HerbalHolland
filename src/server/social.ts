@@ -298,10 +298,16 @@ export async function dropVideo(uploadId: string | null | undefined) {
 /** A stored video as the networks take it. */
 export async function videoOf(uploadId: string | null | undefined): Promise<Video | null> {
   if (!uploadId) return null;
-  // One of our films by its public path ("/brand/video/launch-30-9x16.mp4") instead of an Upload.
-  if (/^\/brand\/video\/[a-z0-9-]+\.mp4$/.test(uploadId)) {
+  // One of our films by its public path ("/brand/video/launch-30-9x16.mp4"), or a generated one the daily film job
+  // put in R2 ("/social/films/<name>.mp4", served by src/app/social/films), instead of an Upload.
+  if (/^\/(brand\/video|social\/films)\/[a-z0-9][a-z0-9-]{0,80}\.mp4$/.test(uploadId)) {
     const url = `${APP_URL()}${uploadId}`;
-    return { url, type: "video/mp4", size: 0, bytes: async () => new Uint8Array(await (await fetch(url)).arrayBuffer()) };
+    const bytes = async () => {
+      const r = await fetch(url);
+      if (!r.ok) throw new SocialError(`The film isn't there (${r.status} for ${uploadId})`);
+      return new Uint8Array(await r.arrayBuffer());
+    };
+    return { url, type: "video/mp4", size: 0, bytes };
   }
   const u = await db.upload.findUnique({ where: { id: uploadId }, select: { key: true, contentType: true, sizeBytes: true } });
   if (!u) return null;
