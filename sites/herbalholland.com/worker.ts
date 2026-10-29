@@ -20,7 +20,14 @@ const FRANCHISE_PAGE = new Set(["/franchise", "/franchise/", "/franchise.html"])
  *  (?src=whatsapp-status) is kept, so HQ → Analytics can tell the channels apart; otherwise it counts as "join". */
 const join = (url: URL) => {
   const src = (url.searchParams.get("src") ?? "").replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "join";
-  return `https://shop.herbalholland.com/club/join?src=${src}`;
+  const to = new URL("https://shop.herbalholland.com/club/join");
+  to.searchParams.set("src", src);
+  // A friend's referral code, the store whose QR was scanned, and where to go after joining survive the hop.
+  for (const key of ["ref", "store", "next"]) {
+    const v = (url.searchParams.get(key) ?? "").replace(key === "next" ? /[^a-z0-9/_?=&.-]/gi : /[^a-z0-9_-]/gi, "").slice(0, 120);
+    if (v && (key !== "next" || v.startsWith("/"))) to.searchParams.set(key, v);
+  }
+  return to.href;
 };
 /** Any address someone might type or be given for signing up (a bio link said as herbalholland.com/go, the shop's own
  *  /club/join path on this domain, "register", a capital J…) goes to the shop instead of this site's 404. */
