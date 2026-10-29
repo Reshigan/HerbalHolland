@@ -14,9 +14,10 @@
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
-    // The franchise page's old addresses match no asset, so a browser opening one would get the 404 page without the
-    // Worker running: it runs first for them, to redirect.
-    "run_worker_first": ["/api/*", "/franchise", "/franchise/", "/franchise.html", "/join", "/join/"]
+    // The Worker runs first for every request (the static pages come from env.ASSETS.fetch after it): the franchise
+    // page's old addresses and the sign-up addresses (worker.ts JOINISH, any capitalisation) match no asset, and would
+    // otherwise get the 404 page without the Worker seeing them.
+    "run_worker_first": true
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "herbalholland-com-eu", "database_id": "8e145c20-d05a-4c4f-84f1-013a82b8846f", "migrations_dir": "migrations" }

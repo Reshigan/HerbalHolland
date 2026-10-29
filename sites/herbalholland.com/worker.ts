@@ -20,14 +20,26 @@ const FRANCHISE_PAGE = new Set(["/franchise", "/franchise/", "/franchise.html"])
  *  (?src=whatsapp-status) is kept, so HQ → Analytics can tell the channels apart; otherwise it counts as "join". */
 const join = (url: URL) => {
   const src = (url.searchParams.get("src") ?? "").replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "join";
-  return `https://shop.herbalholland.com/club/join?src=${src}`;
+  const to = new URL("https://shop.herbalholland.com/club/join");
+  to.searchParams.set("src", src);
+  // A friend's referral code, the store whose QR was scanned, and where to go after joining survive the hop.
+  for (const key of ["ref", "store", "next"]) {
+    const v = (url.searchParams.get(key) ?? "").replace(key === "next" ? /[^a-z0-9/_?=&.-]/gi : /[^a-z0-9_-]/gi, "").slice(0, 120);
+    if (v && (key !== "next" || v.startsWith("/"))) to.searchParams.set(key, v);
+  }
+  return to.href;
 };
+/** Any address someone might type or be given for signing up (a bio link said as herbalholland.com/go, the shop's own
+ *  /club/join path on this domain, "register", a capital J…) goes to the shop instead of this site's 404. */
+const JOINISH = /^\/(join|register|signup|sign-up|rewards|members?|membership|club(\/.*)?)\/?$/i;
+const LINK_IN_BIO = /^\/go\/?$/i;
 
 export default {
   async fetch(req: Request, env: Env) {
     const url = new URL(req.url);
     if (FRANCHISE_PAGE.has(url.pathname)) return Response.redirect(new URL("/about", url).href, 301);
-    if (url.pathname === "/join" || url.pathname === "/join/") return Response.redirect(join(url), 302);
+    if (JOINISH.test(url.pathname)) return Response.redirect(join(url), 302);
+    if (LINK_IN_BIO.test(url.pathname)) return Response.redirect("https://shop.herbalholland.com/go", 302);
     if (url.pathname === "/api/early-access") return req.method === "POST" ? earlyAccess(req, env) : json(405, { ok: false, error: "Method not allowed" });
     return env.ASSETS.fetch(req);
   },
