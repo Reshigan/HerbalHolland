@@ -22,12 +22,17 @@ const join = (url: URL) => {
   const src = (url.searchParams.get("src") ?? "").replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "join";
   return `https://shop.herbalholland.com/club/join?src=${src}`;
 };
+/** Any address someone might type or be given for signing up (a bio link said as herbalholland.com/go, the shop's own
+ *  /club/join path on this domain, "register", a capital J…) goes to the shop instead of this site's 404. */
+const JOINISH = /^\/(join|register|signup|sign-up|rewards|members?|membership|club(\/.*)?)\/?$/i;
+const LINK_IN_BIO = /^\/go\/?$/i;
 
 export default {
   async fetch(req: Request, env: Env) {
     const url = new URL(req.url);
     if (FRANCHISE_PAGE.has(url.pathname)) return Response.redirect(new URL("/about", url).href, 301);
-    if (url.pathname === "/join" || url.pathname === "/join/") return Response.redirect(join(url), 302);
+    if (JOINISH.test(url.pathname)) return Response.redirect(join(url), 302);
+    if (LINK_IN_BIO.test(url.pathname)) return Response.redirect("https://shop.herbalholland.com/go", 302);
     if (url.pathname === "/api/early-access") return req.method === "POST" ? earlyAccess(req, env) : json(405, { ok: false, error: "Method not allowed" });
     return env.ASSETS.fetch(req);
   },
