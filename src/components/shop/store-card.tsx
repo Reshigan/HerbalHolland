@@ -119,20 +119,20 @@ export function StoreCard({
       {!soon && <StoreServices s={s} className="mt-3" />}
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
         {!soon && (
-          <SetStoreButton code={s.code} name={s.name} active={preferred} className="basis-full justify-center sm:basis-auto" />
+          <SetStoreButton code={s.code} name={s.name} active={preferred} className="basis-full justify-center" />
         )}
         <a
           href={directionsUrl(s)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-ink-700 px-3.5 text-xs font-semibold text-ink-100 hover:border-ink-500 sm:flex-none"
+          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-ink-700 px-3.5 text-xs font-semibold text-ink-100 hover:border-ink-500"
         >
           <Navigation className="h-3.5 w-3.5" /> Directions
         </a>
         {s.phone && !soon && (
           <a
             href={`tel:${s.phone.replace(/\s/g, "")}`}
-            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-ink-700 px-3.5 text-xs font-semibold text-ink-100 hover:border-ink-500 sm:flex-none"
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-ink-700 px-3.5 text-xs font-semibold text-ink-100 hover:border-ink-500"
           >
             <Phone className="h-3.5 w-3.5" /> Call
           </a>
