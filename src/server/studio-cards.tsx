@@ -4,11 +4,12 @@
 // get them as JPEG (Instagram takes nothing else).
 // Each card is a small HTML page laid out with flexbox, rendered by Cloudflare Browser Rendering (`withPage`, the
 // `BROWSER` binding) and screenshotted at its exact pixel size. The fonts (public/fonts/studio) and the merch photos
-// (public/social) are fetched from the app itself over HTTP, since a Worker has no filesystem.
+// (public/social) come from the ASSETS binding and go into the page as data URIs: the browser then needs no network,
+// because its requests back to the app never settled and timed the page out.
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { markDataUri } from "@/components/shop/mark-svg";
 import { HILLS } from "@/lib/hills";
 import type { Card } from "@/lib/studio";
-import { APP_URL } from "@/server/invoices";
 import { withPage } from "@/server/pdf";
 
 export const CARD_SIZES = { square: [1080, 1080], portrait: [1080, 1350], story: [1080, 1920], link: [1200, 630] } as const;
@@ -26,7 +27,7 @@ const HILLS_URI = svgUri(
 );
 const TICK_URI = svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="${BRAND}"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="${INK}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`);
 
-const picture = (key: string) => `${APP_URL()}/social/${encodeURIComponent(key)}.jpg`;
+const picture = (key: string) => `/social/${encodeURIComponent(key)}.jpg`;
 
 const FONT_FACES = () =>
   (
@@ -37,7 +38,7 @@ const FONT_FACES = () =>
       ["Inter", 600, "inter-600"],
     ] as const
   )
-    .map(([family, weight, file]) => `@font-face{font-family:"${family}";font-weight:${weight};font-style:normal;src:url("${APP_URL()}/fonts/studio/${file}.ttf") format("truetype")}`)
+    .map(([family, weight, file]) => `@font-face{font-family:"${family}";font-weight:${weight};font-style:normal;src:url("/fonts/studio/${file}.ttf") format("truetype")}`)
     .join("");
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -132,12 +133,26 @@ export function cardHtml(card: Card, size: CardSize = "square") {
 div{display:block;overflow-wrap:break-word;-webkit-font-smoothing:antialiased}img{display:block}</style></head><body>${frame}</body></html>`;
 }
 
+/** Swaps the page's font and photo paths for data URIs. A photo that isn't there stays a broken path, as it would over HTTP. */
+async function inlineAssets(html: string) {
+  const { ASSETS } = getCloudflareContext().env as unknown as { ASSETS: { fetch: typeof fetch } };
+  const paths = new Set([...html.matchAll(/"(\/(?:fonts\/studio|social)\/[^"]+\.(ttf|jpg))"/g)].map((m) => m[1]));
+  for (const path of paths) {
+    const res = await ASSETS.fetch(new URL(path, "https://assets.invalid"));
+    if (!res.ok) continue;
+    const type = path.endsWith(".ttf") ? "font/ttf" : "image/jpeg";
+    html = html.replaceAll(`"${path}"`, `"data:${type};base64,${Buffer.from(await res.arrayBuffer()).toString("base64")}"`);
+  }
+  return html;
+}
+
 /** Screenshots the card at its pixel size. Only inside a Cloudflare request (the `BROWSER` binding). */
 async function shoot(card: Card, size: CardSize, type: "png" | "jpeg") {
   const [w, h] = CARD_SIZES[size];
+  const html = await inlineAssets(cardHtml(card, size));
   return withPage(async (page) => {
     await page.setViewport({ width: w, height: h, deviceScaleFactor: 1 });
-    await page.setContent(cardHtml(card, size), { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "load" });
     await page.evaluate(() => document.fonts.ready);
     return Buffer.from(await page.screenshot({ type, ...(type === "jpeg" ? { quality: 90 } : {}), clip: { x: 0, y: 0, width: w, height: h } }));
   });
