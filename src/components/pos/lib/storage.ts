@@ -56,8 +56,10 @@ export type Cart = {
   ageCheck: AgeCheckKind | null; // counter check for walk-ins (ID sighted / SA ID number)
   /** Trade-sale mode: the trade account buying (WHOLESALE prices ex VAT; no member, points or deals). A basket is retail or trade, never both. */
   trade: TradeAccountDTO | null;
+  /** The attached member's QR was scanned here (or a manager approved without it): enables the sale when HQ requires it. */
+  memberScanned: boolean;
 };
-export const EMPTY_CART: Cart = { lines: [], code: null, customer: null, ageCheck: null, trade: null };
+export const EMPTY_CART: Cart = { lines: [], code: null, customer: null, ageCheck: null, trade: null, memberScanned: false };
 /** The in-progress cart; one saved before trade-sale mode existed has no `trade` field. */
 export const loadCart = (): Cart => {
   const c = read<Partial<Cart>>("cart");
@@ -92,6 +94,7 @@ export type SalePayload = {
   pointsRedeemed: number;
   payments: QueuedTender[];
   ageCheck?: AgeCheckKind; // counter check; members' own verification is used otherwise
+  memberScanned?: boolean;
   buyer: { name: string; address: string; vatNumber?: string } | null;
   invoiceEmail: string | null;
   staffId: string;
@@ -156,7 +159,7 @@ export const loadDisplay = () => read<DisplaySettings>("display");
 export const saveDisplay = (d: DisplaySettings | null) => write("display", d);
 
 /** Sensitive actions taken while offline (drawer opened, training started/ended, a refused queued sale discarded), posted to the audit log on sync. */
-export type QueuedAudit = { id: string; action: "drawer.open" | "training.start" | "training.end" | "outbox.discard"; at: string; staffId: string; staffName: string; note?: string; deviceId: string };
+export type QueuedAudit = { id: string; action: "drawer.open" | "training.start" | "training.end" | "outbox.discard" | "sale.member_qr_override"; at: string; staffId: string; staffName: string; note?: string; deviceId: string };
 export const loadAuditQueue = () => read<QueuedAudit[]>("audit-queue") ?? [];
 export const saveAuditQueue = (q: QueuedAudit[]) => write("audit-queue", q.length ? q : null);
 

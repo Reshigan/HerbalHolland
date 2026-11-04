@@ -243,6 +243,7 @@ export type PosSaleInput = {
   pointsRedeemed?: number;
   payments: TenderInput[];
   ageCheck?: AgeCheck;
+  memberScanned?: boolean;
   campaignId?: string | null;
   buyer?: { name: string; address: string; vatNumber?: string } | null;
   invoiceEmail?: string | null; // another address for the tax invoice
@@ -298,6 +299,7 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
     storeLicences: asList<RegClass>(store.licences),
     ageCheckedAtCounter: input.ageCheck === "ID_SIGHTED" || input.ageCheck === "ID_NUMBER",
     staffCanDispense: staff.canDispense,
+    memberScanned: input.memberScanned,
   };
   const comp = await evaluateBasket(basket);
   const customer = comp.ctx.record;

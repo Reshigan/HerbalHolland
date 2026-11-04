@@ -251,7 +251,7 @@ function Section({ n, title, lead, children }: { n: string; title: string; lead?
   return (
     <section className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5 sm:p-7" aria-labelledby={`s-${n}`}>
       <div className="mb-5 flex items-start gap-3">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-500 font-display text-sm font-bold text-ink-950" aria-hidden>
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-500 font-display text-sm font-semibold text-ink-950" aria-hidden>
           {n}
         </span>
         <div>

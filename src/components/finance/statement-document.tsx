@@ -104,22 +104,22 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
 
       <div className="grid grid-cols-3 gap-3 rounded-2xl bg-ink-50 p-4 ring-1 ring-ink-100 print:bg-transparent print:ring-ink-200">
         <div>
-          <div className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-ink-500">Net sales ex VAT</div>
+          <div className="text-xs font-semibold text-ink-500">Net sales ex VAT</div>
           <div className="tnum mt-1 font-display text-xl font-semibold text-ink-950">{zar(st.input.netSalesExVatCents)}</div>
         </div>
         <div>
-          <div className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-ink-500">Online sales ex VAT</div>
+          <div className="text-xs font-semibold text-ink-500">Online sales ex VAT</div>
           <div className="tnum mt-1 font-display text-xl font-semibold text-ink-950">{zar(st.input.onlineSalesExVatCents)}</div>
         </div>
         <div>
-          <div className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-ink-500">{owed ? "HQ pays you" : "Due to HQ"}</div>
+          <div className="text-xs font-semibold text-ink-500">{owed ? "HQ pays you" : "Due to HQ"}</div>
           <div className={cn("tnum mt-1 font-display text-xl font-semibold", owed ? "text-leaf-700" : "text-ink-950")}>{zar(Math.abs(st.net))}</div>
         </div>
       </div>
 
       <table className="mt-6 w-full border-collapse text-sm">
         <thead>
-          <tr className="border-y border-ink-200 text-left text-[0.68rem] uppercase tracking-[0.12em] text-ink-500">
+          <tr className="border-y border-ink-200 text-left text-xs text-ink-500">
             <th className="py-2.5 pr-3 font-semibold">Line</th>
             <th className="hidden py-2.5 px-3 font-semibold sm:table-cell print:table-cell">Basis</th>
             <th className="py-2.5 px-3 text-right font-semibold">Credit</th>
@@ -128,7 +128,7 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
         </thead>
         <tbody>
           <tr>
-            <td colSpan={4} className="pt-4 pb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-leaf-700">
+            <td colSpan={4} className="pt-4 pb-1 text-xs font-semibold text-leaf-700">
               Credits (HQ owes you)
             </td>
           </tr>
@@ -146,7 +146,7 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
             </tr>
           ))}
           <tr>
-            <td colSpan={4} className="pt-5 pb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-brand-700">
+            <td colSpan={4} className="pt-5 pb-1 text-xs font-semibold text-brand-700">
               Debits (you owe HQ)
             </td>
           </tr>

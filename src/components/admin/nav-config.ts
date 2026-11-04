@@ -64,6 +64,7 @@ export const storeNav = (code: string, slug: string, companyId: string): NavGrou
     title: "Insight",
     items: [
       { label: "Reports", href: `/store/${code}/reports`, icon: "ChartColumn", keywords: "sales analytics export" },
+      { label: "Owner analytics", href: "/insights/sales", icon: "ChartColumn", roles: ["OWNER"], keywords: "sales members drilldown phone" },
       { label: "Loss prevention", href: `/store/${code}/loss-prevention`, icon: "ShieldAlert", keywords: "alerts theft" },
     ],
   },
@@ -86,6 +87,7 @@ export const hqNav: NavGroup[] = [
       { label: "Network overview", href: "/hq", icon: "LayoutDashboard", exact: true, keywords: "home dashboard today" },
       { label: "Stores", href: "/hq/stores", icon: "Store", keywords: "franchisees branches" },
       { label: "Reports", href: "/hq/reports", icon: "ChartColumn", keywords: "insight sales analytics export" },
+      { label: "Owner analytics", href: "/insights/sales", icon: "ChartColumn", keywords: "sales members drilldown phone" },
       { label: "Analytics", href: "/hq/analytics", icon: "Activity", keywords: "visitors traffic app installs joins sources web" },
       { label: "Franchise leads", href: "/hq/franchise", icon: "Handshake", roles: ["HQ_ADMIN", "HQ_STAFF"], keywords: "enquiries applications" },
     ],
@@ -121,6 +123,7 @@ export const hqNav: NavGroup[] = [
       { label: "Campaigns", href: "/hq/marketing", icon: "Megaphone", keywords: "sms email push marketing" },
       { label: "Messages", href: "/hq/messages", icon: "MessageSquare", keywords: "sent log sms email" },
       { label: "Rewards", href: "/hq/loyalty", icon: "Crown", keywords: "loyalty points tiers" },
+      { label: "Partners", href: "/hq/partners", icon: "Handshake", keywords: "collab brands goldrush medellin" },
       { label: "Support", href: "/hq/support", icon: "LifeBuoy", keywords: "tickets help complaints" },
       { label: "Returns", href: "/hq/returns", icon: "Undo2", keywords: "refund exchange" },
       { label: "Reviews", href: "/hq/reviews", icon: "Star", keywords: "ratings moderation" },

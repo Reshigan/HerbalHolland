@@ -25,6 +25,12 @@ await ctx.addInitScript(() => {
   window.print = () => undefined;
 });
 const page = await ctx.newPage();
+// A member's Rewards QR on a keyboard-wedge scanner: a fast burst of keys with nothing focused. A typed number doesn't enable a sale.
+const scanCard = async (memberNo) => {
+  await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined));
+  await page.keyboard.type(memberNo);
+  await page.keyboard.press("Enter");
+};
 page.setDefaultTimeout(45_000);
 const problems = [];
 page.on("pageerror", (e) => problems.push("pageerror: " + e.message));
@@ -128,8 +134,7 @@ try {
     order by c."memberNo" limit 1`))[0];
   assert(patient, `patient ${patient?.memberNo} has an active authorisation`);
   await waitOnline();
-  await page.getByRole("button", { name: /Find member/ }).first().click();
-  await page.getByLabel("Search members").fill(patient.memberNo);
+  await scanCard(patient.memberNo);
   await page.getByTestId("customer-card").waitFor();
   ok("member attached from member number");
   await page.getByRole("button", { name: /^Durban Poison, from/ }).click();
@@ -240,8 +245,7 @@ try {
   )[0];
   await waitOnline();
   await page.getByRole("button", { name: "Sell" }).first().click();
-  await page.getByRole("button", { name: /Find member/ }).first().click(); // members only: the shopper who joined above (ID verified)
-  await page.getByLabel("Search members").fill(joined.memberNo);
+  await scanCard(joined.memberNo); // members only: the shopper who joined above (ID verified)
   await page.getByTestId("customer-card").waitFor();
   await page.getByRole("button", { name: /^Smell-proof Pouch/ }).click();
   await page.waitForTimeout(700);
@@ -302,9 +306,7 @@ try {
   await ctx.setOffline(true);
   await page.getByTestId("connectivity").filter({ hasText: "Offline" }).waitFor();
   ok("indicator shows Offline");
-  await page.getByRole("button", { name: /Find member/ }).first().click();
-  await page.getByLabel("Member number").fill(joined.memberNo);
-  await page.getByRole("button", { name: "Add to sale" }).click();
+  await scanCard(joined.memberNo);
   await page.getByText(/Taken from their card offline/).first().waitFor();
   ok(`member ${joined.memberNo} added offline, to be checked on sync`);
   await page.getByRole("button", { name: /^Smell-proof Pouch/ }).click();

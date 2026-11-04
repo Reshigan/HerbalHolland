@@ -29,7 +29,7 @@ function Position({ cents, perspective }: { cents: number; perspective: Perspect
 function Tile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl bg-ink-50 p-3 ring-1 ring-ink-100">
-      <div className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-ink-500">{label}</div>
+      <div className="text-xs font-semibold text-ink-500">{label}</div>
       <div className="mt-1 text-[0.95rem]">{children}</div>
     </div>
   );

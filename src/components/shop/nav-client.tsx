@@ -47,7 +47,7 @@ export function AppTabBar({ bag }: { bag: number | null }) {
                 {on && <span aria-hidden className="absolute top-0 h-0.5 w-8 rounded-full bg-brand-500" />}
                 <t.icon className="h-5 w-5" strokeWidth={on ? 2.4 : 1.9} />
                 {t.label}
-                {t.href === "/cart" && !!bag && <span className="tnum absolute left-1/2 top-2 ml-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-500 px-1 text-[0.6rem] font-bold text-ink-950">{bag}</span>}
+                {t.href === "/cart" && !!bag && <span className="tnum absolute left-1/2 top-2 ml-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-500 px-1 text-[0.6rem] font-semibold text-ink-950">{bag}</span>}
               </Link>
             </li>
           );

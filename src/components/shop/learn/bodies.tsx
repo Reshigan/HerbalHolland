@@ -36,7 +36,7 @@ function Steps({ items }: { items: { icon: React.ReactNode; title: string; body:
         <li key={s.title} className="flex gap-4 rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-500/10 text-brand-400">{s.icon}</span>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-ink-450">Step {i + 1}</div>
+            <div className="text-xs font-semibold text-ink-450">Step {i + 1}</div>
             <div className="mt-0.5 font-display text-lg font-semibold text-white">{s.title}</div>
             <div className="mt-1 text-[0.98rem] leading-relaxed text-ink-300">{s.body}</div>
           </div>
@@ -49,7 +49,7 @@ function Table({ head, rows }: { head: string[]; rows: React.ReactNode[][] }) {
   return (
     <div className="my-10 overflow-x-auto rounded-2xl border border-ink-800">
       <table className="w-full text-left text-sm">
-        <thead className="bg-ink-900 text-xs uppercase tracking-wider text-ink-400">
+        <thead className="bg-ink-900 text-xs text-ink-400">
           <tr>
             {head.map((h) => (
               <th key={h} className="px-4 py-3 font-semibold">

@@ -57,7 +57,7 @@ export function ReportTable({ columns: all, rows: given, totals, limit, sort, so
   const stick = (ci: number) => dense && ci === 0 && "sticky left-0 z-10 shadow-[1px_0_0_var(--color-ink-150)]";
   const nowrap = (c: Column) => isNumeric(c.format) || c.format === "date" || c.format === "day" || c.format === "datetime" || c.format === "time" || c.format === "badge" || CODE_KEYS.has(c.key);
   return (
-    <div className="overflow-x-auto print:overflow-visible" style={SCROLL_SHADOWS}>
+    <div className="relative overflow-x-auto print:overflow-visible" style={SCROLL_SHADOWS}>
       <table className={cn("w-full border-collapse", dense ? "text-[0.8rem]" : "text-sm")}>
         <thead>
           <tr>
@@ -67,7 +67,7 @@ export function ReportTable({ columns: all, rows: given, totals, limit, sort, so
                 scope="col"
                 aria-sort={canSort && sort?.key === c.key ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
                 className={cn(
-                  "border-b border-ink-150 bg-ink-50 py-2.5 align-bottom text-[0.66rem] font-semibold uppercase leading-tight tracking-[0.08em] text-ink-500",
+                  "border-b border-ink-150 bg-ink-50 py-2.5 align-bottom text-xs font-semibold leading-tight text-ink-500",
                   dense && ci > 0 ? "min-w-[4.5rem]" : "whitespace-nowrap",
                   pad,
                   ALIGN[alignOf(c)],
@@ -83,7 +83,7 @@ export function ReportTable({ columns: all, rows: given, totals, limit, sort, so
           {shown.map((row, i) =>
             row._style === "section" ? (
               <tr key={i}>
-                <td colSpan={columns.length} className="border-b border-ink-100 bg-ink-50/60 px-5 pb-1.5 pt-4 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-brand-700">
+                <td colSpan={columns.length} className="border-b border-ink-100 bg-ink-50/60 px-5 pb-1.5 pt-4 text-xs font-semibold text-brand-700">
                   {String(row[columns[0].key] ?? "")}
                 </td>
               </tr>
@@ -137,7 +137,7 @@ function SortLink({ c, sort, href }: { c: Column; sort: { key: string; dir: Sort
   // Numbers start highest first; text A–Z. Clicking the sorted column flips it.
   const next: SortDir = active ? (sort!.dir === "asc" ? "desc" : "asc") : right ? "desc" : "asc";
   return (
-    <Link href={href(c.key, next)} scroll={false} className={cn("group/sort inline-flex items-center gap-1 rounded-md uppercase hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 print:no-underline", active && "text-ink-900", right && "flex-row-reverse")}>
+    <Link href={href(c.key, next)} scroll={false} className={cn("group/sort relative inline-flex items-center gap-1 rounded-md after:absolute after:-inset-x-1 after:-inset-y-3 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 print:no-underline", active && "text-ink-900", right && "flex-row-reverse")}>
       {c.label}
       {active ? (
         sort!.dir === "asc" ? <ArrowUp className="h-3 w-3 shrink-0" aria-hidden /> : <ArrowDown className="h-3 w-3 shrink-0" aria-hidden />

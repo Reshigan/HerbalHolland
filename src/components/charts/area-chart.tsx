@@ -1,9 +1,10 @@
 "use client";
 // Time series: 2px lines, 10% area wash for the first series, crosshair + tooltip.
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { niceTicks } from "./scale";
 import { fmtValue, type ValueFormat } from "./format";
 import { Legend } from "./chart-frame";
+import { useChartWidth } from "./use-width";
 
 export function AreaChart({
   labels,
@@ -18,15 +19,15 @@ export function AreaChart({
   height?: number;
   className?: string;
 }) {
-  const ref = useRef<SVGSVGElement>(null);
+  const [ref, W] = useChartWidth();
   const [hover, setHover] = useState<number | null>(null);
-  const W = 760, H = height, padL = 58, padR = 14, padT = 12, padB = 26;
+  const H = height, padL = 58, padR = 14, padT = 12, padB = 26;
   const { max, ticks } = niceTicks(Math.max(0, ...series.flatMap((s) => s.values)));
   const n = labels.length;
   const x = (i: number) => padL + (n <= 1 ? 0 : (i * (W - padL - padR)) / (n - 1));
   const y = (v: number) => padT + (H - padT - padB) * (1 - v / max);
   const path = (vals: number[]) => vals.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
-  const every = Math.ceil(n / 7);
+  const every = Math.ceil(n / Math.min(7, Math.floor(W / 72)));
 
   const onMove = (e: React.PointerEvent) => {
     const box = ref.current?.getBoundingClientRect();
@@ -39,7 +40,7 @@ export function AreaChart({
   return (
     <div className={`relative ${className ?? ""}`}>
       {series.length > 1 && <Legend className="mb-2" items={series.map((s) => ({ label: s.name, color: s.color }))} />}
-      <svg ref={ref} viewBox={`0 0 ${W} ${H}`} className="w-full touch-none" onPointerMove={onMove} onPointerLeave={() => setHover(null)} role="img" aria-label={series.map((s) => s.name).join(", ")}>
+      <svg ref={ref} viewBox={`0 0 ${W} ${H}`} className="w-full touch-none" style={{ height: H }} onPointerMove={onMove} onPointerLeave={() => setHover(null)} role="img" aria-label={series.map((s) => s.name).join(", ")}>
         {ticks.map((t) => (
           <g key={t}>
             <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)} stroke={t === 0 ? "var(--color-ink-200)" : "var(--color-ink-100)"} />

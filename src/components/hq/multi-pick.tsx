@@ -79,7 +79,7 @@ export function MultiPick({
         {shown.length === 0 && <li className="px-3 py-2 text-xs text-ink-500">No matches</li>}
         {shown.map((o, i) => (
           <li key={o.value}>
-            {o.group && o.group !== shown[i - 1]?.group && <div className="px-2.5 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-ink-500">{o.group}</div>}
+            {o.group && o.group !== shown[i - 1]?.group && <div className="px-2.5 pb-1 pt-2 text-xs font-semibold text-ink-500">{o.group}</div>}
             <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm hover:bg-ink-50">
               <input type="checkbox" checked={picked.includes(o.value)} onChange={() => toggle(o.value)} className="h-4 w-4 shrink-0 accent-brand-500" />
               <span className="min-w-0 flex-1 truncate text-ink-800">{o.label}</span>

@@ -89,7 +89,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
                 ["CBD", batch.cbd],
               ].map(([k, v]) => (
                 <div key={k as string} className="rounded-2xl bg-ink-950 p-4">
-                  <dt className="text-xs font-semibold uppercase tracking-wider text-ink-400">{k}</dt>
+                  <dt className="text-xs font-semibold text-ink-400">{k}</dt>
                   <dd className="tnum mt-1 font-display text-3xl font-semibold text-white">{v === 0 ? "ND" : v != null ? `${v}%` : "—"}</dd>
                   {v === 0 && <dd className="text-xs text-ink-400">Not detected</dd>}
                 </div>
@@ -160,7 +160,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
             [<Factory key="l" className="h-4 w-4" />, "Laboratory", tested ? `${batch.labName}${batch.coaRef ? ` · ${batch.coaRef}` : ""}` : "Not applicable"],
           ].map(([icon, k, v]) => (
             <div key={k as string}>
-              <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-400">
+              <dt className="flex items-center gap-1.5 text-xs font-semibold text-ink-400">
                 <span className="text-brand-500">{icon}</span> {k}
               </dt>
               <dd className="mt-1 text-sm font-medium text-ink-100">{v}</dd>

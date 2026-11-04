@@ -106,7 +106,7 @@ export function PushToggle({ vapidKey, devices, enable, disable }: { vapidKey: s
           onClick={on ? turnOff : turnOn}
           className={cn("relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-40", on ? "bg-brand-500" : "bg-ink-700")}
         >
-          <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all", on ? "left-6" : "left-1")} />
+          <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-[left]", on ? "left-6" : "left-1")} />
         </button>
       </div>
       {error && (

@@ -29,7 +29,7 @@ export function DateBlock({ date, className }: { date: Date; className?: string 
       <span className="sr-only">{`${DAY_LONG[weekdaySA(date)]} ${fmtDate(date)}`}</span>
       <span aria-hidden className="w-full bg-brand-500 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-ink-950">{mon}</span>
       <span aria-hidden className="tnum pt-1 font-display text-2xl font-semibold leading-none text-white">{day}</span>
-      <span aria-hidden className="pb-1.5 pt-0.5 text-[0.62rem] font-semibold uppercase tracking-wider text-ink-400">{DAY[weekdaySA(date)]}</span>
+      <span aria-hidden className="pb-1.5 pt-0.5 text-xs font-semibold text-ink-400">{DAY[weekdaySA(date)]}</span>
     </span>
   );
 }
@@ -90,7 +90,7 @@ export function DropStatus({ d, overlay, className }: { d: DropView; overlay?: b
     );
   const ring = { green: "text-leaf-100 ring-leaf-500/50", orange: "text-brand-300 ring-brand-500/60", solid: "text-ink-100 ring-ink-600", neutral: "text-ink-300 ring-ink-700" }[tone as string];
   return (
-    <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-ink-950/85 px-2.5 py-1 text-[0.72rem] font-semibold ring-1 ring-inset backdrop-blur", ring, className)}>
+    <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-ink-950/85 px-2.5 py-1 text-[0.72rem] font-semibold ring-1 ring-inset", ring, className)}>
       {icon}
       {label}
     </span>

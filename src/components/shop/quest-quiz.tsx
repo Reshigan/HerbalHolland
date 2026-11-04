@@ -47,7 +47,7 @@ export function QuestQuiz({ quest, signedIn, done, joinHref, action }: { quest: 
   };
 
   const frame = (children: React.ReactNode) => (
-    <section aria-labelledby="quest-title" className="mt-14 overflow-hidden rounded-3xl border border-brand-500/40 bg-gradient-to-br from-brand-500/[0.1] via-ink-900/80 to-ink-900/80 p-5 sm:p-7">
+    <section aria-labelledby="quest-title" className="mt-14 overflow-hidden rounded-3xl border border-brand-500/40 bg-ink-900 p-5 sm:p-7">
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-brand-400" />
         <span className="eyebrow text-brand-400">Learn quest · +{quest.points} points</span>
@@ -124,7 +124,7 @@ export function QuestQuiz({ quest, signedIn, done, joinHref, action }: { quest: 
       </div>
       <fieldset className="mt-5" disabled={pending}>
         <legend className="w-full">
-          <span className="block text-xs font-semibold uppercase tracking-wider text-ink-400">
+          <span className="block text-xs font-semibold text-ink-400">
             Question {step + 1} of {total}
           </span>
           <span ref={heading} tabIndex={-1} className="mt-1.5 block text-lg font-semibold leading-snug text-white focus:outline-none">
@@ -145,7 +145,7 @@ export function QuestQuiz({ quest, signedIn, done, joinHref, action }: { quest: 
                   picked ? "border-brand-500 bg-brand-500/15 text-white" : "border-ink-700 bg-ink-950/50 text-ink-100 hover:border-brand-500/70 hover:bg-ink-900",
                 )}
               >
-                <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full border text-xs font-bold", picked ? "border-brand-500 bg-brand-500 text-ink-950" : "border-ink-600 text-ink-400")}>
+                <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full border text-xs font-semibold", picked ? "border-brand-500 bg-brand-500 text-ink-950" : "border-ink-600 text-ink-400")}>
                   {picked ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : String.fromCharCode(65 + i)}
                 </span>
                 {o}

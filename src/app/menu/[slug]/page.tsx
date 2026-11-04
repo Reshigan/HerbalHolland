@@ -216,7 +216,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
           <span className="flex shrink-0 items-center gap-[1.8vmin]">
             <BoardRuntime slug={store.slug} />
             <span className="flex items-center gap-[0.6vmin] font-semibold text-ink-200">
-              <span className="rounded-full border-2 border-brand-500 px-[0.6vmin] text-[1.4vmin] font-bold text-brand-500">18+</span> Adults only
+              <span className="rounded-full border-2 border-brand-500 px-[0.6vmin] text-[1.4vmin] font-semibold text-brand-500">18+</span> Adults only
             </span>
           </span>
         </footer>
@@ -273,7 +273,7 @@ function EventSlide({ e, url }: { e: EventCard; url: string }) {
         <div className="flex w-[20vmin] shrink-0 flex-col items-center overflow-hidden rounded-[2.4vmin] border border-ink-700 bg-ink-950 text-center">
           <span className="w-full bg-brand-500 py-[0.8vmin] text-[2vmin] font-bold uppercase tracking-[0.2em] text-ink-950">{mon}</span>
           <span className="tnum pt-[1.2vmin] font-display text-[9vmin] font-semibold leading-none text-white">{day}</span>
-          <span className="pb-[1.6vmin] pt-[0.6vmin] text-[2vmin] font-semibold uppercase tracking-wider text-ink-400">{DAY[weekdaySA(e.startsAt)]}</span>
+          <span className="pb-[1.6vmin] pt-[0.6vmin] text-[2vmin] font-semibold text-ink-400">{DAY[weekdaySA(e.startsAt)]}</span>
         </div>
         <div className="min-w-0 flex-1">
           <div className="eyebrow text-[1.8vmin] text-brand-500">Windmill Days · in this store</div>

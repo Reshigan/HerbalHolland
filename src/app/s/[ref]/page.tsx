@@ -51,7 +51,7 @@ export default async function SharePage({ params, searchParams }: Props) {
                 <>
                   <p className="mt-2 font-display text-[1.7rem] font-semibold leading-[1.02] tracking-tight text-white sm:mt-4 sm:text-5xl">{card.headline}</p>
                   <p className="mt-1 text-xs text-ink-300 sm:mt-2 sm:text-lg">{card.saved ? "with Herbal Holland Rewards" : "of Herbal Holland Rewards"}</p>
-                  <span className={cn("mt-3 inline-block rounded-full px-2.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider sm:mt-5 sm:text-xs", style.chip)}>{card.tierName}</span>
+                  <span className={cn("mt-3 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold sm:mt-5 sm:text-xs", style.chip)}>{card.tierName}</span>
                 </>
               ) : (
                 <p className="mt-2 font-display text-[1.7rem] font-semibold leading-[1.02] tracking-tight text-white sm:mt-4 sm:text-5xl">

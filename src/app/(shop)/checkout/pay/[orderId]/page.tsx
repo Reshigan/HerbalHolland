@@ -42,7 +42,7 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
           <span className="flex items-center gap-2 text-sm font-semibold text-white">
             <Lock className="h-4 w-4 text-leaf-500" /> Secure payment
           </span>
-          <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[0.68rem] font-bold uppercase tracking-wider text-sky-50">{name ?? "Simulated gateway"}</span>
+          <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs font-semibold text-sky-50">{name ?? "Simulated gateway"}</span>
         </div>
         <div className="p-6 sm:p-8">
           <div className="flex items-center gap-3">
@@ -53,7 +53,7 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
             </div>
           </div>
           <div className="mt-6 rounded-2xl bg-ink-950 p-5">
-            <div className="text-xs font-semibold uppercase tracking-wider text-ink-400">Amount due</div>
+            <div className="text-xs font-semibold text-ink-400">Amount due</div>
             <div className="tnum mt-1 font-display text-4xl font-semibold text-white">{zar(due)}</div>
             <ul className="mt-3 space-y-1 text-sm text-ink-400">
               {order.lines.map((l) => (

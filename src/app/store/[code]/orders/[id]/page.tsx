@@ -211,7 +211,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
           {o.fulfilment === "COLLECT" && (
             <div className="rounded-2xl bg-ink-950 p-5 text-white shadow-card">
               <div className="eyebrow text-brand-500">Collection code</div>
-              <div className="mt-1 font-mono text-4xl font-bold tracking-[0.25em]">{o.collectionCode}</div>
+              <div className="mt-1 font-mono text-4xl font-semibold tracking-[0.25em]">{o.collectionCode}</div>
               <p className="mt-2 text-xs text-ink-300">The member shows this code and an ID document (18+) at the counter. Never read it out to them.</p>
             </div>
           )}

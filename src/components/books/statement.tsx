@@ -30,7 +30,7 @@ export function StatementTable({ columns, lines, href, compare, caption, classNa
   className?: string;
 }) {
   const span = columns.length + 1 + (compare ? 1 : 0);
-  const head = "border-b border-ink-150 bg-ink-50 px-4 py-2.5 text-[0.66rem] font-semibold uppercase leading-tight tracking-[0.08em] text-ink-500 first:pl-5 last:pr-5";
+  const head = "border-b border-ink-150 bg-ink-50 px-4 py-2.5 text-xs font-semibold leading-tight text-ink-500 first:pl-5 last:pr-5";
   return (
     <div className={cn("overflow-x-auto print:overflow-visible", className)}>
       <table className="w-full border-collapse text-sm">
@@ -58,7 +58,7 @@ export function StatementTable({ columns, lines, href, compare, caption, classNa
             if (line.kind === "section")
               return (
                 <tr key={line.key}>
-                  <td colSpan={span} className="border-b border-ink-100 bg-ink-50/60 px-5 pb-1.5 pt-4 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-brand-700">
+                  <td colSpan={span} className="border-b border-ink-100 bg-ink-50/60 px-5 pb-1.5 pt-4 text-xs font-semibold text-brand-700">
                     {line.label}
                   </td>
                 </tr>

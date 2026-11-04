@@ -58,7 +58,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
         actions={<RangeTabs path={`${base}/finance`} current={r.preset} />}
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Net sales (ex VAT)" value={zarCompact(pl.revenue)} sub={`${plural(pl.summary.sales, "transaction")}${trade.netCents ? ` · of which trade ${zarCompact(trade.netCents)}` : ""}`} className="col-span-2 lg:col-span-1" />
         <Stat label="Gross profit" value={zarCompact(pl.grossProfit)} sub={`${pct(pl.marginPct)} gross margin`} />
         <Stat label="Operating expenses" value={zarCompact(pl.opex)} sub="ex VAT, as captured" />
@@ -88,14 +88,14 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
             <Line label="Cost of sales (FIFO)" value={`−${zar(pl.cogs)}`} />
             <div className="my-1 border-t border-ink-100" />
             <Line label="Gross profit" value={<>{zar(pl.grossProfit)} <span className="ml-2 text-xs font-normal text-ink-500">{pct(pl.marginPct)}</span></>} strong />
-            <div className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">Operating expenses</div>
+            <div className="mt-3 text-xs font-semibold text-ink-500">Operating expenses</div>
             {pl.expenses.length === 0 && <Line label={<span className="pl-4 text-ink-500">No expenses captured</span>} value="—" muted />}
             {pl.expenses
               .sort((a, b) => b.exVatCents - a.exVatCents)
               .map((e) => (
                 <Line key={e.category} label={<span className="pl-4">{EXPENSE_LABEL[e.category] ?? e.category}</span>} value={`−${zar(e.exVatCents)}`} />
               ))}
-            <div className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">Franchise fees</div>
+            <div className="mt-3 text-xs font-semibold text-ink-500">Franchise fees</div>
             <Line label={<span className="pl-4">Royalty ({store.royaltyBps / 100}% of net sales)</span>} value={`−${zar(pl.fees.royalty)}`} />
             <Line label={<span className="pl-4">Marketing fund levy ({store.levyBps / 100}%)</span>} value={`−${zar(pl.fees.levy)}`} />
             <Line label={<span className="pl-4">E-commerce commission ({store.ecomBps / 100}% of online)</span>} value={`−${zar(pl.fees.ecom)}`} />
@@ -111,7 +111,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
             {vendor ? (
               <>
                 <Line label="Output tax on sales" value={zar(vat.output)} />
-                <div className="mt-2 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">Input tax</div>
+                <div className="mt-2 text-xs font-semibold text-ink-500">Input tax</div>
                 <Line label={<span className="pl-4">Stock received</span>} value={`−${zar(vat.stockInput)}`} />
                 <Line label={<span className="pl-4">Expenses (claimable)</span>} value={`−${zar(vat.expenseInput)}`} />
                 <Line label={<span className="pl-4">Franchise fees</span>} value={`−${zar(vat.feeInput)}`} />
@@ -155,7 +155,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">
+                <tr className="text-xs font-semibold text-ink-500">
                   <th className="py-2 text-left">Month</th>
                   <th className="py-2 text-right">Net sales</th>
                   <th className="py-2 text-right">Gross margin</th>

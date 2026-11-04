@@ -15,6 +15,8 @@ import { Mark } from "@/components/brand/logo";
 import { fmtPoints, tierInfo } from "@/lib/loyalty-rules";
 import { fmtDate, num } from "@/lib/format";
 import { safePath } from "@/lib/safe-path";
+import { displayPhone } from "@/lib/sa";
+import { partnerArrival, partnerOffers } from "@/server/partners";
 
 export const metadata: Metadata = {
   title: { absolute: "Join Herbal Holland Rewards" },
@@ -22,7 +24,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-type SP = { ref?: string; store?: string; next?: string; src?: string };
+type SP = { ref?: string; store?: string; next?: string; src?: string; partner?: string; t?: string };
 
 export default async function JoinPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -49,9 +51,11 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
       </Container>
     );
 
-  const [referrer, qrStore] = await Promise.all([
+  const arrival = await partnerArrival(sp.partner, sp.t);
+  const [referrer, qrStore, shareOffers] = await Promise.all([
     sp.ref ? db.customer.findUnique({ where: { referralCode: sp.ref.trim().toUpperCase() }, select: { firstName: true, referralCode: true } }) : null,
     sp.store ? stores.find((s) => s.code === sp.store?.toUpperCase()) ?? null : null,
+    partnerOffers(arrival?.partner.id),
   ]);
   const home = qrStore ?? preferred;
 
@@ -61,7 +65,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
         <div className="lg:pt-6">
           <Mark className="h-14 w-14 text-brand-500" />
           <h1 className="mt-6 font-display text-5xl font-semibold leading-[1] tracking-tight text-white">
-            {referrer ? `${referrer.firstName} invited you` : places?.full ? "Become a First Year Member." : pre ? "Become a Founding Member." : "Join in a minute."}
+            {arrival ? `Welcome from ${arrival.partner.name}` : referrer ? `${referrer.firstName} invited you` : places?.full ? "Become a First Year Member." : pre ? "Become a Founding Member." : "Join in a minute."}
           </h1>
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-ink-300">
             {pre && places
@@ -104,6 +108,9 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             referral={referrer ? { code: referrer.referralCode, name: referrer.firstName } : null}
             src={sp.src}
             consentWording={CONSENT_WORDING}
+            partner={arrival ? { slug: arrival.partner.slug, name: arrival.partner.name, token: arrival.member ? sp.t : undefined } : null}
+            defaultPhone={arrival?.member ? displayPhone(arrival.member.phone) : undefined}
+            shareOffers={shareOffers}
             title="Your mobile number"
             intro="Already a member? We'll sign you straight in."
           />

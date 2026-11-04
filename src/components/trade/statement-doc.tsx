@@ -76,22 +76,22 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
 
       <div className="grid grid-cols-3 gap-3 rounded-2xl bg-ink-50 p-4 ring-1 ring-ink-100 print:bg-transparent print:ring-ink-200">
         <div>
-          <div className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-ink-500">Opening balance</div>
+          <div className="text-xs font-semibold text-ink-500">Opening balance</div>
           <div className="tnum mt-1 font-display text-xl font-semibold text-ink-950" data-testid="st-opening">{zar(st.opening)}</div>
         </div>
         <div>
-          <div className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-ink-500">Closing balance</div>
+          <div className="text-xs font-semibold text-ink-500">Closing balance</div>
           <div className={cn("tnum mt-1 font-display text-xl font-semibold", owing ? "text-ink-950" : "text-leaf-700")} data-testid="st-closing">{zar(st.closing)}</div>
         </div>
         <div>
-          <div className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-ink-500">Past due</div>
+          <div className="text-xs font-semibold text-ink-500">Past due</div>
           <div className={cn("tnum mt-1 font-display text-xl font-semibold", st.ageing.overdue > 0 ? "text-rose-600" : "text-ink-950")}>{zar(st.ageing.overdue)}</div>
         </div>
       </div>
 
       <table className="mt-6 w-full border-collapse text-sm">
         <thead>
-          <tr className="border-y border-ink-200 text-left text-[0.68rem] uppercase tracking-[0.12em] text-ink-500">
+          <tr className="border-y border-ink-200 text-left text-xs text-ink-500">
             <th scope="col" className="py-2.5 pr-3 font-semibold">Date</th>
             <th scope="col" className="py-2.5 px-3 font-semibold">Entry</th>
             <th scope="col" className="py-2.5 px-3 text-right font-semibold">Debit</th>

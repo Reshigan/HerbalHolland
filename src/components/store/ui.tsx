@@ -81,7 +81,7 @@ export function Qty({ n, className, unit }: { n: number; className?: string; uni
 
 export function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="no-print mb-3 inline-flex items-center gap-1 text-sm font-medium text-ink-500 hover:text-ink-900">
+    <Link href={href} className="no-print relative mb-3 inline-flex items-center gap-1 text-sm after:absolute after:-inset-x-2 after:-inset-y-3 font-medium text-ink-500 hover:text-ink-900">
       <ChevronLeft className="h-4 w-4" aria-hidden />
       {children}
     </Link>

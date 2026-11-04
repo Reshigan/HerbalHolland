@@ -191,12 +191,11 @@ try {
   ).n;
   if (todayCount === 0) assert(await todayCard.getByText("All clear").isVisible(), "nothing to do: the list says All clear");
   else {
-    const text = await todayCard.innerText();
     const orderRow = todayRows.filter({ hasText: /online orders? to fulfil/ });
     assert((await orderRow.count()) === (openOrders ? 1 : 0), openOrders ? `${openOrders} open online orders → one row (${(await orderRow.innerText()).split("\n")[0]})` : "no open orders → no orders row");
     if (openOrders) assert((await orderRow.getAttribute("href")) === null && (await orderRow.locator("a").getAttribute("href")) === `/store/${CODE}/orders`, "the orders row links to Online orders");
     assert(((await todayRows.filter({ hasText: /HQ updates? to acknowledge/ }).count()) === 1) === pendingAcks > 0, pendingAcks ? `${pendingAcks} HQ updates to acknowledge → one row` : "no updates → no HQ row");
-    const labels = (text.match(/\b(NOW|TODAY|SOON)\b/g) ?? []).map((l) => ["NOW", "TODAY", "SOON"].indexOf(l));
+    const labels = (await todayCard.getByTestId("today-urgency").allInnerTexts()).map((l) => ["Now", "Today", "Soon"].indexOf(l.trim()));
     assert(labels.length === todayCount && labels.every((l, i) => i === 0 || l >= labels[i - 1]), `${todayCount} rows, most urgent first (${labels.map((l) => ["now", "today", "soon"][l]).join(" › ")})`);
   }
   await shot(page, "today-list");

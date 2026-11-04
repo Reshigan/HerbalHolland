@@ -84,7 +84,7 @@ export function ComplianceForm({ action, value, legalReviewed, readOnly }: { act
           <div className="overflow-x-auto rounded-2xl border border-ink-150">
             <table className="w-full min-w-[40rem] text-sm">
               <thead>
-                <tr className="bg-ink-50 text-left text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">
+                <tr className="bg-ink-50 text-left text-xs font-semibold text-ink-500">
                   <th className="px-4 py-2.5">Class</th>
                   {CHANNELS.map((c) => (
                     <th key={c} className="px-3 py-2.5 text-center">{channelLabel(c)}</th>
@@ -153,6 +153,13 @@ export function ComplianceForm({ action, value, legalReviewed, readOnly }: { act
             onChange={(e) => setMembers(e.target.checked)}
             label="Members only"
             description="Every sale needs a registered member who has accepted the membership terms, online and at the till. Walk-ins sign up at the till in about 20 seconds; offline, the till takes the member number from their card and checks it when it reconnects."
+          />
+          <Checkbox
+            name="memberQrAtTill"
+            defaultChecked={value.memberQrAtTill}
+            className="mt-3"
+            label="Scan the member's QR to enable a till sale"
+            description="With Members only on, a till sale can only be charged once the member's Rewards QR has been scanned. Finding a member by name or number doesn't count; a manager can approve a sale without the scan (recorded in the audit log). New members signed up at the till don't need it."
           />
         </div>
 

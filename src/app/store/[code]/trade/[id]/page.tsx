@@ -171,7 +171,7 @@ export default async function StoreTradeOrderPage({ params }: { params: Promise<
           {open && o.collectionCode && (
             <div className="rounded-2xl bg-ink-950 p-5 text-white shadow-card">
               <div className="eyebrow text-brand-500">Collection code</div>
-              <div className="mt-1 font-mono text-4xl font-bold tracking-[0.25em]">{o.collectionCode}</div>
+              <div className="mt-1 font-mono text-4xl font-semibold tracking-[0.25em]">{o.collectionCode}</div>
               <p className="mt-2 text-xs text-ink-300">The buyer gets this by email and text when the order is ready. At handover they give it to you and show an ID document (18+). Never read it out to them.</p>
             </div>
           )}

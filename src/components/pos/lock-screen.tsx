@@ -159,7 +159,7 @@ export function LockScreen({
                       !ok && "opacity-35",
                     )}
                   >
-                    <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-500 font-display text-xl font-bold text-ink-950">{initials(s.name)}</span>
+                    <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-500 font-display text-xl font-semibold text-ink-950">{initials(s.name)}</span>
                     <span>
                       <span className="block font-semibold text-white">{s.name}</span>
                       <span className="mt-0.5 block text-[0.8rem] text-ink-400">{ROLE[s.role] ?? s.role}</span>
@@ -185,7 +185,7 @@ export function LockScreen({
             <button type="button" onClick={() => (setPicked(null), setCode(""), setError(null))} className="mb-6 inline-flex h-12 items-center gap-2 self-start rounded-full px-3 text-sm font-semibold text-ink-300 hover:bg-ink-850">
               <ArrowLeft className="h-4 w-4" /> Not you?
             </button>
-            <span className="grid h-20 w-20 place-items-center rounded-full bg-brand-500 font-display text-2xl font-bold text-ink-950">{initials(picked.name)}</span>
+            <span className="grid h-20 w-20 place-items-center rounded-full bg-brand-500 font-display text-2xl font-semibold text-ink-950">{initials(picked.name)}</span>
             <div className="mt-3 font-display text-2xl font-semibold text-white">{picked.name}</div>
             <div className="mt-1 text-sm text-ink-400">Enter your 4-digit PIN</div>
             <div className={cn("mt-6 flex gap-4", error && "animate-[shake_0.35s]")} aria-live="polite" aria-label={`${pin.length} of 4 digits entered`}>

@@ -292,11 +292,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const badges = (
     <>
       {product.heritage && (
-        <Tag tone="orange" className="bg-ink-950/70 backdrop-blur">
+        <Tag tone="orange" className="bg-ink-950/85">
           Heritage
         </Tag>
       )}
-      {product.line && product.line !== "HERITAGE" && <Tag className="bg-ink-950/70 backdrop-blur">{product.line.charAt(0) + product.line.slice(1).toLowerCase()} line</Tag>}
+      {product.line && product.line !== "HERITAGE" && <Tag className="bg-ink-950/85">{product.line.charAt(0) + product.line.slice(1).toLowerCase()} line</Tag>}
     </>
   );
   const reminderChannels = REMINDER_CHANNELS.map((c) => ({ ...c, disabled: c.key === "EMAIL" && !customer?.email ? "add an email in Settings" : c.key === "PUSH" && !devices ? "turn on app notifications" : undefined }));
@@ -327,25 +327,25 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {potency.map((p) => (
                   <div key={p.label} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-3">
-                    <dt className="text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">{p.label}</dt>
+                    <dt className="text-xs font-semibold text-ink-400">{p.label}</dt>
                     <dd className="tnum mt-1 font-display text-lg font-semibold text-white">{p.value}</dd>
                   </div>
                 ))}
                 {product.strain && product.regClass === "THC" && (
                   <div className="rounded-2xl border border-ink-800 bg-ink-900/60 p-3">
-                    <dt className="text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Type</dt>
+                    <dt className="text-xs font-semibold text-ink-400">Type</dt>
                     <dd className="mt-1 font-display text-lg font-semibold capitalize text-white">{product.strain.toLowerCase()}</dd>
                   </div>
                 )}
                 {product.cbdMgPerPack != null && (
                   <div className="rounded-2xl border border-ink-800 bg-ink-900/60 p-3">
-                    <dt className="text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">CBD per pack</dt>
+                    <dt className="text-xs font-semibold text-ink-400">CBD per pack</dt>
                     <dd className="tnum mt-1 font-display text-lg font-semibold text-white">{product.cbdMgPerPack} mg</dd>
                   </div>
                 )}
                 {tested && batch && (
                   <div className="rounded-2xl border border-ink-800 bg-ink-900/60 p-3">
-                    <dt className="text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Batch</dt>
+                    <dt className="text-xs font-semibold text-ink-400">Batch</dt>
                     <dd className="mt-1 truncate font-display text-lg font-semibold text-white">
                       <a href="#lab" className="hover:text-brand-300">
                         {batch.code}

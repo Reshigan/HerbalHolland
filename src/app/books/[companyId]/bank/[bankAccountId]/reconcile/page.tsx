@@ -158,7 +158,7 @@ export default async function ReconcilePage({ params, searchParams }: { params: 
               ) : (
                 <table className="mt-2 w-full border-collapse text-sm">
                   <thead>
-                    <tr className="border-y border-ink-200 text-left text-[0.68rem] uppercase tracking-[0.12em] text-ink-500">
+                    <tr className="border-y border-ink-200 text-left text-xs text-ink-500">
                       <th className="py-2 pr-3 font-semibold">Date</th>
                       <th className="py-2 pr-3 font-semibold">Journal</th>
                       <th className="py-2 pr-3 font-semibold">What</th>
@@ -204,7 +204,7 @@ export default async function ReconcilePage({ params, searchParams }: { params: 
               ) : (
                 <table className="mt-2 w-full border-collapse text-sm">
                   <thead>
-                    <tr className="border-y border-ink-200 text-left text-[0.68rem] uppercase tracking-[0.12em] text-ink-500">
+                    <tr className="border-y border-ink-200 text-left text-xs text-ink-500">
                       <th className="py-2 pr-3 font-semibold">Date</th>
                       <th className="py-2 pr-3 font-semibold">Line</th>
                       <th className="py-2 pr-3 font-semibold">Why</th>

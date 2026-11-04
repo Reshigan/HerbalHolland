@@ -22,6 +22,7 @@ import type { PickerStore } from "@/components/shop/nav-client";
 import { safePath } from "@/lib/safe-path";
 import { clientIpFrom } from "@/lib/client-ip";
 import { isEmail } from "@/lib/email";
+import { arrivalWording, partnerArrival, recordLink, shareWording } from "@/server/partners";
 
 /** Only same-site relative paths are accepted as post-sign-in destinations. */
 const safeNext = safePath;
@@ -104,6 +105,8 @@ export type AuthState = {
   error?: string;
   fields?: Partial<Record<Field, string>>;
   values?: Record<string, string>;
+  /** Registration opened with details a partner brand sent. */
+  prefilled?: boolean;
 };
 
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
@@ -139,15 +142,21 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
     if (code.length !== 6) return { ...prev, step: "code", error: undefined, fields: { code: "Enter the 6-digit code we sent you" } };
     try {
       const r = await verifyOtp(phone, code);
+      const arrival = await partnerArrival(form.get("partner"), form.get("t"));
       if (r.customer) {
         await startSession("customer", { customerId: r.customer.id }, 24 * 30);
         await db.customer.update({ where: { id: r.customer.id }, data: { lastSeenAt: new Date() } });
         await audit(db, { type: "CUSTOMER", id: r.customer.id, name: r.customer.firstName }, "customer.sign_in", { entity: "Customer", entityId: r.customer.id });
+        if (arrival) await recordLink(r.customer, arrival.partner, "IN", { wording: arrivalWording(arrival.partner.name), externalId: arrival.member?.phone === r.phone ? arrival.member.externalId : undefined });
         if (next) redirect(next);
         return { step: "done" };
       }
       jar.set(SHOP_COOKIE.phone, signPhone(r.phone, 20, Date.now(), r.sentTo), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 20 * 60 });
-      return { step: "register", phone: r.phone, email: r.sentTo ?? undefined, values: r.sentTo ? { email: r.sentTo } : undefined };
+      // A partner's details are released only now, and only to the person who proved the number they were sent for.
+      const m = arrival?.member?.phone === r.phone ? arrival.member : null;
+      const email = r.sentTo ?? m?.email;
+      const values = { ...(m?.firstName && { firstName: m.firstName }), ...(m?.lastName && { lastName: m.lastName }), ...(email && { email }) };
+      return { step: "register", phone: r.phone, email: r.sentTo ?? undefined, values: Object.keys(values).length ? values : undefined, prefilled: !!m };
     } catch (e) {
       if (e instanceof CustomerError) return { ...prev, step: "code", error: undefined, fields: { code: e.message } };
       throw e;
@@ -164,6 +173,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
     // Everything comes back with an error, ticks too: React resets the form after the action, and a lost opt-in goes unnoticed.
     const v = Object.fromEntries(["firstName", "lastName", "email", "idType", "idNumber", "dob", "homeStoreId", "ref", "accept", ...CHANNELS.map((ch) => `consent_${ch}`)].map((k) => [k, String(form.get(k) ?? "").trim()]));
     v.interests = form.getAll("interest").map(String).join(" ");
+    v.share = form.getAll("share").map(String).join(" ");
     const fields: AuthState["fields"] = {};
     if (!v.firstName || v.firstName.length > 60) fields.firstName = "Tell us your first name";
     if (!v.lastName || v.lastName.length > 60) fields.lastName = "Tell us your surname";
@@ -184,6 +194,8 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
     if (Object.keys(fields).length) return { step: "register", phone, fields, values: v };
 
     const referrer = v.ref ? await db.customer.findUnique({ where: { referralCode: v.ref.toUpperCase() }, select: { id: true } }) : null;
+    const arrival = await partnerArrival(form.get("partner"), form.get("t"));
+    let joined: { id: string; firstName: string };
     try {
       const c = await createCustomer(
         {
@@ -197,7 +209,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
           referralCode: referrer ? v.ref : undefined,
           consents: Object.fromEntries(CHANNELS.map((ch) => [ch, form.get(`consent_${ch}`) === "on"])),
           source: referrer ? "REFERRAL" : "WEB",
-          joinedVia: String(form.get("src") ?? ""),
+          joinedVia: arrival ? `partner-${arrival.partner.slug}` : String(form.get("src") ?? ""),
           termsAccepted: form.get("accept") === "on",
           interests: form.getAll("interest").map(String),
           codeSentTo: sentTo,
@@ -208,6 +220,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
       await startSession("customer", { customerId: c.id }, 24 * 30);
       await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "customer.sign_in", { entity: "Customer", entityId: c.id, data: { firstVisit: true } });
       background("welcome email", sendWelcome(c));
+      joined = c;
     } catch (e) {
       const collision = e instanceof CollisionError ? "idNumber" : (e as { code?: string }).code === "P2002" ? "email" : null;
       if (collision && !(await noteCollision(`phone:${phone}`, { type: "CUSTOMER", name: v.firstName }, collision))) return refused();
@@ -219,6 +232,11 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
       }
       throw e;
     }
+    // After the try: its catch reads any unique-key clash as an email collision, and the member exists by now.
+    if (arrival) await recordLink(joined, arrival.partner, "IN", { wording: arrivalWording(arrival.partner.name), externalId: arrival.member?.phone === phone ? arrival.member.externalId : undefined });
+    const shares = await db.partnerBrand.findMany({ where: { id: { in: form.getAll("share").map(String) }, active: true, joinUrl: { not: null } } });
+    for (const p of shares) await recordLink(joined, p, "OUT", { wording: shareWording(p.name) });
+    if (shares.length) redirect("/club/partners");
     // New members land with a welcome message wherever they were heading.
     if (next) {
       const u = new URL(next, "http://local");

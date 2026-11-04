@@ -1,7 +1,9 @@
+"use client";
 // Column chart (one series): ≤24px columns, 4px rounded data-end, hairline grid, hover tips.
 import { ChartFrame } from "./chart-frame";
 import { columnPath, niceTicks } from "./scale";
 import { fmtValue, type ValueFormat } from "./format";
+import { useChartWidth } from "./use-width";
 
 export function ColumnChart({
   data,
@@ -20,15 +22,16 @@ export function ColumnChart({
   labelEvery?: number;
   className?: string;
 }) {
-  const W = 760, H = height, padL = 54, padR = 8, padT = 12, padB = 26;
+  const [ref, W] = useChartWidth();
+  const H = height, padL = 54, padR = 8, padT = 12, padB = 26;
   const { max, ticks } = niceTicks(Math.max(0, ...data.map((d) => d.value)));
   const band = (W - padL - padR) / Math.max(1, data.length);
   const bw = Math.min(24, Math.max(3, band - 2));
   const y = (v: number) => padT + (H - padT - padB) * (1 - v / max);
-  const every = labelEvery ?? Math.ceil(data.length / 8);
+  const every = Math.max(labelEvery ?? 1, Math.ceil(data.length / Math.min(8, Math.floor(W / 64))));
   return (
     <ChartFrame className={className}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Column chart">
+      <svg ref={ref} viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }} role="img" aria-label="Column chart">
         {ticks.map((t) => (
           <g key={t}>
             <line x1={padL} x2={W - padR} y1={y(t)} y2={y(t)} stroke={t === 0 ? "var(--color-ink-200)" : "var(--color-ink-100)"} strokeWidth={1} />

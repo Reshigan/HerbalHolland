@@ -86,7 +86,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         description={`Joined ${fmtDate(c.createdAt)}${c.source ? ` via ${c.source.toLowerCase().replaceAll("_", " ")}` : ""} · ${SEGMENTS[seg].blurb}`}
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Points balance" value={fmtPoints(c.points)} sub={`worth ${zar(c.points * 100)}`} />
         <Stat label="Spend here" value={zar(here.spendCents)} sub={`saved ${zar(here.savedCents)} here with Rewards`} />
         <Stat label="Visits here" value={here.visits.toLocaleString()} sub={here.visits ? `avg ${zar(Math.round(here.spendCents / here.visits))} a visit` : "no purchases here yet"} />

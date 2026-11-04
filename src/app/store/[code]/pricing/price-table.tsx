@@ -42,7 +42,7 @@ export function PriceTable({ rows, minMargin, canManage, save }: {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">
+            <tr className="text-xs font-semibold text-ink-500">
               <th className="border-b border-ink-150 bg-ink-50 px-5 py-2.5 text-left">Item</th>
               <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">RRP</th>
               <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">List price</th>

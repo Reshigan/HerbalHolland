@@ -160,7 +160,7 @@ export default async function VatPage({ params, searchParams }: { params: Promis
                 {v.rows.map((r, i) =>
                   r.style === "section" ? (
                     <tr key={i}>
-                      <td colSpan={4} className="border-b border-ink-100 bg-ink-50/60 px-5 pb-1.5 pt-4 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-brand-700">
+                      <td colSpan={4} className="border-b border-ink-100 bg-ink-50/60 px-5 pb-1.5 pt-4 text-xs font-semibold text-brand-700">
                         {r.line}
                       </td>
                     </tr>

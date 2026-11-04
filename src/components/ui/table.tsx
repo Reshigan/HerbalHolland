@@ -32,7 +32,7 @@ export function Th({ className, align = "left", ...props }: React.ThHTMLAttribut
     <th
       scope="col"
       className={cn(
-        "border-b border-ink-150 bg-ink-50/95 px-4 py-2.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500 backdrop-blur first:pl-5 last:pr-5 [[data-density=compact]_&]:py-2",
+        "border-b border-ink-150 bg-ink-50 px-4 py-2.5 text-xs font-semibold text-ink-500 first:pl-5 last:pr-5 [[data-density=compact]_&]:py-2",
         align === "right" && "tnum",
         ALIGN[align],
         className,
@@ -82,7 +82,7 @@ export function SortableTh({ label, sortKey, sort, dir, href, align = "left", cl
       <Link
         href={href(sortKey, next)}
         title={title}
-        className={cn("group/sort inline-flex items-center gap-1 rounded-md hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40", active && "text-ink-900", align === "right" && "flex-row-reverse")}
+        className={cn("group/sort relative inline-flex items-center gap-1 rounded-md after:absolute after:-inset-x-1 after:-inset-y-3 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40", active && "text-ink-900", align === "right" && "flex-row-reverse")}
       >
         {label}
         {active ? (
@@ -125,7 +125,7 @@ export function TableSkeleton({ rows = 8, cols = 5, className }: { rows?: number
         <thead>
           <tr>
             {Array.from({ length: cols }, (_, i) => (
-              <th key={i} className="border-b border-ink-150 bg-ink-50/95 px-4 py-2.5 first:pl-5 last:pr-5">
+              <th key={i} className="border-b border-ink-150 bg-ink-50 px-4 py-2.5 first:pl-5 last:pr-5">
                 <span className="block h-2.5 w-16 rounded-full bg-ink-150" />
               </th>
             ))}

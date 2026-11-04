@@ -20,6 +20,8 @@ const staticPages = [{ key: "Content-Security-Policy", value: staticCsp() }];
 
 const config: NextConfig = {
   poweredByHeader: false,
+  // Which deploy this is: open apps compare it with /api/version to know they're stale. "dev" off CI, so never stale.
+  env: { NEXT_PUBLIC_BUILD_ID: process.env.GITHUB_SHA ?? "dev" },
   // Banking slips (photos or PDFs up to 10 MB) and members' photos (up to three of 5 MB with a review or a return) are
   // posted through server actions.
   // (experimental.inlineCss was tried and rejected: Next also copies the 130 KB stylesheet into the RSC payload, so the

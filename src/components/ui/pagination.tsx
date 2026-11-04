@@ -8,16 +8,16 @@ export function Pagination({ page, pageSize, total, href }: { page: number; page
   const to = Math.min(total, page * pageSize);
   const btn = (p: number, label: string, disabled: boolean) =>
     disabled ? (
-      <button type="button" disabled className="rounded-lg px-3 py-1.5 text-ink-500 opacity-60">
+      <button type="button" disabled className="inline-flex h-10 items-center rounded-lg px-3 text-ink-500 opacity-60">
         {label}
       </button>
     ) : (
-      <Link href={href(p)} className="rounded-lg px-3 py-1.5 font-medium text-ink-700 hover:bg-ink-100">
+      <Link href={href(p)} className="inline-flex h-10 items-center rounded-lg px-3 font-medium text-ink-700 hover:bg-ink-100">
         {label}
       </Link>
     );
   return (
-    <nav aria-label="Pagination" className={cn("flex items-center justify-between px-5 py-3 text-xs text-ink-500")}>
+    <nav aria-label="Pagination" className={cn("flex items-center justify-between px-5 py-2 text-xs text-ink-500")}>
       <span className="tnum">
         {from.toLocaleString()}–{to.toLocaleString()} of {total.toLocaleString()}
       </span>

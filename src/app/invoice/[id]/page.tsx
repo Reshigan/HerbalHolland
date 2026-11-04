@@ -270,7 +270,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
 
         <table className="inv-lines w-full border-collapse text-sm">
           <thead>
-            <tr className="border-y border-ink-200 text-left text-[0.68rem] uppercase tracking-[0.12em] text-ink-500">
+            <tr className="border-y border-ink-200 text-left text-xs text-ink-500">
               <th className="py-2.5 pr-3 font-semibold">Description</th>
               <th className="py-2.5 px-3 text-right font-semibold">Qty</th>
               {trade ? (
@@ -359,7 +359,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
                 <h2 className="eyebrow text-ink-500">VAT summary</h2>
                 <table className="mt-2 w-full border-collapse text-sm">
                   <thead>
-                    <tr className="text-left text-[0.66rem] uppercase tracking-[0.12em] text-ink-500">
+                    <tr className="text-left text-xs text-ink-500">
                       <th className="py-1 pr-3 font-semibold">Rate</th>
                       <th className="py-1 px-3 text-right font-semibold">Excl. VAT</th>
                       <th className="py-1 px-3 text-right font-semibold">VAT</th>

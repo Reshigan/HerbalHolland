@@ -78,7 +78,7 @@
 
   --shadow-card: 0 1px 0 rgb(20 17 16 / 0.04), 0 1px 3px rgb(20 17 16 / 0.06);
   --shadow-lift: 0 10px 30px -12px rgb(20 17 16 / 0.28);
-  --shadow-glow: 0 0 0 1px rgb(245 145 60 / 0.35), 0 12px 40px -12px rgb(245 145 60 / 0.55);
+  --shadow-float: 0 0 0 1px rgb(255 255 255 / 0.08), 0 12px 32px -16px rgb(0 0 0 / 0.6);
 
   --animate-spin-slow: spin 14s linear infinite;
   --animate-spin-fast: spin 1.1s linear infinite;
@@ -96,6 +96,10 @@
 }
 
 @layer base {
+  /* A grid item may shrink below its content, so truncation works and a long name cannot widen the page. */
+  .grid > * {
+    min-width: 0;
+  }
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -106,6 +110,8 @@
   }
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
+  }
+  h1, h2, h3 {
     letter-spacing: -0.01em;
   }
   ::selection {
@@ -120,9 +126,9 @@
 }
 
 @layer components {
-  /* Overline label used across the brand: small caps, wide tracking, like the logo lock-up. */
+  /* Overline label used across the brand: a short sentence-case line in the display face. */
   .eyebrow {
-    @apply font-display text-[0.7rem] font-semibold uppercase tracking-[0.18em];
+    @apply font-display text-sm font-medium;
   }
   /* The window-poster frame: thick orange border around a black panel. */
   .hh-frame {
@@ -198,7 +204,7 @@
  *                      into view, then rises; with .hh-stagger the children rise one after the other.
  *   .hh-press          a press on buttons and tiles; .hh-lift a hover lift on cards (simple feedback: not gated on
  *                      html.motion, only on the media query).
- *   .hh-draw           the Mark's strokes draw in (the window poster); .hh-glow one pulse of brand light around a frame.
+ *   .hh-draw           the Mark's strokes draw in (the window poster).
  *   .hh-shimmer-once   one diagonal highlight across a card (the Rewards card when it is new); .hh-skeleton a loading
  *                      placeholder with a moving sheen.
  *   Member card        .hh-sheen, the foil over the Rewards card (CardSheen, src/components/shop/card-sheen.tsx, sets
@@ -216,7 +222,6 @@
 @keyframes hh-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes hh-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes hh-draw { to { stroke-dashoffset: 0; } }
-@keyframes hh-glow { 0% { opacity: 0; transform: scale(0.96); } 35% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.04); } }
 @keyframes hh-shimmer { from { transform: translateX(-120%) skewX(-12deg); } to { transform: translateX(120%) skewX(-12deg); } }
 @keyframes hh-sheen-idle { from { transform: translate(-14%, -10%); } to { transform: translate(12%, 12%); } }
 @keyframes hh-foil-idle { from { background-position: 20% 0; } to { background-position: 80% 0; } }
@@ -243,7 +248,6 @@
   html.motion .hh-draw svg path { stroke-dasharray: 260; stroke-dashoffset: 260; animation: hh-draw 1.4s var(--ease-out-expo) 0.1s both; }
   html.motion .hh-draw svg circle { animation: hh-fade var(--dur) ease-out 0.9s both; }
   html.motion .hh-draw > :last-child { animation: hh-rise var(--dur) var(--ease-out-expo) 0.7s both; }
-  html.motion .hh-glow::after { content: ""; position: absolute; inset: -16px; z-index: -1; border-radius: inherit; pointer-events: none; box-shadow: 0 0 80px 18px rgb(245 145 60 / 0.45); opacity: 0; animation: hh-glow 1.6s ease-out 0.4s 1 both; }
 
   html.motion .hh-shimmer-once::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.2) 50%, transparent 62%); transform: translateX(-120%) skewX(-12deg); animation: hh-shimmer 1.2s ease-in-out 0.7s 1 both; }
   .hh-skeleton::after { animation: hh-shimmer 1.4s ease-in-out infinite; }
@@ -267,4 +271,76 @@
 .hh-skeleton { position: relative; overflow: hidden; background: var(--color-ink-900); border-radius: 0.75rem; }
 .hh-skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.06) 50%, transparent 65%); transform: translateX(-120%) skewX(-12deg); }
 @media (prefers-reduced-motion: reduce) {
+}
+
+/*
+ * Insights: the back office's light components on the member app's dark ground. The tokens are remapped instead of the
+ * components restyled, so Card, Stat, the charts and the pagination all follow. Ink turns over; white becomes the card.
+ */
+.hh-insights {
+  color-scheme: dark;
+  --color-white: #171412;
+  --color-ink-50: #0f0c0b;
+  --color-ink-100: #241f1c;
+  --color-ink-150: #2b2522;
+  --color-ink-200: #3a332e;
+  --color-ink-300: #5a5048;
+  --color-ink-400: #8c8077;
+  --color-ink-450: #968a80;
+  --color-ink-500: #b0a59b;
+  --color-ink-600: #cfc6bd;
+  --color-ink-700: #e0d9d2;
+  --color-ink-800: #ece6e0;
+  --color-ink-850: #f2ede8;
+  --color-ink-900: #f7f3ef;
+  --color-ink-950: #fbf7f3;
+  --color-brand-50: #2a1a0e;
+  --color-brand-100: #3a2212;
+  --color-brand-200: #5a3415;
+  --color-brand-600: #f5913c;
+  --color-brand-700: #f9ae6d;
+  --color-brand-800: #fdcba1;
+  --color-leaf-50: #12261a;
+  --color-leaf-100: #183323;
+  --color-leaf-500: #3fb866;
+  --color-leaf-600: #4cc777;
+  --color-leaf-700: #6fd894;
+  --color-rose-50: #2c1514;
+  --color-rose-100: #3d1b1a;
+  --color-rose-500: #ef6a6a;
+  --color-rose-600: #f08585;
+  --color-amber-50: #2b210b;
+  --color-amber-100: #3a2c0e;
+  --color-amber-700: #f2c14e;
+  --color-sky-50: #12202f;
+  --color-sky-500: #5b9de6;
+  --color-sky-700: #7cb4ee;
+  --color-series-4: #8f80e8;
+  --color-series-6: #2fb84a;
+  --shadow-card: none;
+  --heat-0: #241f1c;
+  --heat-1: #3a2212;
+  --heat-2: #5a3415;
+  --heat-3: #7f4817;
+  --heat-4: #a85f1a;
+  --heat-5: #d07a20;
+  --heat-6: #f5913c;
+  --heat-7: #f9ae6d;
+}
+
+/*
+ * A card that rounds off a table clips with overflow: clip, not hidden. Hidden makes the card a scroll container, so the
+ * sticky header measures --hh-sticky-top from the card and sits permanently on top of the first rows below desktop width.
+ */
+.overflow-hidden:has(.hh-table) { overflow: clip; }
+
+/* Text links inside table cells keep their small type but get a finger-sized hit area on touch screens. */
+@media (pointer: coarse) {
+  .hh-table td a:not(:has(> *)) { position: relative; }
+  .hh-table td a:not(:has(> *))::after { content: ""; position: absolute; inset: -0.75rem -0.25rem; }
+}
+
+/* A row of five tiles sits two across below lg; an odd last tile takes the whole row instead of leaving a hole. */
+@media (width < 64rem) {
+  .hh-tiles > :last-child:nth-child(odd) { grid-column: span 2; }
 }

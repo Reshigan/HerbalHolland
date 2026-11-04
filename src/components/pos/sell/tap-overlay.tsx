@@ -65,7 +65,7 @@ export function TapOverlay({
             <span className="absolute inset-0 rounded-full border-2 border-brand-500/60 animate-pulse-ring" />
             <span className="absolute inset-0 rounded-full border-2 border-brand-500/40 animate-pulse-ring [animation-delay:0.55s]" />
             <span className="absolute inset-0 rounded-full border-2 border-brand-500/25 animate-pulse-ring [animation-delay:1.1s]" />
-            <span className="grid h-36 w-36 place-items-center rounded-full bg-brand-500 text-ink-950 shadow-glow">
+            <span className="grid h-36 w-36 place-items-center rounded-full bg-brand-500 text-ink-950 shadow-float">
               <Nfc className="h-16 w-16" strokeWidth={1.7} />
             </span>
           </>

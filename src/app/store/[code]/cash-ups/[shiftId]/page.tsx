@@ -73,7 +73,7 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Opening float" value={zar(shift.openingFloatCents)} />
         <Stat label="Cash taken (net)" value={zar(cash.cashSalesCents)} sub="sales less cash refunds" />
         <Stat label="Expected in drawer" value={zar(expected)} sub="float + cash taken" />

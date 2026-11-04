@@ -41,6 +41,7 @@ export const SaleBody = z
     pointsRedeemed: z.number().int().min(0).optional(),
     payments: z.array(Tender).max(10),
     ageCheck: AgeCheck.optional(),
+    memberScanned: z.boolean().nullish(), // the member's QR was scanned at the till (or a manager approved without it)
     buyer: z.object({ name: z.string().trim().min(1), address: z.string().trim().min(1), vatNumber: z.string().trim().optional() }).nullish(),
     invoiceEmail: z.union([z.literal(""), z.string().trim().email("That email doesn't look right")]).nullish(),
     staffId: z.string().optional(), // who rang it up (offline sales sync later under whoever is signed in)

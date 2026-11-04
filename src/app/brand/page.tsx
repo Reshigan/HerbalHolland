@@ -107,7 +107,7 @@ export default function BrandBook() {
             ))}
           </nav>
         </div>
-        <div className="hh-frame mx-auto flex aspect-[4/5] w-full max-w-md items-center justify-center p-10 shadow-glow">
+        <div className="hh-frame mx-auto flex aspect-[4/5] w-full max-w-md items-center justify-center p-10 shadow-float">
           <Lockup spin className="h-full w-full justify-center text-[2.4rem] sm:text-[3rem] [&>svg]:h-[54%]" />
         </div>
       </header>
@@ -282,7 +282,7 @@ export default function BrandBook() {
               ))}
               <div className="flex items-baseline justify-between gap-4 border-t border-ink-800 pt-4">
                 <dt className="eyebrow text-brand-500">Overline</dt>
-                <dd className="shrink-0 font-mono text-xs text-ink-400">11 · caps · 0.18em</dd>
+                <dd className="shrink-0 font-mono text-xs text-ink-400">14 · sentence case</dd>
               </div>
               <div className="flex items-baseline justify-between gap-4 border-t border-ink-800 pt-4">
                 <dt className="tnum text-white">R1,234.50 · R99.00 · 1,250 pts</dt>

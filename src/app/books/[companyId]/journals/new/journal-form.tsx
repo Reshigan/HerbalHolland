@@ -39,7 +39,7 @@ export function JournalForm({ action, accounts, stores, companies, canPost, appr
   const credits = amounts.reduce((s, a) => s + (a.credit ?? 0), 0);
   const balanced = !bad && debits > 0 && debits === credits;
   const groups = Object.keys(TYPE_LABEL).map((t) => ({ t, list: accounts.filter((a) => a.type === t) })).filter((g) => g.list.length);
-  const cols = stores.length ? "sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1.4fr)_7.5rem_7.5rem_2.5rem]" : "sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_7.5rem_7.5rem_2.5rem]";
+  const cols = stores.length ? "lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1.4fr)_7.5rem_7.5rem_2.5rem]" : "lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_7.5rem_7.5rem_2.5rem]";
 
   return (
     <ActionForm action={action} className="space-y-5" aria-label="New journal">
@@ -56,7 +56,7 @@ export function JournalForm({ action, accounts, stores, companies, canPost, appr
       </div>
 
       <div className="rounded-2xl border border-ink-150">
-        <div className={cn("hidden gap-2 border-b border-ink-150 bg-ink-50/95 px-3 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500 sm:grid", cols)}>
+        <div className={cn("hidden gap-2 border-b border-ink-150 bg-ink-50/95 px-3 py-2 text-xs font-semibold text-ink-500 lg:grid", cols)}>
           <span>Account</span>
           {stores.length > 0 && <span>Store</span>}
           <span>Supplier, account or note</span>
@@ -70,7 +70,7 @@ export function JournalForm({ action, accounts, stores, companies, canPost, appr
             const n = i + 1;
             return (
               <li key={l.key} className={cn("grid grid-cols-2 gap-2 p-3", cols)}>
-                <Select aria-label={`Line ${n}: account`} value={l.account} onChange={(e) => set(l.key, { account: e.target.value, party: byId.get(e.target.value)?.party === acc?.party ? l.party : "" })} wrapperClassName="col-span-2 sm:col-span-1">
+                <Select aria-label={`Line ${n}: account`} value={l.account} onChange={(e) => set(l.key, { account: e.target.value, party: byId.get(e.target.value)?.party === acc?.party ? l.party : "" })} wrapperClassName="col-span-2 lg:col-span-1">
                   <option value="">Choose an account…</option>
                   {groups.map((g) => (
                     <optgroup key={g.t} label={TYPE_LABEL[g.t]}>
@@ -110,7 +110,7 @@ export function JournalForm({ action, accounts, stores, companies, canPost, appr
                 </div>
                 <Input aria-label={`Line ${n}: debit`} inputMode="decimal" value={l.debit} onChange={(e) => set(l.key, { debit: e.target.value, credit: e.target.value.trim() ? "" : l.credit })} placeholder="Debit" className={cn("tnum text-right", amounts[i].debit == null && "border-rose-400")} />
                 <Input aria-label={`Line ${n}: credit`} inputMode="decimal" value={l.credit} onChange={(e) => set(l.key, { credit: e.target.value, debit: e.target.value.trim() ? "" : l.debit })} placeholder="Credit" className={cn("tnum text-right", amounts[i].credit == null && "border-rose-400")} />
-                <Button type="button" variant="ghost" size="icon" className="col-span-2 justify-self-end sm:col-span-1" aria-label={`Remove line ${n}`} title="Remove line" disabled={lines.length <= 2} onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}>
+                <Button type="button" variant="ghost" size="icon" className="col-span-2 justify-self-end lg:col-span-1" aria-label={`Remove line ${n}`} title="Remove line" disabled={lines.length <= 2} onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}>
                   <Trash2 className="h-4 w-4" aria-hidden />
                 </Button>
               </li>

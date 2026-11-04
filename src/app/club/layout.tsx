@@ -1,9 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { getCustomer } from "@/server/auth";
+import { getCustomer, getStaff } from "@/server/auth";
+import { db } from "@/server/db";
+import { INSIGHT_ROLES } from "@/server/insights";
 import { ShopChrome } from "@/components/shop/chrome";
 import { ClubNav } from "@/components/shop/club-client";
 import { Container } from "@/components/shop/ui";
 import { AnalyticsBeacon } from "@/components/shop/analytics-beacon";
+import { appOnly, AppOnlyWall } from "@/components/shop/app-only";
 import { splashStartupImages } from "@/lib/pwa-splash";
 
 export const metadata: Metadata = {
@@ -19,16 +22,19 @@ export const viewport: Viewport = { viewportFit: "cover" };
 
 export default async function ClubLayout({ children }: { children: React.ReactNode }) {
   const customer = await getCustomer();
+  const [staff, linked] = await Promise.all([getStaff(), customer ? db.user.findUnique({ where: { memberId: customer.id }, select: { role: true, active: true } }) : null]);
+  const owner = [staff, linked?.active ? linked : null].some((u) => u && INSIGHT_ROLES.includes(u.role));
   return (
     <ShopChrome>
       {customer && (
         <Container className="pt-6">
-          <ClubNav />
+          <ClubNav owner={owner} />
         </Container>
       )}
       <div className={customer ? "pb-20 app:pb-0 sm:pb-0" : undefined}>
         {children}
       </div>
+      {appOnly() && <AppOnlyWall />}
       <AnalyticsBeacon />
     </ShopChrome>
   );

@@ -143,7 +143,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
       )}
       {take.status === "CANCELLED" && <Notice tone="warn" className="mb-4">This count was cancelled. Nothing was posted to stock.</Notice>}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Lines counted" value={`${sum.counted} / ${sum.lines}`} sub={sum.uncounted ? `${sum.uncounted} left unchanged` : "every line counted"} />
         <Stat label="Net variance (units)" value={<Qty n={sum.netUnits} />} sub={`${sum.overUnits} found · ${sum.shortUnits} missing`} />
         <Stat label="Net variance at cost" value={<span className={sum.netValue < 0 ? "text-rose-600" : sum.netValue > 0 ? "text-leaf-700" : undefined}>{zar(sum.netValue)}</span>} sub="FIFO cost of the lots" />

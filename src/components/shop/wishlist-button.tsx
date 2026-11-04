@@ -12,7 +12,7 @@ export function WishlistButton({ variantId, on: initial, signedIn, next, compact
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const shape = compact
-    ? "grid h-11 w-11 place-items-center rounded-full bg-ink-950/70 text-white backdrop-blur transition hover:bg-ink-950"
+    ? "grid h-11 w-11 place-items-center rounded-full bg-ink-950/85 text-white transition hover:bg-ink-950"
     : "inline-flex h-11 items-center gap-2 rounded-full border border-ink-700 px-4 text-sm font-semibold text-ink-100 transition hover:border-brand-500 hover:text-white";
   if (!signedIn)
     return (

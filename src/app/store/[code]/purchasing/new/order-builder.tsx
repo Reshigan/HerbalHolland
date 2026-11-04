@@ -83,16 +83,16 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">
+              <tr className="text-xs font-semibold text-ink-500">
                 <th className="border-b border-ink-150 bg-ink-50 px-5 py-2.5 text-left">Item</th>
                 <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Available</th>
                 <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">On order</th>
-                <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Reorder · par</th>
-                <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Sold / day</th>
-                <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Forecast</th>
+                <th className="hidden lg:table-cell border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Reorder · par</th>
+                <th className="hidden lg:table-cell border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Sold / day</th>
+                <th className="hidden lg:table-cell border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Forecast</th>
                 <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Cover</th>
                 <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-center">Order qty</th>
-                <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Unit ex VAT</th>
+                <th className="hidden lg:table-cell border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Unit ex VAT</th>
                 <th className="border-b border-ink-150 bg-ink-50 px-5 py-2.5 text-right">Line ex VAT</th>
               </tr>
             </thead>
@@ -111,11 +111,11 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
                     </td>
                     <td className={cn("tnum border-b border-ink-100 px-3 py-2.5 text-right", r.available <= 0 ? "font-semibold text-rose-600" : r.available <= r.reorderPoint ? "font-semibold text-amber-700" : "text-ink-800")}>{r.available}</td>
                     <td className="tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-600">{r.onOrder || "—"}</td>
-                    <td className="tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-500">
+                    <td className="hidden lg:table-cell tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-500">
                       {r.reorderPoint} · {r.parLevel}
                     </td>
-                    <td className="tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-600">{r.avgDaily.toFixed(1)}</td>
-                    <td className="tnum whitespace-nowrap border-b border-ink-100 px-3 py-2.5 text-right text-ink-800" title={r.safetyStock ? `14-day moving average · safety stock ${r.safetyStock}` : "14-day moving average"}>
+                    <td className="hidden lg:table-cell tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-600">{r.avgDaily.toFixed(1)}</td>
+                    <td className="hidden lg:table-cell tnum whitespace-nowrap border-b border-ink-100 px-3 py-2.5 text-right text-ink-800" title={r.safetyStock ? `14-day moving average · safety stock ${r.safetyStock}` : "14-day moving average"}>
                       {r.forecastPerWeek > 0 ? `${r.forecastPerWeek < 10 ? r.forecastPerWeek.toFixed(1) : Math.round(r.forecastPerWeek)}/week` : <span className="text-ink-500">—</span>}
                     </td>
                     <td className={cn("tnum border-b border-ink-100 px-3 py-2.5 text-right", r.cover != null && r.cover < 7 ? "font-semibold text-amber-700" : "text-ink-600")}>{coverText(r.cover)}</td>
@@ -148,7 +148,7 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
                         </button>
                       )}
                     </td>
-                    <td className="tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-600">{zar(r.wholesaleCents)}</td>
+                    <td className="hidden lg:table-cell tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-600">{zar(r.wholesaleCents)}</td>
                     <td className="tnum border-b border-ink-100 px-5 py-2.5 text-right font-medium text-ink-900">{n ? zar(n * r.wholesaleCents) : <span className="text-ink-500">—</span>}</td>
                   </tr>
                 );

@@ -514,10 +514,15 @@ describe("Ledger and the daily jobs", () => {
   it("sends last month's statements on the statement day only, once", async () => {
     const notTheDay = new Date("2026-12-15T06:00:00+02:00");
     expect(await tradeStatements(notTheDay)).toMatchObject({ done: 0, skipped: "not the statement day" });
-    const theDay = new Date("2026-12-01T06:00:00+02:00"); // November's statement (October's went out by hand above)
-    expect(await tradeStatements(theDay)).toMatchObject({ done: 1, failed: 0, month: "2026-11" });
-    expect(await tradeStatements(theDay)).toMatchObject({ done: 0, month: "2026-11" });
-    expect((await lastMailTo(BILLING)).body).toMatch(/statement TA-000001, November 2026/);
+    // Next month's statement, sent on the 1st of the month after: this month's went out by hand above.
+    const [y, m] = dayKey(new Date()).split("-").map(Number);
+    const next = new Date(Date.UTC(y, m, 1));
+    const month = next.toISOString().slice(0, 7);
+    const label = next.toLocaleString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+    const theDay = new Date(Date.UTC(y, m + 1, 1, 4)); // 06:00 in South Africa
+    expect(await tradeStatements(theDay)).toMatchObject({ done: 1, failed: 0, month });
+    expect(await tradeStatements(theDay)).toMatchObject({ done: 0, month });
+    expect((await lastMailTo(BILLING)).body).toMatch(new RegExp(`statement TA-000001, ${label}`));
   });
 
   it("closes the account: buyers are signed out and can't sign in", async () => {

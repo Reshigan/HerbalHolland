@@ -49,13 +49,13 @@ export function SafetyResult({ value }: { value?: string }) {
   const v = (value ?? "").toUpperCase();
   if (v === "PASS")
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-leaf-500/15 px-2.5 py-1 text-xs font-bold text-leaf-100 ring-1 ring-inset ring-leaf-500/40">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-leaf-500/15 px-2.5 py-1 text-xs font-semibold text-leaf-100 ring-1 ring-inset ring-leaf-500/40">
         <CheckCircle2 className="h-3.5 w-3.5" /> PASS
       </span>
     );
   if (v === "FAIL")
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-2.5 py-1 text-xs font-bold text-rose-100 ring-1 ring-inset ring-rose-500/40">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-2.5 py-1 text-xs font-semibold text-rose-100 ring-1 ring-inset ring-rose-500/40">
         <CircleX className="h-3.5 w-3.5" /> FAIL
       </span>
     );

@@ -46,7 +46,7 @@ export function MemberCard({ name, memberNo, tierName, tierIndex, points, foundi
           <Wordmark className="text-[0.7rem]" />
         </span>
         <span className="flex flex-col items-end gap-1">
-          <span className={cn("rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold uppercase tracking-wider", s.chip)}>{tierName}</span>
+          <span className={cn("rounded-full px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-wider", s.chip)}>{tierName}</span>
           {floorUntil && <span className="text-[0.66rem] font-medium text-ink-300">{tierName} until {fmtDate(floorUntil)}</span>}
         </span>
       </div>

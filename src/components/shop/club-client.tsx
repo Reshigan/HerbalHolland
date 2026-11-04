@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
-import { Check, Copy, CreditCard, History, Image as ImageIcon, LifeBuoy, MessageCircle, Package, Receipt, Settings, Share2 } from "lucide-react";
+import { ChartColumn, Check, Copy, CreditCard, History, Image as ImageIcon, LifeBuoy, MessageCircle, Package, Receipt, Settings, Share2, Users } from "lucide-react";
 import { copyText, whatsappUrl } from "./share";
 import { cn } from "@/lib/cn";
 
@@ -14,13 +14,18 @@ const TABS = [
   { href: "/club/support", label: "Help", icon: LifeBuoy },
   { href: "/club/settings", label: "Settings", icon: Settings },
 ];
+// Links only: /insights asks for a staff sign-in of its own.
+const OWNER_TABS = [
+  { href: "/insights/sales", label: "Sales", icon: ChartColumn },
+  { href: "/insights/members", label: "Members", icon: Users },
+];
 
 /**
  * Rewards section nav: tabs on larger screens, an app-style bottom bar on phones. On larger screens one underline
  * slides between the tabs (a 1px bar, moved and stretched with a transform only); until it has been measured, and
  * without html.motion, each tab underlines itself.
  */
-export function ClubNav() {
+export function ClubNav({ owner = false }: { owner?: boolean }) {
   const path = usePathname();
   const bar = useRef<HTMLElement>(null);
   const [slide, setSlide] = useState<string | null>(null);
@@ -37,7 +42,7 @@ export function ClubNav() {
   return (
     <>
       <nav ref={bar} aria-label="Rewards" data-slide={slide ? "" : undefined} className="scrollbar-none group/nav relative -mx-4 hidden gap-1 overflow-x-auto border-b border-ink-850 px-4 app:flex sm:mx-0 sm:flex sm:px-0">
-        {TABS.map((t) => (
+        {(owner ? [...TABS, ...OWNER_TABS] : TABS).map((t) => (
           <Link key={t.href} href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors", active(t.href) ? "border-brand-500 text-white group-data-[slide]/nav:border-transparent" : "border-transparent text-ink-400 hover:text-white")}>
             <t.icon className="h-4 w-4" /> {t.label}
           </Link>
@@ -144,7 +149,7 @@ export function ConsentToggles({ channels, action }: { channels: { key: Channel;
                 }
                 className={cn("relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-40", on ? "bg-brand-500" : "bg-ink-700")}
               >
-                <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all", on ? "left-6" : "left-1")} />
+                <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-[left]", on ? "left-6" : "left-1")} />
               </button>
             </li>
           );

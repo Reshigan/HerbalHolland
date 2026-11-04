@@ -19,6 +19,12 @@ const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 const browser = await chromium.launch().catch(() => chromium.launch({ executablePath: "/opt/pw-browsers/chromium" }));
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 const page = await ctx.newPage();
+// A member's Rewards QR on a keyboard-wedge scanner: a fast burst of keys with nothing focused. A typed number doesn't enable a sale.
+const scanCard = async (memberNo) => {
+  await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined));
+  await page.keyboard.type(memberNo);
+  await page.keyboard.press("Enter");
+};
 page.setDefaultTimeout(45_000);
 const problems = [];
 page.on("pageerror", (e) => problems.push("pageerror: " + e.message));
@@ -82,8 +88,7 @@ try {
   await page.getByRole("button", { name: "Sell" }).first().click();
   await waitOnline();
   const member = (await q(`select c.id, c."memberNo", c."firstName" from "Customer" c where c."ageVerifiedAt" is not null and c."dob" < now() - interval '21 years' order by c."memberNo" limit 1`))[0];
-  await page.getByRole("button", { name: /Find member/ }).first().click();
-  await page.getByLabel("Search members").fill(member.memberNo);
+  await scanCard(member.memberNo);
   await page.getByTestId("customer-card").waitFor();
   await page.getByRole("button", { name: /^Smell-proof Pouch/ }).click();
   await page.waitForTimeout(700);
@@ -114,8 +119,7 @@ try {
   await display.getByTestId("display-idle-message").waitFor();
   await shot("display-idle", display);
   await page.bringToFront();
-  await page.getByRole("button", { name: /Find member/ }).first().click();
-  await page.getByLabel("Search members").fill(member.memberNo);
+  await scanCard(member.memberNo);
   await page.getByTestId("customer-card").waitFor();
   await page.getByRole("button", { name: /^Smell-proof Pouch/ }).click();
   await page.waitForTimeout(900);
@@ -183,8 +187,7 @@ try {
   await page.getByTestId("tour-step").waitFor({ state: "detached" });
   assert(await page.getByTestId("training-outline").isVisible(), "orange outline on");
   await page.waitForSelector("[aria-label=Catalogue]:visible");
-  await page.getByRole("button", { name: /Find member/ }).first().click();
-  await page.getByLabel("Search members").fill(member.memberNo);
+  await scanCard(member.memberNo);
   await page.getByTestId("customer-card").waitFor();
   await page.getByRole("button", { name: /^Smell-proof Pouch/ }).click();
   await page.waitForTimeout(700);
@@ -227,7 +230,6 @@ try {
   await page.getByTestId("quiet-screen").waitFor({ timeout: 15_000 });
   await shot("quiet-hours");
   const quiet = await page.getByTestId("quiet-screen").innerText();
-  // Tile headings are upper-cased by CSS, and innerText reports the rendered text.
   assert(/takings so far/i.test(quiet) && /online orders to hand over/i.test(quiet) && /low stock/i.test(quiet) && /waiting on this till/i.test(quiet) && /next event/i.test(quiet), "dashboard tiles present");
   await page.getByTestId("quiet-takings").getByText(/R[\d,]+\.\d\d/).waitFor({ timeout: 15_000 });
   ok("takings so far loaded from the shift");

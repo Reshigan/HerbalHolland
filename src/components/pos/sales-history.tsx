@@ -211,7 +211,7 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
             ←
           </PosButton>
           <div className="min-w-0 flex-1">
-            <div className="truncate font-mono text-lg font-bold text-white">{r.number}</div>
+            <div className="truncate font-mono text-lg font-semibold text-white">{r.number}</div>
             <div className="truncate text-xs text-ink-400">
               {r.title} · {fmtDateTime(r.createdAt)} · {r.soldBy ? servedBy(r) : (r.staff ?? "—")}
             </div>

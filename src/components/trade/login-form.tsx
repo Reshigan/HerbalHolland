@@ -20,7 +20,7 @@ export function TradeLogin({ next, email: initialEmail }: { next?: string | null
 
   return (
     <div>
-      <ol className="mb-6 flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-wider" aria-label="Progress">
+      <ol className="mb-6 flex items-center gap-2 text-xs font-semibold" aria-label="Progress">
         {["Email", "Code"].map((l, n) => {
           const i = state.step === "email" ? 0 : 1;
           return (

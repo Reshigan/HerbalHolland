@@ -80,7 +80,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
         <div className="eyebrow text-brand-500">Store finder</div>
         <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{trading.length ? `${plural(trading.length, "store")}, one windmill` : `${plural(soon.length, "store")} opening soon`}</h1>
         <p className="mt-3 text-[1.02rem] leading-relaxed text-ink-300">
-          {trading.length ? `${hoursKnown ? `${openNow} open right now. ` : ""}${services}` : "Join Rewards and choose one as your home store: we'll tell you the day its doors open. Each is independently owned and run by a local franchisee."}
+          {trading.length ? `${hoursKnown ? (openNow ? `${openNow} open right now. ` : "All closed right now. ") : ""}${services}` : "Join Rewards and choose one as your home store: we'll tell you the day its doors open. Each is independently owned and run by a local franchisee."}
         </p>
       </div>
 

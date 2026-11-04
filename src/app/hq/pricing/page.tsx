@@ -222,7 +222,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                 )}
               </div>
               <div className="lg:col-span-3">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Every trade list, for this scenario</div>
+                <div className="mb-2 text-xs font-semibold text-ink-500">Every trade list, for this scenario</div>
                 {tradeSim.verdicts.length === 0 ? (
                   <p className="rounded-2xl border border-ink-150 px-4 py-6 text-sm text-ink-500">No trade price lists yet, so every account pays the wholesale price. Create one with the type “Trade”.</p>
                 ) : (
@@ -271,7 +271,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                 {channel === "ONLINE" && <p className="mt-4 text-xs text-ink-400">Online prices are national: store and region lists don&apos;t apply to web orders.</p>}
               </div>
               <div className="lg:col-span-3">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Every price list, for this scenario</div>
+                <div className="mb-2 text-xs font-semibold text-ink-500">Every price list, for this scenario</div>
                 <ul className="divide-y divide-ink-100 rounded-2xl border border-ink-150">
                   {sim.verdicts.map((v) => (
                     <li key={v.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">

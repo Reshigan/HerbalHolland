@@ -17,6 +17,7 @@ export type ComplianceSettings = {
   channels: Record<SellChannel, RegClass[]>;
   tobaccoBillMode: boolean; // B33-2022 in force: related products in-store only (no click & collect or delivery)
   membersOnly: boolean; // every sale needs a registered member (online and at the till)
+  memberQrAtTill: boolean; // ...and at the till, the member's Rewards QR must be scanned to enable the sale
   // Classes that never get promotions, points or commission. Medicines Act s18A covers every medicine, including
   // Schedule 0 complementary medicines (CBD supplements) until counsel says otherwise. Licensed classes are always out.
   noIncentives: RegClass[];
@@ -36,6 +37,7 @@ export const DEFAULT_COMPLIANCE: ComplianceSettings = {
   },
   tobaccoBillMode: false,
   membersOnly: true,
+  memberQrAtTill: true,
   noIncentives: ["CBD"],
 };
 
@@ -59,11 +61,13 @@ export function checkCompliance(input: {
   gramsToday?: number;
   ageCheckedAtCounter?: boolean;
   staffCanDispense?: boolean; // POS only; online orders are dispensed at handover
+  memberScanned?: boolean; // POS only: false = the member was attached without scanning their QR (undefined = not reported)
   settings?: ComplianceSettings;
 }): ComplianceResult {
   const s = input.settings ?? DEFAULT_COMPLIANCE;
   const blocks: string[] = [];
   if (s.membersOnly && !input.customer) blocks.push("Members only: add the member to the sale, or sign them up, first");
+  else if (s.membersOnly && s.memberQrAtTill && input.channel === "POS" && input.memberScanned === false) blocks.push("Members only: scan the member's Rewards QR to enable this sale");
   const allowed = new Set(s.channels[input.channel]);
   const licences = new Set(input.storeLicences ?? []);
 

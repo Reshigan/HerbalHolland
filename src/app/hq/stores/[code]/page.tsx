@@ -88,7 +88,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
       {sp.created && <Notice tone="success" className="mb-6" title="Store created">Set its licences once permits are issued, then add the owner&apos;s back-office sign-in under Franchisee owners. Ranging was copied from the template store.</Notice>}
       <Flash message={sp.m} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Net sales · 30 days" value={zarCompact(c.netCents)} delta={k.deltas.net} deltaLabel="vs prior 30" trend={k.trend.net.slice(-12)} className="col-span-2 lg:col-span-1" />
         <Stat label="Transactions" value={num(c.sales)} delta={k.deltas.tx} deltaLabel="vs prior 30" />
         <Stat label="Average basket" value={c.atvCents ? zar(c.atvCents) : "—"} delta={k.deltas.atv} deltaLabel="vs prior 30" />

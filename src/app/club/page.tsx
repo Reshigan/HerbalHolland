@@ -207,7 +207,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             )}
             <div className="mt-5 grid grid-cols-1 gap-3 border-t border-ink-800 pt-5 sm:grid-cols-2">
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Your perks</h3>
+                <h3 className="text-xs font-semibold text-ink-400">Your perks</h3>
                 <ul className="mt-2 space-y-1.5 text-sm text-ink-100">
                   {tierBenefits(m.tier.key, savings, settings.loyalty.earnPer100).map((p) => (
                     <li key={p} className="flex gap-2">
@@ -223,7 +223,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               </div>
               {m.goal?.mode === "reach" && (
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Unlock at {m.goal.tier.name}</h3>
+                  <h3 className="text-xs font-semibold text-ink-400">Unlock at {m.goal.tier.name}</h3>
                   <ul className="mt-2 space-y-1.5 text-sm text-ink-400">
                     {tierBenefits(m.goal.tier.key, savings, settings.loyalty.earnPer100).map((p) => (
                       <li key={p} className="flex gap-2">

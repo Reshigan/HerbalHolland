@@ -12,6 +12,7 @@ import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
 import { INTERESTS, type InterestKey } from "@/lib/rfm";
 
 type StoreOpt = { id: string; name: string; city: string };
+type ShareOffer = { id: string; name: string; wording: string };
 
 const CHANNELS = [
   { key: "WHATSAPP", label: "WhatsApp" },
@@ -27,6 +28,9 @@ export function PhoneAuth({
   referral,
   src,
   consentWording,
+  partner,
+  defaultPhone,
+  shareOffers,
   title = "Sign in or join",
   intro = "Use your mobile number (no passwords). New here? It takes one short step.",
 }: {
@@ -36,6 +40,11 @@ export function PhoneAuth({
   referral?: { code: string; name: string } | null;
   src?: string;
   consentWording: string;
+  /** The partner brand whose link brought them here; `token` is that partner's sealed member details. */
+  partner?: { slug: string; name: string; token?: string } | null;
+  defaultPhone?: string;
+  /** Partner brands the new member can choose to join too. */
+  shareOffers?: ShareOffer[];
   title?: string;
   intro?: string;
 }) {
@@ -46,6 +55,8 @@ export function PhoneAuth({
     <>
       {next && <input type="hidden" name="next" value={next} />}
       {src && <input type="hidden" name="src" value={src} />}
+      {partner && <input type="hidden" name="partner" value={partner.slug} />}
+      {partner?.token && <input type="hidden" name="t" value={partner.token} />}
       {state.phone && <input type="hidden" name="phone" value={state.phone} />}
     </>
   );
@@ -81,7 +92,7 @@ export function PhoneAuth({
           <FieldRow label="Mobile number" htmlFor="auth-phone" error={state.fields?.phone} hint={viaEmail ? "Your number is your membership; the code goes to your email." : "We'll send a 6-digit code by SMS."}>
             <div className="relative">
               <Smartphone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-              <TextInput id="auth-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel-national" required placeholder="082 123 4567" defaultValue={state.values?.phone} className="pl-11 text-lg tracking-wide" aria-invalid={!!state.fields?.phone} autoFocus={!!state.error || !!state.fields?.phone} />
+              <TextInput id="auth-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel-national" required placeholder="082 123 4567" defaultValue={state.values?.phone ?? defaultPhone} className="pl-11 text-lg tracking-wide" aria-invalid={!!state.fields?.phone} autoFocus={!!state.error || !!state.fields?.phone} />
             </div>
           </FieldRow>
           {viaEmail ? (
@@ -109,7 +120,7 @@ export function PhoneAuth({
       {state.step === "code" && <CodeStep state={state} action={action} pending={pending} hidden={hidden} />}
 
       {state.step === "register" && (
-        <RegisterStep state={state} action={action} pending={pending} hidden={hidden} stores={stores} defaultStoreId={defaultStoreId} referral={referral} consentWording={consentWording} />
+        <RegisterStep state={state} action={action} pending={pending} hidden={hidden} stores={stores} defaultStoreId={defaultStoreId} referral={referral} consentWording={consentWording} partner={partner} shareOffers={shareOffers} />
       )}
     </div>
   );
@@ -118,7 +129,7 @@ export function PhoneAuth({
 function Steps({ step }: { step: AuthState["step"] }) {
   const i = step === "phone" ? 0 : step === "code" ? 1 : 2;
   return (
-    <ol className="mb-6 flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-wider" aria-label="Progress">
+    <ol className="mb-6 flex items-center gap-2 text-xs font-semibold" aria-label="Progress">
       {["Number", "Code", "Details"].map((l, n) => (
         <li key={l} className="flex items-center gap-2">
           <span className={cn("grid h-6 w-6 place-items-center rounded-full text-[0.68rem]", n < i ? "bg-leaf-500 text-ink-950" : n === i ? "bg-brand-500 text-ink-950" : "bg-ink-800 text-ink-400")} aria-current={n === i ? "step" : undefined}>
@@ -236,7 +247,7 @@ function DobPicker({ initial, error }: { initial?: string; error?: string }) {
   );
 }
 
-function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, referral, consentWording }: StepProps & { stores: StoreOpt[]; defaultStoreId?: string | null; referral?: { code: string; name: string } | null; consentWording: string }) {
+function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, referral, consentWording, partner, shareOffers }: StepProps & { stores: StoreOpt[]; defaultStoreId?: string | null; referral?: { code: string; name: string } | null; consentWording: string; partner?: { name: string } | null; shareOffers?: ShareOffer[] }) {
   const v = state.values ?? {};
   const cities = useMemo(() => [...new Set(stores.map((s) => s.city))].sort(), [stores]);
 
@@ -302,6 +313,18 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         </div>
       </fieldset>
 
+      {!!shareOffers?.length && (
+        <fieldset className="rounded-2xl border border-ink-800 bg-ink-900/60 p-4">
+          <legend className="px-1 text-[0.8rem] font-semibold text-ink-200">Partner brands (optional)</legend>
+          {shareOffers.map((o) => (
+            <div key={o.id}>
+              <CheckRow name="share" value={o.id} label={`Also join ${o.name}`} defaultChecked={!!v.share?.split(" ").includes(o.id)} />
+              <p className="mb-2 text-xs leading-relaxed text-ink-400">{o.wording}</p>
+            </div>
+          ))}
+        </fieldset>
+      )}
+
       <div className="rounded-2xl border border-brand-500/30 bg-brand-500/[0.06] p-4" data-testid="key-terms">
         <div className="text-[0.8rem] font-semibold text-white">Before you join: the key membership terms</div>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-ink-300">
@@ -318,6 +341,12 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         <CheckRow name="accept" required defaultChecked={v.accept === "on"} label={<>I&apos;m 18 or older and I accept the <Link href="/legal/terms" target="_blank" className="underline">membership terms</Link> and <Link href="/legal/privacy" target="_blank" className="underline">privacy notice</Link>.</>} />
         {state.fields?.accept && <p className="mt-1 text-xs font-medium text-rose-100" role="alert">{state.fields.accept}</p>}
       </div>
+
+      {partner && (
+        <p className="rounded-xl bg-brand-500/10 px-4 py-3 text-sm text-brand-200">
+          Joining through {partner.name}. We keep a note of that on your membership.{state.prefilled && ` We filled in what ${partner.name} sent. Check it before you join.`}
+        </p>
+      )}
 
       {referral && <p className="rounded-xl bg-brand-500/10 px-4 py-3 text-sm text-brand-200">Invited by {referral.name}. You&apos;ll both get bonus points after your first purchase.</p>}
 

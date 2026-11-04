@@ -21,7 +21,7 @@ export function Sheet({ className, children, ...props }: React.HTMLAttributes<HT
   );
 }
 
-/** Small uppercase label above a block of a document. */
+/** Small label above a block of a document. */
 export function DocLabel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <h2 className={cn("font-display text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-ink-500", className)}>{children}</h2>;
+  return <h2 className={cn("font-display text-xs font-semibold text-ink-500", className)}>{children}</h2>;
 }
