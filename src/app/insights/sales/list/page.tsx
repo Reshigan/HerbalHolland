@@ -2,7 +2,7 @@ import { db } from "@/server/db";
 import { insightsContext } from "@/server/insights";
 import { CHANNEL_LABEL, CHANNELS } from "@/server/finance";
 import { resolveRange } from "@/lib/ranges";
-import { fmtDateTime } from "@/lib/format";
+import { fmtDay, fmtTime } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { Card } from "@/components/ui/card";
 import { Pagination, pageParam } from "@/components/ui/pagination";
@@ -35,7 +35,7 @@ export default async function SalesList({ searchParams }: { searchParams: Promis
         {sales.length ? (
           <ul>
             {sales.map((s) => (
-              <Row key={s.id} href={insightHref(`/insights/sales/${s.id}`, sp)} title={s.customer ? memberName(s.customer) : "Walk-in"} sub={`${s.kind === "SALE" ? "" : "Refund · "}${s.store.name} · ${fmtDateTime(s.createdAt)}`} value={zar(s.totalCents)} valueSub={s.number} />
+              <Row key={s.id} href={insightHref(`/insights/sales/${s.id}`, sp)} title={s.customer ? memberName(s.customer) : "Walk-in"} sub={`${s.kind === "SALE" ? "" : "Refund · "}${fmtDay(s.createdAt)} ${fmtTime(s.createdAt)} · ${s.store.name}`} value={zar(s.totalCents)} valueSub={s.number} />
             ))}
           </ul>
         ) : (

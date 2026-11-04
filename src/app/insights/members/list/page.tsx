@@ -53,7 +53,7 @@ export default async function MemberList({ searchParams }: { searchParams: Promi
         {members.length ? (
           <ul>
             {members.map((c) => (
-              <Row key={c.id} href={insightHref(`/insights/members/${c.id}`, base)} title={memberName(c)} sub={<span className="inline-flex items-center gap-2"><TierBadge tier={c.tier} />{c.lastPurchaseAt ? `Last bought ${fmtDate(c.lastPurchaseAt)}` : "No purchase yet"}</span>} value={zar(c.lifetimeCents)} valueSub={`${c.visits.toLocaleString("en-ZA")} visits`} />
+              <Row key={c.id} href={insightHref(`/insights/members/${c.id}`, base)} title={memberName(c)} sub={<span className="inline-flex items-center gap-2"><TierBadge tier={c.tier} />{c.lastPurchaseAt ? `Bought ${fmtDate(c.lastPurchaseAt)}` : "No purchase yet"}</span>} value={zar(c.lifetimeCents)} valueSub={`${c.visits.toLocaleString("en-ZA")} visits`} />
             ))}
           </ul>
         ) : (

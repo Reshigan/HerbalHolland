@@ -96,6 +96,10 @@
 }
 
 @layer base {
+  /* A grid item may shrink below its content, so truncation works and a long name cannot widen the page. */
+  .grid > * {
+    min-width: 0;
+  }
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

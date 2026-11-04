@@ -54,7 +54,7 @@ export function InsightsShell({ tab, path, ctx, sp, r, keep, title, back, childr
       </header>
       <main className="mx-auto max-w-6xl space-y-4 px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+2rem)] sm:px-6">
         {back && (
-          <Link href={back.href} className="-ml-1 inline-flex h-8 items-center gap-1 text-sm font-medium text-ink-500 hover:text-ink-900">
+          <Link href={back.href} className="-my-1 -ml-1 inline-flex h-10 items-center gap-1 text-sm font-medium text-ink-500 hover:text-ink-900">
             <ChevronLeft className="h-4 w-4" aria-hidden /> {back.label}
           </Link>
         )}

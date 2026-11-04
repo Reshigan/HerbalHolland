@@ -27,7 +27,7 @@ export function Stat({ label, value, delta, deltaLabel = "vs previous period", u
         {delta != null && Number.isFinite(delta) && (
           <span className={cn("inline-flex items-center gap-0.5 font-semibold", good ? "text-leaf-600" : "text-rose-600")}>
             <span aria-hidden>{delta >= 0 ? "▲" : "▼"}</span>
-            {Math.abs(delta * 100).toFixed(1)}%
+            {Math.abs(delta) >= 10 ? ">999" : Math.abs(delta * 100).toFixed(1)}%
             <span className="sr-only">{good ? "(good)" : "(needs attention)"}</span>
           </span>
         )}
