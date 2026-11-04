@@ -1,5 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
+import { redirect } from "next/navigation";
 import { PushSub } from "@/lib/push-sub";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
@@ -9,6 +10,8 @@ import { savePushSubscription, vapidPublicKey } from "@/server/push";
 import type { MsgChannel } from "@/generated/prisma/client";
 import { HOME_STORE_STATUSES } from "@/server/shop/context";
 import { isEmail } from "@/lib/email";
+import { sealMember } from "@/lib/partner-token";
+import { partnerKey, recordLink, shareWording } from "@/server/partners";
 
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
 
@@ -93,4 +96,26 @@ export async function setPersonalisedOffers(on: boolean): Promise<{ error?: stri
   await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "customer.personalised_offers", { entity: "Customer", entityId: c.id, data: { on: !!on } });
   refresh();
   return {};
+}
+
+/** The member's own tap: records what they agreed to and carries them to the partner's join page, details sealed. */
+export async function shareWithPartner(partnerId: string) {
+  const c = await getCustomer();
+  if (!c) redirect("/club/join?next=/club/partners");
+  const p = await db.partnerBrand.findFirst({ where: { id: partnerId, active: true, joinUrl: { not: null } } });
+  if (!p?.joinUrl) return refresh();
+  await recordLink(c, p, "OUT", { wording: shareWording(p.name) });
+  const token = sealMember({ firstName: c.firstName, lastName: c.lastName ?? undefined, phone: c.phone, email: c.email ?? undefined, externalId: c.memberNo }, partnerKey(p), Math.floor(Date.now() / 1000) + 3600);
+  const url = new URL(p.joinUrl);
+  url.searchParams.set("t", token);
+  redirect(url.toString());
+}
+
+/** Stops future sharing. What the partner already has stays with them, and the page says so. */
+export async function stopSharing(partnerId: string) {
+  const c = await getCustomer();
+  if (!c) redirect("/club/join?next=/club/partners");
+  const r = await db.partnerLink.updateMany({ where: { customerId: c.id, partnerId, direction: "OUT", revokedAt: null }, data: { revokedAt: new Date() } });
+  if (r.count) await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "partner.revoke", { entity: "PartnerBrand", entityId: partnerId });
+  refresh();
 }

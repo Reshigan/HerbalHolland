@@ -642,12 +642,49 @@ model Customer {
   rsvps         Rsvp[]
   dropWatches   DropWatch[]
   quests        QuestCompletion[]
+  partnerLinks  PartnerLink[]
 
   @@index([homeStoreId])
   @@index([lastPurchaseAt])
   @@index([tier])
   @@index([referredById])
   @@index([createdAt])
+}
+
+enum PartnerDirection {
+  IN
+  OUT
+}
+
+// A brand whose members can join us, and ours theirs, one member at a time with that member's agreement.
+// `agreement` is the reference of the signed data sharing agreement. Keys are derived, never stored.
+model PartnerBrand {
+  id         String        @id @default(cuid())
+  slug       String        @unique
+  name       String
+  joinUrl    String?
+  agreement  String
+  keyVersion Int           @default(1)
+  active     Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  links      PartnerLink[]
+}
+
+// One member's link with a partner: IN = came to us through them, OUT = agreed to share with them.
+model PartnerLink {
+  id         String           @id @default(cuid())
+  customerId String
+  customer   Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  partnerId  String
+  partner    PartnerBrand     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  direction  PartnerDirection
+  externalId String?
+  wording    String
+  createdAt  DateTime         @default(now())
+  revokedAt  DateTime?
+
+  @@unique([customerId, partnerId, direction])
+  @@index([partnerId])
 }
 
 enum LoyaltyKind {

@@ -261,7 +261,8 @@ Vantax (Pty) Ltd if online). See the acceptable-use note in INTEGRATIONS.md. Don
 
 Open apps update themselves, with nothing to install. Each build carries its commit (`NEXT_PUBLIC_BUILD_ID`) and
 `/api/version` says which is live; apps check every five minutes, on coming back into view and on reconnecting. Members
-and back-office staff reload on their next page change. Menu boards and the customer display reload straight away. A
+and back-office staff reload when they come back to the app, unless they're at checkout or have a form part-filled, and
+otherwise on their next page change. Menu boards and the customer display reload straight away. A
 till reloads only when it's locked or idle with no sale open, because a reload asks for the PIN again. An APK change
 (`android/**`) still needs the till's update bar; web changes reach tills without it.
 
@@ -766,6 +767,32 @@ localStorage (`hh-visitor`). No cookies, no personal details, no link to a membe
 ignored, so it isn't member data under POPIA (not in the export or erasure). Rows are deleted after 400 days by the
 daily job (`pageViews`). HQ → Analytics shows visitors, web vs app, installs, sources, top pages and joins by source;
 tag links and QR codes with `?src=` to see them there.
+
+## Partner brands (HQ → Partners)
+
+Partners are brands whose members can join Herbal Holland, and whose programmes our members can join. Members cross over one at a time, by their own choice. Never import a partner's member list: their customers gave that consent to the partner, not to us, and POPIA section 69 needs consent for direct marketing. Nothing is live until HQ adds a partner, and adding one needs the signed data-sharing agreement reference.
+
+**A partner with no developers (a barber shop).** Add the partner, then print the QR code or share the join link (`/club/join?partner=<link name>`). People who join through it are tagged to the partner. They still confirm their mobile number, date of birth and terms, and their marketing choices start unticked.
+
+**A partner with developers.** Give them the key (Show key; the reveal is audited) over a secure channel. They add `&t=<token>` to the join link to prefill the member's details. A partner's record never proves age. Name and email are shown only after the member confirms the mobile number by OTP, and only if that number matches the token. Existing members who sign in through the link get the partner tag too.
+
+Token format: AES-256-GCM with the 32-byte key, encoded as base64url of `iv (12 bytes) | ciphertext | tag (16 bytes)`. The plaintext is JSON with `phone` (required), `firstName`, `lastName`, `email`, `externalId` and `exp` (Unix seconds, at most 7 days ahead).
+
+```js
+const { createCipheriv, randomBytes } = require("node:crypto");
+function seal(member, keyHex, exp) {
+  const iv = randomBytes(12);
+  const c = createCipheriv("aes-256-gcm", Buffer.from(keyHex, "hex"), iv);
+  const body = Buffer.concat([c.update(JSON.stringify({ ...member, exp }), "utf8"), c.final(), c.getAuthTag()]);
+  return Buffer.concat([iv, body]).toString("base64url");
+}
+```
+
+**Going the other way.** Set the partner's join page. Members see the partner at sign-up and on Rewards → Settings → Partner brands. When a member agrees, they go to that page with `?t=<token>` in the same format, valid for one hour, carrying name, mobile, email and member number (as `externalId`). Date of birth, ID number, purchases and patient information are never sent. There's no server-to-server push: the partner reads the token when the member arrives.
+
+**Keys.** A partner's key is derived from `SESSION_SECRET`, the link name and the key version, so no key is stored. Rotate key changes it in both directions at once. Changing `SESSION_SECRET` changes every partner key, so tell partners before rotating it. Plain join links and printed QR codes don't use the key and keep working.
+
+**Stopping and erasure.** A member can stop sharing at any time, which ends future sharing. It doesn't reach what the partner already holds: the agreement must cover deletion on request. Pausing a partner stops new tags and hides it from members. A member's data export lists their partner links, and erasure removes them.
 
 ## Store-opening checklist (HQ → Stores → store)
 

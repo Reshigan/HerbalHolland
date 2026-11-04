@@ -5,6 +5,7 @@ import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { vapidPublicKey } from "@/server/push";
 import { signOut } from "@/server/shop/actions";
+import { partnerOffers } from "@/server/partners";
 import { consentTrail } from "@/server/shop/club";
 import { getFranchisor, getRetailStores, homeStoreOptions } from "@/server/shop/context";
 import { disablePush, enablePush, setChannelConsent, setPersonalisedOffers } from "../actions";
@@ -27,7 +28,7 @@ const AGE: Record<string, string> = { ID_NUMBER: "SA ID number checked", ID_SIGH
 export default async function ClubSettings() {
   const customer = await getCustomer();
   if (!customer) redirect("/club/join?next=/club/settings");
-  const [trail, stores, company, devices] = await Promise.all([consentTrail(customer.id), getRetailStores(), getFranchisor(), db.pushSubscription.count({ where: { customerId: customer.id } })]);
+  const [trail, stores, company, devices, offers] = await Promise.all([consentTrail(customer.id), getRetailStores(), getFranchisor(), db.pushSubscription.count({ where: { customerId: customer.id } }), partnerOffers()]);
   const privacyEmail = contactEmailOf(company);
   const note = (ch: string, on: boolean) => {
     const e = trail.get(ch);
@@ -111,6 +112,16 @@ export default async function ClubSettings() {
               </>
             )}
           </Panel>
+
+          {offers.length > 0 && (
+            <Panel className="p-5">
+              <h2 className="font-display text-lg font-semibold text-white">Partner brands</h2>
+              <p className="mt-2 text-sm text-ink-400">Join {offers.map((o) => o.name).join(", ")} with your details, or stop sharing them.</p>
+              <Link href="/club/partners" className={buttonClass("outline-dark", "md", "mt-4")}>
+                Manage partner brands
+              </Link>
+            </Panel>
+          )}
 
           <Panel className="p-5 text-sm leading-relaxed text-ink-400">
             <h2 className="font-display text-lg font-semibold text-white">Your data</h2>

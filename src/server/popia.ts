@@ -68,6 +68,7 @@ export async function memberExport(customerId: string) {
       rsvps: { select: { createdAt: true, checkedInAt: true, event: { select: { title: true, startsAt: true } } } },
       dropWatches: { select: { createdAt: true, drop: { select: { name: true } } } },
       quests: { select: { key: true, createdAt: true } },
+      partnerLinks: { select: { direction: true, externalId: true, wording: true, createdAt: true, revokedAt: true, partner: { select: { name: true } } } },
     },
   });
   if (!c) return null;
@@ -153,6 +154,7 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     await t.dropWatch.deleteMany({ where: { customerId } });
     await t.pushSubscription.deleteMany({ where: { customerId } });
     await t.questCompletion.deleteMany({ where: { customerId } });
+    await t.partnerLink.deleteMany({ where: { customerId } });
     await t.memberOffer.deleteMany({ where: { customerId, redeemedAt: null } }); // a used deal stays with the sale it discounted
     await t.rsvp.deleteMany({ where: { customerId, event: { endsAt: { gt: now } } } }); // their tickets; past attendance stays
     await t.user.updateMany({ where: { memberId: customerId }, data: { memberId: null } }); // a staff member's own card
