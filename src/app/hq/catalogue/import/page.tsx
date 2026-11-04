@@ -169,7 +169,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
         </Notice>
       ))}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="mb-6 hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="New" value={num(c.create)} sub={plural(c.productsNew, "new product")} />
         <Stat label="Updates" value={num(c.update)} sub={plural(c.prices, "price change")} />
         <Stat label="Unchanged" value={num(c.unchanged)} />

@@ -100,7 +100,7 @@ export default async function InventoryPage({ params, searchParams }: { params: 
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Stock value at cost" value={zarCompact(value)} sub={`${plural(units, "unit")} on hand`} className="col-span-2 lg:col-span-1" />
         <Stat label="Out of stock" value={out.toLocaleString()} sub="ranged SKUs, nothing to sell" />
         <Stat label="At or below reorder point" value={low.toLocaleString()} sub={low || out ? <Link href={`/store/${store.code}/purchasing/new`} className="font-semibold text-brand-700 hover:underline">Build an order →</Link> : "all above reorder"} />

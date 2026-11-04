@@ -58,7 +58,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
         actions={<RangeTabs path={`${base}/finance`} current={r.preset} />}
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Net sales (ex VAT)" value={zarCompact(pl.revenue)} sub={`${plural(pl.summary.sales, "transaction")}${trade.netCents ? ` · of which trade ${zarCompact(trade.netCents)}` : ""}`} className="col-span-2 lg:col-span-1" />
         <Stat label="Gross profit" value={zarCompact(pl.grossProfit)} sub={`${pct(pl.marginPct)} gross margin`} />
         <Stat label="Operating expenses" value={zarCompact(pl.opex)} sub="ex VAT, as captured" />

@@ -66,7 +66,7 @@ export default async function BooksOverview({ params }: { params: Promise<{ comp
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Bank and cash" value={zarCompact(f.cash)} sub="in the bank and the tills" className="col-span-2 lg:col-span-1" />
         <Stat label="Owed to us" value={zarCompact(f.owedToUs)} sub={company.kind === "FRANCHISOR" ? "trade debtors and franchisees" : "by Herbal Holland"} />
         <Stat label="We owe" value={zarCompact(f.owedByUs)} sub={company.kind === "FRANCHISOR" ? "suppliers, vouchers, points and more" : "suppliers, Herbal Holland and more"} />

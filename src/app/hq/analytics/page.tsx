@@ -53,7 +53,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         description={`Visitors, installs and joins on the shop and the Rewards app · ${fmtDate(r.start)} – ${fmtDate(addDays(r.end, -1))}`}
         actions={<RangeTabs path="/hq/analytics" current={r.preset} />}
       />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Visitors" value={num(a.visitors)} sub={`${num(a.visits)} visits`} />
         <Stat label="Page views" value={num(a.views)} sub={a.visits ? `${(a.views / a.visits).toFixed(1)} a visit` : undefined} />
         <Stat label="In the app" value={a.visitors ? pct(a.appVisitors / a.visitors, 0) : "–"} sub={`${num(a.appVisitors)} visitors opened the installed app`} />

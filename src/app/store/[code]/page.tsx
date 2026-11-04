@@ -120,7 +120,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
 
       {/* Owners, area managers and HQ: the money first. */}
       {!manager && cash && open && (
-        <section aria-label="Today" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <section aria-label="Today" className="mb-6 hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
           <Stat label={company ? "Takings today · all stores" : "Takings today"} value={zar(takings.cur.grossCents)} delta={takingsDelta} deltaLabel="vs same day last week" sub={[takingsDelta == null ? `${takings.cur.sales} sale${takings.cur.sales === 1 ? "" : "s"} so far` : null, takings.tradeCents ? `of which trade ${zar(takings.tradeCents)}` : null].filter(Boolean).join(" · ") || undefined} />
           <Stat
             label="Gross margin"
@@ -180,7 +180,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
         </Link>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Net sales (ex VAT)" value={zarCompact(c.netCents)} delta={k.deltas.net} trend={k.trend.net.slice(-12)} sub={k.trade ? `of which trade ${zarCompact(k.trade)}` : undefined} className="col-span-2 lg:col-span-1" />
         <Stat label="Transactions" value={c.sales.toLocaleString()} delta={k.deltas.tx} />
         <Stat label="Average basket" value={zar(c.atvCents)} delta={k.deltas.atv} />
