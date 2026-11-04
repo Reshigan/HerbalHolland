@@ -256,7 +256,7 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
             </ul>
             <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-ink-800 sm:block">
               <table className="w-full min-w-[36rem] text-sm">
-                <thead className="text-left text-[0.68rem] uppercase tracking-[0.12em] text-ink-400">
+                <thead className="text-left text-xs text-ink-400">
                   <tr className="border-b border-ink-800">
                     <th scope="col" className="px-4 py-3 font-semibold">Line</th>
                     <th scope="col" className="px-4 py-3 text-right font-semibold">Qty</th>

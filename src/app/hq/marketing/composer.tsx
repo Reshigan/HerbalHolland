@@ -278,7 +278,7 @@ export function Composer({
           <div className="eyebrow mb-3 text-brand-500">Preview</div>
           {push ? (
             <div className="rounded-2xl bg-white/95 p-3 text-ink-900 shadow-lift">
-              <div className="flex items-center gap-2 text-[0.68rem] font-medium uppercase tracking-wide text-ink-500">
+              <div className="flex items-center gap-2 text-xs font-medium text-ink-500">
                 <span className="grid h-5 w-5 place-items-center rounded-md bg-ink-950 text-brand-500">
                   <Mark className="h-4 w-4" detail={false} />
                 </span>

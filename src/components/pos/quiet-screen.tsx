@@ -156,7 +156,7 @@ function Tile({ icon, title, children, testId, className, onOpen }: { icon: Reac
     >
       <div className="mb-3 flex items-center gap-2 text-ink-300">
         <span className="text-brand-400">{icon}</span>
-        <h2 className="text-sm font-semibold uppercase tracking-[0.12em]">{title}</h2>
+        <h2 className="text-sm font-semibold">{title}</h2>
       </div>
       {children}
     </section>

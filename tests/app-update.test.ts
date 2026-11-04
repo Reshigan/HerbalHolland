@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isUnattended, needsReload } from "@/lib/app-update";
+import { isUnattended, needsReload, reloadsOnResume } from "@/lib/app-update";
 import { appOnlyExempt } from "@/lib/install";
 
 describe("auto-update", () => {
@@ -16,11 +16,16 @@ describe("auto-update", () => {
     expect(isUnattended("/pos")).toBe(false);
     expect(isUnattended("/menus")).toBe(false);
   });
+  it("updates members on coming back to the app, but never at checkout", () => {
+    expect(reloadsOnResume("/club")).toBe(true);
+    expect(reloadsOnResume("/shop")).toBe(true);
+    expect(reloadsOnResume("/checkout")).toBe(false);
+  });
 });
 
 describe("app only", () => {
   it("leaves open what a browser must reach, and walls the rest", () => {
-    for (const p of ["/go", "/club/join", "/legal/terms", "/batch/B123", "/orders/HH123"]) expect(appOnlyExempt(p)).toBe(true);
+    for (const p of ["/go", "/club/join", "/club/partners", "/legal/terms", "/batch/B123", "/orders/HH123"]) expect(appOnlyExempt(p)).toBe(true);
     for (const p of ["/", "/shop", "/club", "/club/orders", "/checkout", "/gopher"]) expect(appOnlyExempt(p)).toBe(false);
   });
 });

@@ -49,7 +49,7 @@ export function AdminShell({
     <div className="flex h-full flex-col">
       <Link href={area === "hq" ? "/hq" : area === "books" ? (home ?? "/books") : `/store/${store?.code}`} className="mb-4 flex items-center justify-between px-2">
         <Logo />
-        <span className="rounded-full border border-brand-500/40 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-brand-400">{area === "hq" ? "HQ" : area === "books" ? "Books" : "Store"}</span>
+        <span className="rounded-full border border-brand-500/40 px-2 py-0.5 text-xs font-semibold text-brand-400">{area === "hq" ? "HQ" : area === "books" ? "Books" : "Store"}</span>
       </Link>
       <PaletteButton className="mb-5" />
       {store && (

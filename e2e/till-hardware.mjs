@@ -230,7 +230,6 @@ try {
   await page.getByTestId("quiet-screen").waitFor({ timeout: 15_000 });
   await shot("quiet-hours");
   const quiet = await page.getByTestId("quiet-screen").innerText();
-  // Tile headings are upper-cased by CSS, and innerText reports the rendered text.
   assert(/takings so far/i.test(quiet) && /online orders to hand over/i.test(quiet) && /low stock/i.test(quiet) && /waiting on this till/i.test(quiet) && /next event/i.test(quiet), "dashboard tiles present");
   await page.getByTestId("quiet-takings").getByText(/R[\d,]+\.\d\d/).waitFor({ timeout: 15_000 });
   ok("takings so far loaded from the shift");

@@ -102,7 +102,7 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
       </button>
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-ink-950/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className="absolute inset-0 bg-ink-950/70" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 left-0 w-72 overflow-y-auto bg-ink-950 p-4 shadow-lift">
             <button onClick={() => setOpen(false)} className="mb-3 ml-auto grid h-9 w-9 place-items-center rounded-xl text-ink-300 hover:bg-ink-800" aria-label="Close menu">
               <X className="h-5 w-5" />

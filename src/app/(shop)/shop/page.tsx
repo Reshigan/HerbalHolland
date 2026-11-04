@@ -219,12 +219,12 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               <div className="grid grid-cols-2 content-start gap-3 text-sm">
                 <dl className="contents">
                 <div className="rounded-2xl border border-ink-800 bg-ink-950/60 p-4">
-                  <dt className="text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Products</dt>
+                  <dt className="text-xs font-semibold text-ink-400">Products</dt>
                   <dd className="tnum mt-1 font-display text-2xl font-semibold text-white">{catCount}</dd>
                 </div>
                 {prices.length > 0 && (
                   <div className="rounded-2xl border border-ink-800 bg-ink-950/60 p-4">
-                    <dt className="text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Prices</dt>
+                    <dt className="text-xs font-semibold text-ink-400">Prices</dt>
                     <dd className="tnum mt-1 font-display text-2xl font-semibold text-white">
                       {zarWhole(Math.min(...prices))}
                       {prices.length > 1 && Math.min(...prices) !== Math.max(...prices) ? ` – ${zarWhole(Math.max(...prices))}` : ""}
@@ -232,7 +232,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                   </div>
                 )}
                 <div className="rounded-2xl border border-ink-800 bg-ink-950/60 p-4">
-                  <dt className="text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Collect</dt>
+                  <dt className="text-xs font-semibold text-ink-400">Collect</dt>
                   <dd className="mt-1 flex items-center gap-1.5 font-display text-lg font-semibold text-white">
                     <Store className="h-4 w-4 text-brand-500" /> {footprint.trading} stores
                   </dd>
@@ -242,7 +242,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                   <Link href={`/learn/${article.slug}`} className="group col-span-2 flex items-center gap-3 rounded-2xl border border-ink-800 bg-ink-950/60 p-4 transition hover:border-brand-500/60 sm:col-span-1">
                     <BookOpen className="h-5 w-5 shrink-0 text-brand-500" />
                     <span className="min-w-0">
-                      <span className="block text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Read first</span>
+                      <span className="block text-xs font-semibold text-ink-400">Read first</span>
                       <span className="block truncate font-semibold text-white group-hover:text-brand-200">{article.title}</span>
                     </span>
                     <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-ink-400 transition group-hover:translate-x-0.5 group-hover:text-brand-300" />
@@ -303,7 +303,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     return (
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2" aria-label="Mood">
-          <span className="self-center pr-1 text-xs font-semibold uppercase tracking-wider text-ink-450">Mood</span>
+          <span className="self-center pr-1 text-xs font-semibold text-ink-450">Mood</span>
           {res.moods.map((m) => (
             <Chip key={m.key} href={href({ mood: query.mood === m.key ? undefined : m.key, page: undefined })} active={query.mood === m.key}>
               {cap(m.key)}

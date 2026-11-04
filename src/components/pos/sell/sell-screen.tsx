@@ -779,7 +779,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
             >
               <span className="relative">
                 <ShoppingBag className="h-6 w-6 text-ink-200" />
-                {units > 0 && <span className="tnum absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-[0.65rem] font-bold text-ink-950">{units}</span>}
+                {units > 0 && <span className="tnum absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-[0.65rem] font-semibold text-ink-950">{units}</span>}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-white">

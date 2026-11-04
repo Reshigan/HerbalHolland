@@ -198,7 +198,7 @@ export default async function TradeLanding() {
         <ol className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {HOW.steps.map((s) => (
             <li key={s.n} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-6">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-brand-500 font-display text-base font-bold text-ink-950" aria-hidden>
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-brand-500 font-display text-base font-semibold text-ink-950" aria-hidden>
                 {s.n}
               </span>
               <h3 className="mt-5 font-display text-xl font-semibold text-white">{s.title}</h3>

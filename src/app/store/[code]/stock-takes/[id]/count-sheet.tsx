@@ -262,7 +262,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
       <div className="mt-4 overflow-x-auto rounded-2xl border border-ink-150 bg-white shadow-card">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="text-left text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">
+            <tr className="text-left text-xs font-semibold text-ink-500">
               <th className="border-b border-ink-150 bg-ink-50 px-4 py-2.5 sm:px-5">Item</th>
               <th className="hidden border-b border-ink-150 bg-ink-50 px-4 py-2.5 sm:table-cell">Batch</th>
               {!blind && <th className="hidden border-b border-ink-150 bg-ink-50 px-4 py-2.5 text-right sm:table-cell">Expected</th>}
@@ -281,7 +281,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
                 <Fragment key={l.id}>
                   {header && (
                     <tr>
-                      <td colSpan={blind ? 3 : 5} className="border-b border-ink-100 bg-ink-50/60 px-5 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-ink-500">
+                      <td colSpan={blind ? 3 : 5} className="border-b border-ink-100 bg-ink-50/60 px-5 py-1.5 text-xs font-semibold text-ink-500">
                         {l.category}
                       </td>
                     </tr>

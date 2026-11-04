@@ -349,7 +349,7 @@ function Attention({ href, n, label, danger }: { href: string; n: number; label:
   return (
     <Link href={href} className="flex items-center justify-between gap-3 rounded-xl border border-ink-150 px-3 py-2.5 transition hover:border-brand-300 hover:bg-brand-50">
       <span className="text-ink-700">{label}</span>
-      <span className={`tnum shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${n ? (danger ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-700") : "bg-leaf-50 text-leaf-700"}`}>{n}</span>
+      <span className={`tnum shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${n ? (danger ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-700") : "bg-leaf-50 text-leaf-700"}`}>{n}</span>
     </Link>
   );
 }

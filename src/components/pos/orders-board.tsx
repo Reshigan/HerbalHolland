@@ -137,7 +137,7 @@ export function OrdersBoard() {
         <button type="button" onClick={() => (setOpen(o), setAction(null))} className="block w-full px-4 pt-4 text-left">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <div className="font-mono text-base font-bold tracking-wide text-white">{o.code}</div>
+              <div className="font-mono text-base font-semibold tracking-wide text-white">{o.code}</div>
               <div className="mt-0.5 text-sm text-ink-300">{o.customer.name}</div>
             </div>
             {o.trade && (o.status === "PLACED" || o.status === "PICKING") ? (
@@ -225,7 +225,7 @@ export function OrdersBoard() {
           <section key={c.key} className={cn("flex min-h-0 flex-col rounded-3xl bg-ink-950 lg:bg-ink-900/40 lg:p-2 lg:ring-1 lg:ring-ink-850", col !== c.key && "hidden lg:flex")} aria-label={`${c.label} orders`}>
             <h2 className="hidden items-center justify-between px-2 pb-2 pt-1 lg:flex">
               <span className="eyebrow text-[0.65rem] text-ink-300">{c.label}</span>
-              <span className="tnum rounded-full bg-ink-800 px-2 text-xs font-bold text-ink-200">{grouped[c.key].length}</span>
+              <span className="tnum rounded-full bg-ink-800 px-2 text-xs font-semibold text-ink-200">{grouped[c.key].length}</span>
             </h2>
             <ul className="grid min-h-0 flex-1 content-start gap-2 overflow-y-auto overscroll-contain sm:grid-cols-2 lg:grid-cols-1">
               {grouped[c.key].map(card)}

@@ -51,7 +51,7 @@ export async function TradeChrome({ children }: { children: React.ReactNode }) {
                   <Link href="/trade/cart" className="relative flex h-11 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3" aria-label={`Cart, ${lines} ${lines === 1 ? "line" : "lines"}`}>
                     <ShoppingCart className="h-[22px] w-[22px]" strokeWidth={1.8} aria-hidden />
                     <span className="hidden sm:inline">Cart</span>
-                    {lines > 0 && <span className="tnum absolute right-0 top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-[0.68rem] font-bold text-ink-950 sm:static sm:h-6 sm:min-w-6">{lines}</span>}
+                    {lines > 0 && <span className="tnum absolute right-0 top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-[0.68rem] font-semibold text-ink-950 sm:static sm:h-6 sm:min-w-6">{lines}</span>}
                   </Link>
                   <form action={signOutAction}>
                     <button className="flex h-11 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3">
@@ -106,7 +106,7 @@ export async function TradeChrome({ children }: { children: React.ReactNode }) {
           <div className="border-t border-ink-850">
             <Container className="flex flex-col gap-4 py-6 text-xs leading-relaxed text-ink-400 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-brand-500 font-display text-[0.7rem] font-bold text-brand-500">18+</span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-brand-500 font-display text-[0.7rem] font-semibold text-brand-500">18+</span>
                 <p className="max-w-2xl">{FOOTER.adults} Licensed medicines are never traded. Nothing on this site is medical advice.</p>
               </div>
               <p className="md:max-w-sm md:text-right">

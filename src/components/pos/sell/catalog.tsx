@@ -173,13 +173,13 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
                         <ProductArt slug={p.slug} strain={p.strain} regClass={p.regClass} className="h-full w-full transition duration-300 group-hover:scale-105" label="" />
                         <div className="absolute left-2 top-2 flex flex-wrap gap-1">
                           {licensed && (
-                            <Chip tone="orange" className="bg-ink-950/80 backdrop-blur" icon={<Pill className="h-3 w-3" />}>
+                            <Chip tone="orange" className="bg-ink-950/85" icon={<Pill className="h-3 w-3" />}>
                               Licensed
                             </Chip>
                           )}
-                          {drop && <DropChip drop={drop} className="bg-ink-950/80 backdrop-blur" />}
-                          {markdown && <Chip tone="amber" className="bg-ink-950/80 backdrop-blur">Markdown</Chip>}
-                          {deal && !licensed && <Chip tone="green" className="bg-ink-950/80 backdrop-blur">Deal</Chip>}
+                          {drop && <DropChip drop={drop} className="bg-ink-950/85" />}
+                          {markdown && <Chip tone="amber" className="bg-ink-950/85">Markdown</Chip>}
+                          {deal && !licensed && <Chip tone="green" className="bg-ink-950/85">Deal</Chip>}
                         </div>
                       </div>
                       <div className="flex flex-1 flex-col gap-1.5 p-3">

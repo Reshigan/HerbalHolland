@@ -161,7 +161,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
                       {CHANNEL_ICON[m.channel]}
                       {CHANNEL_LABEL[m.channel]}
                     </span>
-                    <span className="block text-[0.68rem] uppercase tracking-wide text-ink-500">{m.kind.toLowerCase()}</span>
+                    <span className="block text-xs text-ink-500">{m.kind.toLowerCase()}</span>
                   </Td>
                   <Td className="font-mono text-xs text-ink-700">{maskRecipient(m.to)}</Td>
                   <Td className="whitespace-nowrap">

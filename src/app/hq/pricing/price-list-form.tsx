@@ -53,7 +53,7 @@ export function PriceListForm({
           <Card>
             <CardHeader title={trade ? "Prices ex VAT" : "Prices"} description={trade ? "Trade prices are ex VAT: what the account pays per unit before VAT is added per line. Add a row with a minimum quantity above 1 for a quantity break." : "Item prices are VAT-inclusive. Add a row with a minimum quantity above 1 for a quantity break."} />
             <CardBody className="space-y-2">
-              <div className="hidden grid-cols-[1fr_8rem_6rem_2.5rem] gap-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-ink-500 sm:grid">
+              <div className="hidden grid-cols-[1fr_8rem_6rem_2.5rem] gap-2 px-1 text-xs font-semibold text-ink-500 sm:grid">
                 <span>Item</span>
                 <span>{trade ? "Price ex VAT" : "Price"}</span>
                 <span>Min qty</span>

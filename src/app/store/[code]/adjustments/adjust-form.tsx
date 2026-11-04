@@ -174,7 +174,7 @@ export function AdjustForm({ items, action, initialVariant, initialBatch, initia
                 ))}
               </div>
             ) : (
-              <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full font-display text-lg font-bold", dir === "OUT" ? "bg-rose-50 text-rose-600" : "bg-leaf-50 text-leaf-700")} aria-hidden>
+              <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full font-display text-lg font-semibold", dir === "OUT" ? "bg-rose-50 text-rose-600" : "bg-leaf-50 text-leaf-700")} aria-hidden>
                 {dir === "OUT" ? "−" : "+"}
               </span>
             )}

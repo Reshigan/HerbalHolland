@@ -177,7 +177,7 @@ export default async function Home() {
           </div>
           )}
           <div className="order-1 lg:order-2">
-            <div className="hh-bead-frame hh-glow relative mx-auto flex aspect-[4/5] w-full max-w-[15rem] items-center justify-center p-6 shadow-glow sm:max-w-sm sm:p-10 lg:max-w-md">
+            <div className="hh-bead-frame relative mx-auto flex aspect-[4/5] w-full max-w-[15rem] items-center justify-center p-6 shadow-glow sm:max-w-sm sm:p-10 lg:max-w-md">
               <Lockup spin className="hh-draw h-full w-full justify-center text-[1.6rem] sm:text-[2.6rem] lg:text-[3rem] [&>svg]:h-[54%]" />
             </div>
           </div>
@@ -371,7 +371,7 @@ export default async function Home() {
 
       {/* ── Heritage story ────────────────────────────────────────── */}
       <Suspense>
-      <section className="mt-24 border-y border-ink-850 bg-[radial-gradient(ellipse_at_top_left,rgb(245_145_60/0.08),transparent_60%)]">
+      <section className="mt-24 border-y border-ink-850">
         <Container className="grid grid-cols-1 gap-12 py-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-20">
           <div>
             <div className="eyebrow text-brand-500">Our heritage</div>
@@ -396,7 +396,7 @@ export default async function Home() {
                 <li key={l.name} className="relative overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/70 p-5">
                   <span className="tnum font-display text-sm font-semibold text-brand-500">0{i + 1}</span>
                   <h3 className="mt-2 font-display text-xl font-semibold text-white">{l.name}</h3>
-                  <p className="text-xs font-medium uppercase tracking-wider text-ink-400">{l.origin}</p>
+                  <p className="text-xs font-medium text-ink-400">{l.origin}</p>
                   <p className="mt-3 text-sm leading-relaxed text-ink-300">{l.note}</p>
                 </li>
               ))}
@@ -448,7 +448,7 @@ export default async function Home() {
                 <li key={t.key} className={`rounded-2xl border p-4 ${i === TIERS.length - 1 ? "border-brand-500/60 bg-brand-500/10" : "border-ink-800 bg-ink-950/60"}`}>
                   <div className="flex items-center justify-between">
                     <span className="font-display text-lg font-semibold text-white">{t.name}</span>
-                    <span className="tnum text-xs font-bold text-brand-400">{loyalty.tierSavingsPct[t.key]}% off</span>
+                    <span className="tnum text-xs font-semibold text-brand-400">{loyalty.tierSavingsPct[t.key]}% off</span>
                   </div>
                   <p className="mt-1 text-xs text-ink-400">{t.minCents ? `From ${zarWhole(t.minCents)} a year` : "When you join"}</p>
                   <p className="mt-3 text-xs leading-snug text-ink-200">{t.perks[0]}</p>

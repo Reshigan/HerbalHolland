@@ -36,7 +36,7 @@ export function Countdown({ to, variant = "inline", label, fallback, className }
         {cells.map(([v, l]) => (
           <span key={l} className="flex min-w-[3.6rem] flex-col items-center rounded-2xl border border-ink-700 bg-ink-950/70 px-2 py-2.5 sm:min-w-[4.2rem]">
             <span className="tnum font-display text-2xl font-semibold leading-none text-white sm:text-3xl" aria-hidden>{v}</span>
-            <span className="mt-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-ink-400" aria-hidden>{l}</span>
+            <span className="mt-1.5 text-xs font-semibold text-ink-400" aria-hidden>{l}</span>
           </span>
         ))}
       </div>

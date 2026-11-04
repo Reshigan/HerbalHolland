@@ -74,7 +74,7 @@ export default async function TrialBalancePage({ params, searchParams }: { param
             )}
             {groups.map((g) => [
               <tr key={g.type}>
-                <td colSpan={5} className="border-b border-ink-100 bg-ink-50/60 px-5 pb-1.5 pt-4 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-brand-700">
+                <td colSpan={5} className="border-b border-ink-100 bg-ink-50/60 px-5 pb-1.5 pt-4 text-xs font-semibold text-brand-700">
                   {g.label}
                 </td>
               </tr>,

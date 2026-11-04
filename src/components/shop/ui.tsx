@@ -34,7 +34,7 @@ const TAG: Record<TagTone, string> = {
   red: "bg-rose-500/15 text-rose-100 ring-rose-500/40",
   neutral: "bg-ink-800 text-ink-200 ring-ink-700",
   violet: "bg-series-4/30 text-ink-100 ring-series-4/60",
-  solid: "bg-ink-950/85 text-brand-300 ring-brand-500/60 backdrop-blur",
+  solid: "bg-ink-950/85 text-brand-300 ring-brand-500/60",
 };
 export function Tag({ tone = "neutral", icon, className, children }: { tone?: TagTone; icon?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
@@ -89,7 +89,7 @@ export function Meter({ value, max, className, label }: { value: number; max: nu
   const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
   return (
     <div className={cn("h-2 w-full overflow-hidden rounded-full bg-ink-800", className)} role="meter" aria-valuenow={Math.round(value)} aria-valuemin={0} aria-valuemax={Math.round(max)} aria-label={label}>
-      <div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400 transition-[width] duration-700" style={{ width: `${pct * 100}%` }} />
+      <div className="h-full rounded-full bg-brand-500 transition-[width] duration-700" style={{ width: `${pct * 100}%` }} />
     </div>
   );
 }

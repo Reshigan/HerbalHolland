@@ -16,7 +16,7 @@ export function WaitlistCard({ w, cap, firstYear, referUrl, shareText, firstName
   const v = waitlistView(w, cap);
   const pos = Math.min(100, Math.max(0, v.marker * 100));
   return (
-    <Panel id="founding" className="scroll-mt-28 border-brand-500/40 bg-gradient-to-br from-brand-500/[0.09] via-ink-900/80 to-ink-900/80 p-5 sm:p-6">
+    <Panel id="founding" className="scroll-mt-28 border-brand-500/40 bg-ink-900 p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="eyebrow text-brand-500">Your place on the list</div>
@@ -32,12 +32,12 @@ export function WaitlistCard({ w, cap, firstYear, referUrl, shareText, firstName
 
       <div className="mt-7" aria-hidden>
         <div className="relative h-3 overflow-hidden rounded-full bg-ink-800">
-          <div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400" style={{ width: `${v.zone * 100}%` }} />
+          <div className="h-full rounded-full bg-brand-500" style={{ width: `${v.zone * 100}%` }} />
         </div>
         <div className="relative mt-1 h-9">
           <span className="absolute top-0 flex flex-col items-center" style={{ left: `${pos}%`, transform: `translateX(${pos < 8 ? "0" : pos > 92 ? "-100%" : "-50%"})` }}>
             <span className={cn("h-0 w-0 border-x-[6px] border-b-[7px] border-x-transparent border-b-white", pos < 8 ? "self-start" : pos > 92 ? "self-end" : "")} />
-            <span className="mt-0.5 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[0.68rem] font-bold text-ink-950">You · #{num(w.place)}</span>
+            <span className="mt-0.5 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[0.68rem] font-semibold text-ink-950">You · #{num(w.place)}</span>
           </span>
         </div>
         <div className="flex justify-between text-[0.7rem] text-ink-450">
@@ -69,7 +69,7 @@ export function WaitlistCard({ w, cap, firstYear, referUrl, shareText, firstName
 export function WelcomeGiftBanner({ gift, where = "card", canBuy = true, className }: { gift: WelcomeGift; where?: "card" | "bag"; canBuy?: boolean; className?: string }) {
   const what = gift.name.replace(/^welcome gift:\s*/i, "");
   return (
-    <div className={cn("flex flex-col gap-4 rounded-2xl border border-brand-500/40 bg-gradient-to-r from-brand-500/[0.14] to-brand-500/[0.03] p-4 sm:flex-row sm:items-center", className)}>
+    <div className={cn("flex flex-col gap-4 rounded-2xl border border-brand-500/40 bg-ink-900 p-4 sm:flex-row sm:items-center", className)}>
       <div className="flex min-w-0 flex-1 items-center gap-4">
         {gift.product ? (
           <ProductArt slug={gift.product.slug} strain={gift.product.strain} regClass={gift.product.regClass} label={gift.product.name} className="h-14 w-14 shrink-0 rounded-xl" />

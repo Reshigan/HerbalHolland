@@ -17,7 +17,7 @@ export function TrainingBanner() {
   if (!pos.training) return null;
   return (
     <div className="flex shrink-0 items-center justify-between gap-3 bg-brand-500 px-4 py-1.5 text-ink-950" role="status" data-testid="training-banner">
-      <span className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-[0.14em]">
+      <span className="flex items-center gap-2 font-display text-sm font-semibold">
         <GraduationCap className="h-4 w-4" /> {TRAINING_BANNER}
       </span>
       <span className="flex items-center gap-1">

@@ -32,7 +32,7 @@ export function RecentSearches({ current, className }: { current: string; classN
   if (!shown.length) return null;
   return (
     <div className={className} data-testid="recent-searches">
-      <span className="mr-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-ink-450">
+      <span className="mr-1 inline-flex items-center gap-1 text-xs font-semibold text-ink-450">
         <History className="h-3.5 w-3.5" aria-hidden /> Recent
       </span>
       {shown.map((s) => (

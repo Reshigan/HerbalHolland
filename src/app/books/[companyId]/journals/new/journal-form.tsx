@@ -56,7 +56,7 @@ export function JournalForm({ action, accounts, stores, companies, canPost, appr
       </div>
 
       <div className="rounded-2xl border border-ink-150">
-        <div className={cn("hidden gap-2 border-b border-ink-150 bg-ink-50/95 px-3 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500 sm:grid", cols)}>
+        <div className={cn("hidden gap-2 border-b border-ink-150 bg-ink-50/95 px-3 py-2 text-xs font-semibold text-ink-500 sm:grid", cols)}>
           <span>Account</span>
           {stores.length > 0 && <span>Store</span>}
           <span>Supplier, account or note</span>

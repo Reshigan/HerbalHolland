@@ -77,7 +77,7 @@ export default async function StoreTradeOrdersPage({ params, searchParams }: { p
                 return (
                   <Tr key={o.id} href={`${path}/${o.id}`}>
                     <Td>
-                      <Link href={`${path}/${o.id}`} className="font-mono text-sm font-bold tracking-wide text-ink-900 hover:text-brand-700">{o.number}</Link>
+                      <Link href={`${path}/${o.id}`} className="font-mono text-sm font-semibold tracking-wide text-ink-900 hover:text-brand-700">{o.number}</Link>
                       <div className="text-xs text-ink-500">{fmtDateTime(o.createdAt)}</div>
                     </Td>
                     <Td>

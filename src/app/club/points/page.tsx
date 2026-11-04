@@ -56,7 +56,7 @@ export default async function ClubPoints({ searchParams }: { searchParams: Promi
         </div>
         <aside className="space-y-4 lg:pt-16">
           <Panel className="p-5">
-            <div className="text-xs font-semibold uppercase tracking-wider text-ink-400">Balance</div>
+            <div className="text-xs font-semibold text-ink-400">Balance</div>
             <div className="tnum mt-1 font-display text-4xl font-semibold text-white">{fmtPoints(customer.points)}</div>
             <div className="text-sm text-ink-400">worth {zar(customer.points * 100)}</div>
           </Panel>

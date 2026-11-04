@@ -80,7 +80,7 @@ export default async function BooksOverview({ params }: { params: Promise<{ comp
           <CardBody className="pt-3">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">
+                <tr className="text-xs font-semibold text-ink-500">
                   <th className="py-2 text-left font-semibold">
                     <span className="sr-only">Line</span>
                   </th>

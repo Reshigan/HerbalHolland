@@ -185,7 +185,7 @@ export function CheckoutForm(props: {
             </h2>
             {props.addresses.length > 0 && (
               <div className="mt-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-ink-450">Your addresses</p>
+                <p className="text-xs font-semibold text-ink-450">Your addresses</p>
                 <ul className="mt-2 flex flex-wrap gap-2" aria-label="Saved addresses">
                   {props.addresses.map((a) => {
                     const on = a.id === usingId;

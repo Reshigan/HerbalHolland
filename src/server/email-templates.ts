@@ -74,7 +74,7 @@ export const figures = (rows: FigureRow[]) =>
   `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:4px 0 16px">${rows
     .map((r) =>
       r.heading
-        ? `<tr><td colspan="2" style="padding:14px 0 4px;font-family:${DISPLAY};font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${C.brandDark}">${esc(r.label)}</td></tr>`
+        ? `<tr><td colspan="2" style="padding:14px 0 4px;font-family:${DISPLAY};font-size:13px;font-weight:600;color:${C.brandDark}">${esc(r.label)}</td></tr>`
         : `<tr><td style="padding:6px 12px 6px 0;border-bottom:1px solid ${C.line};font-family:${TEXT};font-size:14px;line-height:20px;color:${r.strong ? C.ink : C.text};font-weight:${r.strong ? 700 : 400};${r.indent ? "padding-left:14px;" : ""}">${esc(r.label)}</td><td width="1%" style="padding:6px 0;border-bottom:1px solid ${C.line};text-align:right;white-space:nowrap;font-family:${TEXT};font-size:14px;line-height:20px;color:${C.ink};font-weight:${r.strong ? 700 : 400};${TNUM}">${esc(r.value)}</td></tr>`,
     )
     .join("")}</table>`;
@@ -138,7 +138,7 @@ export function emailLayout(o: LayoutOpts) {
 </tr></table>
 </td></tr>
 <tr><td class="hh-pad" style="padding:32px 32px 8px">
-${o.eyebrow ? `<div style="margin:0 0 10px;font-family:${DISPLAY};font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:${C.brandDark}">${esc(o.eyebrow)}</div>` : ""}
+${o.eyebrow ? `<div style="margin:0 0 10px;font-family:${DISPLAY};font-size:13px;font-weight:600;color:${C.brandDark}">${esc(o.eyebrow)}</div>` : ""}
 <h1 style="margin:0 0 16px;font-family:${DISPLAY};font-size:27px;line-height:32px;font-weight:600;letter-spacing:-0.01em;color:${C.ink}">${esc(o.heading)}</h1>
 ${o.body}
 </td></tr>

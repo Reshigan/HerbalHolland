@@ -90,7 +90,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   Tokens live in `src/app/globals.css` (`@theme`). Never hard-code other brand colours.
   Faintest text on dark surfaces is `ink-450` (AA contrast on ink-950/900/850); `ink-500` is for light surfaces only.
 - Type: `font-display` (Outfit) for headings, hero numbers, the wordmark; Inter for UI. `tnum` for numeric columns.
-  `.eyebrow` for small uppercase labels (brand-700 on light, brand-500 on dark).
+  `.eyebrow` for short sentence-case labels (brand-700 on light, brand-500 on dark).
 - Shapes: cards `rounded-2xl`, buttons pill (`rounded-full`), inputs `rounded-xl`. The window-poster frame (`.hh-frame`)
   is reserved for hero/brand moments.
 - Components: `@/components/ui/*` (Button/ButtonLink, Card, Badge, StatusBadge/TierBadge, Field/Input/Select/Checkbox,

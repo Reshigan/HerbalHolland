@@ -84,7 +84,7 @@ export function ComplianceForm({ action, value, legalReviewed, readOnly }: { act
           <div className="overflow-x-auto rounded-2xl border border-ink-150">
             <table className="w-full min-w-[40rem] text-sm">
               <thead>
-                <tr className="bg-ink-50 text-left text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">
+                <tr className="bg-ink-50 text-left text-xs font-semibold text-ink-500">
                   <th className="px-4 py-2.5">Class</th>
                   {CHANNELS.map((c) => (
                     <th key={c} className="px-3 py-2.5 text-center">{channelLabel(c)}</th>

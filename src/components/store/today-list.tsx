@@ -38,7 +38,7 @@ export function TodayList({ items, title = "Today", description, className }: { 
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-ink-900">{i.title}</span>
-                      <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.06em] ring-1 ring-inset", t.badge)}>{t.label}</span>
+                      <span data-testid="today-urgency" className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset", t.badge)}>{t.label}</span>
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-ink-500">{i.line}</span>
                   </span>

@@ -6,3 +6,6 @@ export const needsReload = (client: string, server: string | null | undefined, t
 
 /** Screens nobody is typing on (TV menu boards, the customer display): safe to reload the moment they're stale. */
 export const isUnattended = (pathname: string) => pathname.startsWith("/menu/") || pathname === "/pos/display";
+
+/** Coming back to the app is a good moment to reload, except at checkout, where a payment may be under way. */
+export const reloadsOnResume = (pathname: string) => !pathname.startsWith("/checkout");

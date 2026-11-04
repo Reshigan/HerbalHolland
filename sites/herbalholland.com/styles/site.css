@@ -80,7 +80,8 @@ main > section ~ section, main > .marquee, .ftr { content-visibility: auto; cont
 .tile, .logo, .note, .inbox, .enq { background: #fff; border-radius: 1.5rem; box-shadow: var(--shadow); }
 .feat, .panel, .roles__group { background: var(--ink-900); border: 1px solid var(--line); border-radius: 1.5rem; }
 .tile, .feat, .inbox, .note, .panel { display: grid; gap: .8rem; align-content: start; padding: 1.6rem; }
-.eyebrow, .chapter__n, .readout dt, .frame__k, .fcard__label, .offer__h, .facts dt, .ftr__h, .role__aka, .soon__badge, .fcard__brand, .pin text, .crumbs, .landrace dt span { font: 600 .72rem/1.3 var(--display); letter-spacing: .2em; text-transform: uppercase; }
+.eyebrow, .chapter__n, .readout dt, .frame__k, .fcard__label, .offer__h, .facts dt, .ftr__h, .role__aka, .soon__badge, .crumbs, .landrace dt span { font: 500 .875rem/1.3 var(--display); }
+.fcard__brand, .pin text { font: 600 .72rem/1.3 var(--display); letter-spacing: .2em; text-transform: uppercase; }
 .grid4, .grid3, .inboxes, .logos, .roles { display: grid; gap: 1rem; }
 
 /* ── Type ──────────────────────────────────────────────────────────────── */
@@ -104,7 +105,7 @@ main > section ~ section, main > .marquee, .ftr { content-visibility: auto; cont
 :is(.link, .hdr__link):is(:hover, :focus-visible)::after, .hdr__link[aria-current]::after { transform: scaleX(1); transform-origin: left; }
 .mail { font-weight: 600; overflow-wrap: anywhere; }
 /* Where you are, on the inner pages. */
-.crumbs { letter-spacing: .14em; color: var(--ink-400); }
+.crumbs { color: var(--ink-400); }
 .crumbs ol { flex-wrap: wrap; gap: .3em .8em; }
 .crumbs li + li::before { content: "›"; margin-right: .8em; color: var(--brand-500); }
 .crumbs a { display: inline-block; min-height: 24px; }
@@ -155,7 +156,7 @@ main > section ~ section, main > .marquee, .ftr { content-visibility: auto; cont
 .ctas { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
 /* Doors that aren't open yet: calm, clearly not a link, with a slow pulse. */
 .soon { flex-wrap: wrap; gap: .5rem .7rem; color: var(--ink-300); font-weight: 500; cursor: default; }
-.soon__badge { gap: .45rem; padding: .32rem .7rem .32rem .55rem; border-radius: 99px; font-size: .64rem; line-height: 1; letter-spacing: .16em; white-space: nowrap; color: var(--brand-400); background: color-mix(in oklab, var(--brand-500) 11%, transparent); border: 1px solid color-mix(in oklab, var(--brand-500) 32%, transparent); }
+.soon__badge { gap: .45rem; padding: .32rem .7rem .32rem .55rem; border-radius: 99px; font-size: .8125rem; line-height: 1; white-space: nowrap; color: var(--brand-400); background: color-mix(in oklab, var(--brand-500) 11%, transparent); border: 1px solid color-mix(in oklab, var(--brand-500) 32%, transparent); }
 .soon__dot { position: relative; width: .45rem; height: .45rem; border-radius: 50%; background: currentColor; }
 .soon__dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: currentColor; animation: ping 2.4s var(--ease) infinite; }
 @keyframes ping { 70%, 100% { transform: scale(3.2); opacity: 0; } }
@@ -313,7 +314,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .w > span { display: inline-block; }
 .hero__kicker { gap: .7rem; align-items: flex-start; max-width: 34rem; font: 500 clamp(.95rem, 1.2vw, 1.1rem)/1.45 var(--display); color: var(--ink-200); text-wrap: balance; }
 .hero__kicker::before { content: ""; width: .55rem; height: .55rem; flex: none; margin-top: .45em; border-radius: 50%; background: var(--brand-500); box-shadow: 0 0 0 5px color-mix(in oklab, var(--brand-500) 18%, transparent); }
-.cue { position: absolute; left: var(--g); bottom: 1.5rem; z-index: 2; display: flex; align-items: center; gap: .7rem; font: 600 .66rem var(--display); letter-spacing: .22em; text-transform: uppercase; color: var(--ink-300); opacity: calc(1 - var(--p) * 4); }
+.cue { position: absolute; left: var(--g); bottom: 1.5rem; z-index: 2; display: flex; align-items: center; gap: .7rem; font: 500 .8125rem var(--display); color: var(--ink-300); opacity: calc(1 - var(--p) * 4); }
 .cue i { display: block; width: 2.5rem; height: 1px; background: var(--brand-500); transform-origin: left; animation: cue 2.4s var(--ease) infinite; }
 @keyframes cue { 0% { transform: scaleX(0); } 50% { transform: scaleX(1); transform-origin: left; } 51% { transform-origin: right; } 100% { transform: scaleX(0); transform-origin: right; } }
 @media (max-aspect-ratio: 1 / 1) { .hero__in { justify-content: flex-start; padding-top: calc(var(--hh) + 1.25rem); } }
@@ -752,7 +753,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .concept__fig { display: grid; gap: .8rem; }
 .concept__fig img { width: 100%; height: auto; border-radius: 1.5rem; background: var(--ink-800); }
 .concept__fig figcaption { font-size: .85rem; color: var(--ink-400); }
-.concept__fig b { margin-right: .5rem; font: 600 .72rem var(--display); letter-spacing: .2em; text-transform: uppercase; color: var(--brand-400); }
+.concept__fig b { margin-right: .5rem; font: 500 .875rem var(--display); color: var(--brand-400); }
 
 /* ── Press, careers, contact ───────────────────────────────────────────── */
 .releases, .facts { border-top: 1px solid var(--hair); }
@@ -792,7 +793,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .roles__group > .muted { margin-top: .5rem; font-size: .9rem; }
 .roles__list { display: grid; gap: 1.5rem; margin-top: 1.75rem; }
 .role { align-items: flex-start; gap: 1.1rem; }
-.role .role__aka { margin-top: .15rem; font-size: .66rem; letter-spacing: .14em; color: var(--brand-500); }
+.role .role__aka { margin-top: .15rem; font-size: .8125rem; color: var(--brand-500); }
 .apply { display: grid; gap: 1.5rem; margin-block: 2.25rem; }
 .apply li { align-items: flex-start; gap: 1.25rem; }
 .stack { display: grid; gap: 1rem; align-content: start; }

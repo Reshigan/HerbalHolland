@@ -107,7 +107,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
             <span className="hidden shrink-0 items-center gap-1.5 xl:inline-flex">
-              <span className="rounded-full bg-ink-950 px-1.5 py-px text-[0.62rem] font-bold text-brand-500">18+</span>
+              <span className="rounded-full bg-ink-950 px-1.5 py-px text-[0.62rem] font-semibold text-brand-500">18+</span>
               Adults only
             </span>
           </Container>
@@ -171,7 +171,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 <ShoppingBag className="h-[22px] w-[22px]" strokeWidth={1.8} />
                 <span className="hidden sm:inline">Bag</span>
                 {count > 0 && (
-                  <span className="tnum absolute right-0 top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-[0.68rem] font-bold text-ink-950 sm:static sm:h-6 sm:min-w-6">{count}</span>
+                  <span className="tnum absolute right-0 top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-[0.68rem] font-semibold text-ink-950 sm:static sm:h-6 sm:min-w-6">{count}</span>
                 )}
               </Link>
               )}
@@ -233,7 +233,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
           <div className="border-t border-ink-850">
             <Container className="flex flex-col gap-4 py-6 text-xs leading-relaxed text-ink-400 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-brand-500 font-display text-[0.7rem] font-bold text-brand-500">18+</span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-brand-500 font-display text-[0.7rem] font-semibold text-brand-500">18+</span>
                 <p className="max-w-2xl">
                   For adults 18 and older only. Keep all products out of reach of children and pets. Licensed medicines are supplied only to registered patients with a valid SAHPRA authorisation, by an authorised dispenser. Nothing on this site is medical advice.
                 </p>

@@ -150,7 +150,7 @@ export function OrderBuilder({
           {lines.length > 0 && (
             <table className="mt-3 w-full border-collapse text-sm">
               <thead>
-                <tr className="text-left text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">
+                <tr className="text-left text-xs font-semibold text-ink-500">
                   <th scope="col" className="border-b border-ink-150 px-5 py-2">Item</th>
                   <th scope="col" className="border-b border-ink-150 px-4 py-2 text-right">Cases</th>
                   <th scope="col" className="border-b border-ink-150 px-4 py-2 text-right">Units</th>

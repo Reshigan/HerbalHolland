@@ -22,7 +22,7 @@ export function MessagePanel({ title, closeHref, children }: { title: string; cl
   }, []);
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <Link href={closeHref} scroll={false} className="absolute inset-0 bg-ink-950/50 backdrop-blur-sm" aria-label="Close message" />
+      <Link href={closeHref} scroll={false} className="absolute inset-0 bg-ink-950/70" aria-label="Close message" />
       <div
         ref={ref}
         role="dialog"

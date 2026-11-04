@@ -147,7 +147,7 @@ function FindMember({ onPick, initialQuery, onSignUp }: { onPick: (c: CustomerDe
               disabled={!!opening}
               className="flex min-h-16 w-full items-center gap-3 rounded-2xl bg-ink-850 px-4 py-3 text-left ring-1 ring-ink-800 transition hover:ring-brand-500/60 disabled:opacity-60"
             >
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink-700 font-display text-sm font-bold text-white">{h.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink-700 font-display text-sm font-semibold text-white">{h.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-1.5">
                   <span className="font-semibold text-white">{h.name}</span>

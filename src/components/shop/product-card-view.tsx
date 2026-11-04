@@ -39,8 +39,8 @@ export function ProductCardView({ p, art, buyable = true, online = true, wished 
         {art}
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
           {p.deal && <Tag tone="solid">{p.deal.label}</Tag>}
-          {p.heritage && <Tag tone="orange" className="bg-ink-950/70 backdrop-blur">Heritage</Tag>}
-          {low && <Tag tone="amber" className="bg-ink-950/70 backdrop-blur">Low stock</Tag>}
+          {p.heritage && <Tag tone="orange" className="bg-ink-950/85">Heritage</Tag>}
+          {low && <Tag tone="amber" className="bg-ink-950/85">Low stock</Tag>}
         </div>
         {wished != null && <WishlistButton compact variantId={p.firstVariantId} on={wished} signedIn name={p.name} next={`/p/${p.slug}`} className="absolute right-2 top-2" />}
       </div>

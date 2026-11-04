@@ -26,7 +26,7 @@ export function LabCertificate({ batch, lab, potency, className }: { batch: Cert
       <div className="hh-bead-frame mt-5 overflow-hidden">
         <div className="grid grid-cols-1 gap-6 bg-ink-950 p-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:p-7">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink-400">
+            <div className="flex items-center gap-2 text-xs font-semibold text-ink-400">
               <FlaskConical className="h-4 w-4 text-brand-500" /> Batch
             </div>
             <div className="tnum mt-1 font-display text-3xl font-semibold tracking-wide text-white">{batch.code}</div>
@@ -35,7 +35,7 @@ export function LabCertificate({ batch, lab, potency, className }: { batch: Cert
                 .filter((p) => p.value)
                 .map((p) => (
                   <div key={p.label} className="rounded-2xl border border-ink-800 bg-ink-900/70 p-3">
-                    <dt className="text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">{p.label}</dt>
+                    <dt className="text-xs font-semibold text-ink-400">{p.label}</dt>
                     <dd className="tnum mt-1 font-display text-xl font-semibold text-white">{p.value}</dd>
                   </div>
                 ))}

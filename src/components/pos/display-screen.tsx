@@ -103,7 +103,7 @@ export function DisplayScreen({ deviceId, feedKey }: { deviceId: string | null; 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-ink-950 text-ink-100 select-none" onClick={fullscreen} data-testid="display" data-state={state}>
       {training && (
-        <div className="shrink-0 bg-brand-500 px-6 py-2 text-center font-display text-lg font-bold uppercase tracking-[0.18em] text-ink-950" data-testid="display-training">
+        <div className="shrink-0 bg-brand-500 px-6 py-2 text-center font-display text-lg font-semibold text-ink-950" data-testid="display-training">
           Training: nothing is real
         </div>
       )}

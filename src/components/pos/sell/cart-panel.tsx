@@ -138,7 +138,7 @@ export function CustomerCard({
   return (
     <div className="rounded-2xl bg-ink-900 p-3 ring-1 ring-brand-500/30" data-testid="customer-card">
       <div className="flex items-start gap-3">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-500 font-display text-sm font-bold text-ink-950">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-500 font-display text-sm font-semibold text-ink-950">
           {(customer.firstName[0] ?? "") + (customer.lastName?.[0] ?? "")}
         </span>
         <div className="min-w-0 flex-1">
@@ -237,7 +237,7 @@ export function TradeCard({ account, ageCheck, onLeave }: { account: TradeAccoun
           <Building2 className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-display text-base font-semibold uppercase tracking-wide text-white">Trade sale · {account.name}</div>
+          <div className="truncate font-display text-base font-semibold text-white">Trade sale · {account.name}</div>
           <div className="mt-0.5 text-xs text-ink-300">
             {account.number}
             {account.legalName !== account.name ? ` · ${account.legalName}` : ""}
@@ -354,7 +354,7 @@ export function CartPanel({
             className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-left"
             aria-label={`${member.firstName} ${member.lastName ?? ""}: show the member card`}
           >
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-500 font-display text-xs font-bold text-ink-950">{(member.firstName[0] ?? "") + (member.lastName?.[0] ?? "")}</span>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-500 font-display text-xs font-semibold text-ink-950">{(member.firstName[0] ?? "") + (member.lastName?.[0] ?? "")}</span>
             <span className="min-w-0 truncate text-sm font-semibold text-white">
               {member.firstName} {member.offline ? "" : member.lastName}
             </span>
@@ -591,7 +591,7 @@ export function CartPanel({
             {payDisabledReason ?? (
               <>
                 Charge {zar(quote.totalCents)}
-                <kbd className="hidden rounded-md border border-ink-950/30 px-1.5 text-[0.65rem] font-bold lg:inline">F9</kbd>
+                <kbd className="hidden rounded-md border border-ink-950/30 px-1.5 text-[0.65rem] font-semibold lg:inline">F9</kbd>
               </>
             )}
           </PosButton>

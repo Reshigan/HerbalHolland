@@ -64,7 +64,7 @@ export function OrderActions({ next, fulfilment, paid, dueCents, ageRestricted, 
           <input type="hidden" name="to" value="COMPLETED" />
           <ol className="list-decimal space-y-1 pl-5 text-sm text-ink-700">
             <li>
-              Ask for the collection code. It must be <span className="font-mono font-bold tracking-widest text-ink-950">{collectionCode}</span>.
+              Ask for the collection code. It must be <span className="font-mono font-semibold tracking-widest text-ink-950">{collectionCode}</span>.
             </li>
             <li>Check an ID document. Adults 18+ only.</li>
           </ol>

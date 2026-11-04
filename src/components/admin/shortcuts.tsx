@@ -168,7 +168,7 @@ function useDialog(onClose: () => void) {
 function Backdrop({ children, onClose, label, labelledBy, onKeyDown, dialogRef, className }: { children: React.ReactNode; onClose: () => void; label?: string; labelledBy?: string; onKeyDown: (e: React.KeyboardEvent) => void; dialogRef: React.RefObject<HTMLDivElement | null>; className?: string }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh]" onKeyDown={onKeyDown}>
-      <div className="absolute inset-0 bg-ink-950/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 bg-ink-950/70" onClick={onClose} aria-hidden />
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={label} aria-labelledby={labelledBy} className={cn("relative w-full max-w-xl overflow-hidden rounded-2xl border border-ink-150 bg-white shadow-lift", className)}>
         {children}
       </div>

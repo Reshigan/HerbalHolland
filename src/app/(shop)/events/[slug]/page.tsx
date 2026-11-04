@@ -165,8 +165,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 /** The member's ticket: QR for the door (HHRSVP:{code}), calendar file and cancel. */
 function Ticketed({ title, when, store, code, checkedInAt, ended, slug, cancel }: { title: string; when: string; store: string; code: string; checkedInAt: Date | null; ended: boolean; slug: string; cancel: () => Promise<{ error?: string }> }) {
   return (
-    <div className="overflow-hidden rounded-[1.6rem] border border-brand-500/50 bg-ink-900 shadow-glow">
-      <div className="bg-gradient-to-br from-brand-500/20 to-transparent p-5 sm:p-6">
+    <div className="overflow-hidden rounded-[1.6rem] border border-brand-500/50 bg-ink-900 shadow-float">
+      <div className="p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
           <span className="eyebrow text-brand-400">Your ticket</span>
           {checkedInAt ? <Tag tone="green">Checked in {fmtTime(checkedInAt)}</Tag> : <Tag tone="orange">You&apos;re in</Tag>}

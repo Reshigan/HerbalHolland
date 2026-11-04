@@ -36,7 +36,7 @@ export function Drawer({ label, icon, title, description, children, defaultOpen 
       </Button>
       {open && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-ink-950/50 backdrop-blur-sm" onClick={() => setOpen(false)} aria-hidden />
+          <div className="absolute inset-0 bg-ink-950/70" onClick={() => setOpen(false)} aria-hidden />
           <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={id} className="relative flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-lift">
             <div className="flex items-start justify-between gap-4 border-b border-ink-150 p-5">
               <div>

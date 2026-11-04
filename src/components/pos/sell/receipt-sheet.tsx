@@ -66,7 +66,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
         {receipt.queued ? <CloudOff className="h-14 w-14 text-[#f3c65a]" /> : <CheckCircle2 className="h-14 w-14 text-[#7fd49a]" />}
         {change > 0 ? (
           <>
-            <div className="mt-3 text-sm font-semibold uppercase tracking-[0.14em] text-ink-400">Change due</div>
+            <div className="mt-3 text-sm font-semibold text-ink-400">Change due</div>
             <div className="font-display text-6xl font-semibold tracking-tight text-white tnum" data-testid="change-due">
               {zar(change)}
             </div>
@@ -106,7 +106,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
 
       {trade && (
         <div className="mt-5 rounded-2xl bg-sky-500/10 px-4 py-3 text-sm ring-1 ring-sky-500/40" data-testid="receipt-trade">
-          <div className="flex items-center gap-2 font-display text-base font-semibold uppercase tracking-wide text-white">
+          <div className="flex items-center gap-2 font-display text-base font-semibold text-white">
             <Building2 className="h-4 w-4 text-[#8fbdf2]" /> {receipt.title}
           </div>
           <div className="mt-1 text-ink-200">
