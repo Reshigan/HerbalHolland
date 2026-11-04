@@ -327,3 +327,9 @@
   --heat-6: #f5913c;
   --heat-7: #f9ae6d;
 }
+
+/*
+ * A card that rounds off a table clips with overflow: clip, not hidden. Hidden makes the card a scroll container, so the
+ * sticky header measures --hh-sticky-top from the card and sits permanently on top of the first rows below desktop width.
+ */
+.overflow-hidden:has(.hh-table) { overflow: clip; }
