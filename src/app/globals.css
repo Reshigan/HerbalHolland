@@ -333,3 +333,9 @@
  * sticky header measures --hh-sticky-top from the card and sits permanently on top of the first rows below desktop width.
  */
 .overflow-hidden:has(.hh-table) { overflow: clip; }
+
+/* Text links inside table cells keep their small type but get a finger-sized hit area on touch screens. */
+@media (pointer: coarse) {
+  .hh-table td a:not(:has(> *)) { position: relative; }
+  .hh-table td a:not(:has(> *))::after { content: ""; position: absolute; inset: -0.75rem -0.25rem; }
+}

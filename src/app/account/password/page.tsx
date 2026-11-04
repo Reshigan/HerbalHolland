@@ -22,9 +22,9 @@ export default async function PasswordPage() {
         </p>
         <PasswordForm />
         <div className="mt-6 flex justify-between text-sm">
-          {!forced && <Link href={await homeFor(user)} className="text-ink-500 hover:text-ink-800">← Back</Link>}
+          {!forced && <Link href={await homeFor(user)} className="-my-3 py-3 text-ink-500 hover:text-ink-800">← Back</Link>}
           <form action="/logout" method="post" className="ml-auto">
-            <button className="text-ink-500 hover:text-ink-800">Sign out</button>
+            <button className="-my-3 py-3 text-ink-500 hover:text-ink-800">Sign out</button>
           </form>
         </div>
       </div>
