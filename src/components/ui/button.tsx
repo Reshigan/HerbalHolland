@@ -16,7 +16,7 @@ export function buttonClass(variant: Variant = "primary", size: Size = "md", cla
       "outline-dark": "border border-ink-700 text-ink-100 hover:border-ink-500 hover:bg-ink-800",
       "ghost-dark": "text-ink-200 hover:bg-ink-800",
     }[variant],
-    { sm: "h-8 px-3 text-xs", md: "h-10 px-4 text-sm", lg: "h-12 px-6 text-[0.95rem]", xl: "h-14 px-8 text-base", icon: "h-10 w-10" }[size],
+    { sm: "relative h-8 px-3 text-xs after:absolute after:inset-x-0 after:-inset-y-1", md: "h-10 px-4 text-sm", lg: "h-12 px-6 text-[0.95rem]", xl: "h-14 px-8 text-base", icon: "h-10 w-10" }[size],
     className,
   );
 }

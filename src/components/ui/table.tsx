@@ -82,7 +82,7 @@ export function SortableTh({ label, sortKey, sort, dir, href, align = "left", cl
       <Link
         href={href(sortKey, next)}
         title={title}
-        className={cn("group/sort inline-flex items-center gap-1 rounded-md hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40", active && "text-ink-900", align === "right" && "flex-row-reverse")}
+        className={cn("group/sort relative inline-flex items-center gap-1 rounded-md after:absolute after:-inset-x-1 after:-inset-y-3 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40", active && "text-ink-900", align === "right" && "flex-row-reverse")}
       >
         {label}
         {active ? (

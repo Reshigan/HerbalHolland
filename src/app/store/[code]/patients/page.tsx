@@ -126,7 +126,7 @@ async function Authorisations({ store, canManage, sp, path }: { store: StoreCtx;
                     </Td>
                     <Td className="min-w-44">
                       <div className="font-mono text-xs font-semibold text-ink-900">{a.authNumber}</div>
-                      <div className="max-w-56 truncate text-xs text-ink-500" title={a.scope}>{a.scope}</div>
+                      <div className="max-w-56 text-xs text-ink-500">{a.scope}</div>
                       {a.documentRef && (
                         <div className="mt-0.5 flex items-center gap-1 text-[0.7rem] text-ink-500" title={a.documentRef}>
                           <FileText className="h-3 w-3" aria-hidden /> Document on file

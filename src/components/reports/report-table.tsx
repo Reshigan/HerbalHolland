@@ -57,7 +57,7 @@ export function ReportTable({ columns: all, rows: given, totals, limit, sort, so
   const stick = (ci: number) => dense && ci === 0 && "sticky left-0 z-10 shadow-[1px_0_0_var(--color-ink-150)]";
   const nowrap = (c: Column) => isNumeric(c.format) || c.format === "date" || c.format === "day" || c.format === "datetime" || c.format === "time" || c.format === "badge" || CODE_KEYS.has(c.key);
   return (
-    <div className="overflow-x-auto print:overflow-visible" style={SCROLL_SHADOWS}>
+    <div className="relative overflow-x-auto print:overflow-visible" style={SCROLL_SHADOWS}>
       <table className={cn("w-full border-collapse", dense ? "text-[0.8rem]" : "text-sm")}>
         <thead>
           <tr>
@@ -137,7 +137,7 @@ function SortLink({ c, sort, href }: { c: Column; sort: { key: string; dir: Sort
   // Numbers start highest first; text A–Z. Clicking the sorted column flips it.
   const next: SortDir = active ? (sort!.dir === "asc" ? "desc" : "asc") : right ? "desc" : "asc";
   return (
-    <Link href={href(c.key, next)} scroll={false} className={cn("group/sort inline-flex items-center gap-1 rounded-md hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 print:no-underline", active && "text-ink-900", right && "flex-row-reverse")}>
+    <Link href={href(c.key, next)} scroll={false} className={cn("group/sort relative inline-flex items-center gap-1 rounded-md after:absolute after:-inset-x-1 after:-inset-y-3 hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 print:no-underline", active && "text-ink-900", right && "flex-row-reverse")}>
       {c.label}
       {active ? (
         sort!.dir === "asc" ? <ArrowUp className="h-3 w-3 shrink-0" aria-hidden /> : <ArrowDown className="h-3 w-3 shrink-0" aria-hidden />
