@@ -272,7 +272,7 @@ describe("Legal texts", () => {
   const rules = () =>
     form({
       thcMode: DEFAULT_COMPLIANCE.thcMode, minAge: String(DEFAULT_COMPLIANCE.minAge), dailyLimitGrams: String(DEFAULT_COMPLIANCE.dailyLimitGrams),
-      licensedOnly: DEFAULT_COMPLIANCE.licensedOnly, ageRestricted: DEFAULT_COMPLIANCE.ageRestricted, membersOnly: "on", noIncentivesShown: "1", noIncentives: DEFAULT_COMPLIANCE.noIncentives,
+      licensedOnly: DEFAULT_COMPLIANCE.licensedOnly, ageRestricted: DEFAULT_COMPLIANCE.ageRestricted, membersOnly: "on", memberQrAtTill: "on", noIncentivesShown: "1", noIncentives: DEFAULT_COMPLIANCE.noIncentives,
       ...Object.fromEntries(Object.entries(DEFAULT_COMPLIANCE.channels).map(([ch, classes]) => [`ch_${ch}`, classes])),
       legalShown: "1",
     });

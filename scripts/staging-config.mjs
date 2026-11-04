@@ -16,7 +16,8 @@ const cfg = JSON.parse(stripJsonComments(readFileSync("wrangler.jsonc", "utf8"))
 cfg.name = name;
 cfg.d1_databases = cfg.d1_databases.map((d) => ({ ...d, database_name: name, database_id: databaseId }));
 cfg.r2_buckets = cfg.r2_buckets.map(({ jurisdiction: _eu, ...b }) => ({ ...b, bucket_name: `${name}-files`, remote: true }));
-cfg.vars = { ...cfg.vars, DEMO_MODE: "true", MESSAGING_PROVIDER: "log" }; // texts are only logged: no SMS keys here
+// Texts are only logged: no SMS keys here. No app-only wall: the journeys run in a plain browser, never an installed app.
+cfg.vars = { ...cfg.vars, DEMO_MODE: "true", MESSAGING_PROVIDER: "log", APP_ONLY: "false" };
 delete cfg.vars.APP_URL;
 cfg.workers_dev = true;
 delete cfg.routes;
