@@ -53,7 +53,7 @@ self.addEventListener("pushsubscriptionchange", (event) => {
 });
 
 // Tabs we may reuse: the storefront and Rewards app — never a till, back-office or menu-board screen.
-const STAFF = /^\/(pos|hq|store|menu|login|invoice)(\/|$)/;
+const STAFF = /^\/(pos|hq|store|menu|login|invoice|insights)(\/|$)/;
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();

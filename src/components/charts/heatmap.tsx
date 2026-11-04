@@ -2,7 +2,8 @@
 import { ChartFrame } from "./chart-frame";
 import { fmtValue, type ValueFormat } from "./format";
 
-const RAMP = ["#fff5ec", "#ffe6d1", "#fdcba1", "#f9ae6d", "#f5913c", "#e27623", "#c05f18", "#974a15"];
+// A dark surface sets --heat-N: the ramp must still run from quiet to loud against it.
+const RAMP = ["#fff5ec", "#ffe6d1", "#fdcba1", "#f9ae6d", "#f5913c", "#e27623", "#c05f18", "#974a15"].map((c, i) => `var(--heat-${i}, ${c})`);
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function Heatmap({ cells, hours, format = "number", className }: { cells: { day: number; hour: number; value: number }[]; hours: number[]; format?: ValueFormat; className?: string }) {
