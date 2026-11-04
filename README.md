@@ -50,6 +50,11 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 
 ## Install the apps
 
+The shop and Rewards are app only: in a browser they show an install screen instead of the page (`APP_ONLY=true` in
+`wrangler.jsonc`; set it to `false` to open the web again). Sign-up, the bio link, legal pages, batch certificates and
+order pages stay open in a browser (`appOnlyExempt` in `src/lib/install.ts`). The screen is hidden by CSS in the installed
+app, so it steers people to the app; it isn't access control. Installed apps update themselves ([RUNBOOK → Releases](docs/RUNBOOK.md#releases)).
+
 All three web apps install straight from the browser, not from an app store. Each has its own manifest and icon, the prompts
 live in the app itself, and a dismissal is remembered on the device only (30 days; "Not now" on a till is a day).
 Nothing about installs is sent to the server. Rules: `src/lib/install.ts`; UI: `src/components/ui/install-prompt.tsx`.

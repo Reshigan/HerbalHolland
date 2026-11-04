@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext } from "react";
 import type { BootData, BootShift, OrderCard, ReceiptDTO, StaffTile, ZReport } from "@/server/pos/types";
-import type { DisplaySettings, OutboxItem, SalePayload } from "./lib/storage";
+import type { DisplaySettings, OutboxItem, QueuedAudit, SalePayload } from "./lib/storage";
 import type { PrinterSettings } from "./lib/print";
 import type { TrainingState } from "./lib/training";
 import type { DisplaySnapshot } from "./lib/display";
@@ -24,6 +24,8 @@ export type PosCtx = {
   queueSale: (p: SalePayload, totalCents: number) => void;
   /** Drops a queued offline sale the server refused (e.g. one tendered with a gift voucher): manager PIN, audited. */
   discardQueued: (id: string) => void;
+  /** Writes a sensitive till action to the audit log as whoever is signed in (queued while offline). */
+  recordAudit: (action: QueuedAudit["action"], note?: string) => void;
   adjustStock: (moves: { variantId: string; qty: number }[]) => void;
   commitSeq: (seq: number) => void;
   nextNumber: () => { seq: number; number: string };

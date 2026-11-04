@@ -132,6 +132,15 @@ describe("compliance", () => {
     expect(checkCompliance({ items: [oil], channel: "POS", customer: null, ageCheckedAtCounter: true }).blocks).toEqual(["Members only: add the member to the sale, or sign them up, first"]);
     expect(checkCompliance({ items: [oil], channel: "POS", customer: null, ageCheckedAtCounter: true, settings: { ...DEFAULT_COMPLIANCE, membersOnly: false } }).ok).toBe(true);
   });
+  it("needs the member's QR scanned at the till, unless HQ switches that off", () => {
+    const sale = { items: [oil], channel: "POS" as const, customer: { ageVerified: true, age: 30 } };
+    const block = "Members only: scan the member's Rewards QR to enable this sale";
+    expect(checkCompliance({ ...sale, memberScanned: false }).blocks).toEqual([block]);
+    expect(checkCompliance({ ...sale, memberScanned: true }).ok).toBe(true);
+    expect(checkCompliance(sale).ok).toBe(true); // older tills that don't send the flag
+    expect(checkCompliance({ ...sale, memberScanned: false, settings: { ...DEFAULT_COMPLIANCE, memberQrAtTill: false } }).ok).toBe(true);
+    expect(checkCompliance({ ...sale, channel: "COURIER", memberScanned: false }).blocks).not.toContain(block); // the till's rule only
+  });
   it("requires an age check for CBD unless ID was checked at the counter", () => {
     const unverified = { ageVerified: false }; // e.g. a member taken from their card while the till was offline
     expect(checkCompliance({ items: [oil], channel: "POS", customer: unverified }).blocks.join()).toContain("Age verification");

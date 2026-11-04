@@ -4,7 +4,7 @@
 // quantity, dispenser required ("switch user") and licence, plus limited-drop rules (members
 // only, not open yet, per-member limit; offline, drops can't be checked at all).
 import { useMemo, useState } from "react";
-import { BadgeCheck, Building2, Gem, IdCard, Pill, ShieldAlert, ShieldCheck, Stethoscope, Trash2, UserRound } from "lucide-react";
+import { BadgeCheck, Building2, Gem, IdCard, Pill, ScanLine, ShieldAlert, ShieldCheck, Stethoscope, Trash2, UserRound } from "lucide-react";
 import { checkSaId, ageOn } from "@/lib/sa";
 import { fmtDate } from "@/lib/format";
 import { Alert, Field, PosButton, Sheet, TextInput } from "../ui";
@@ -59,6 +59,8 @@ export function ComplianceSheet({
   onClose,
   onAgeCheck,
   onFindPatient,
+  onScanMember,
+  onManagerApprove,
   onRemoveLicensed,
   onRemoveRestricted,
   onRemoveDrops,
@@ -75,6 +77,9 @@ export function ComplianceSheet({
   onClose: () => void;
   onAgeCheck: (method: "ID_SIGHTED" | "ID_NUMBER", idNumber?: string) => void;
   onFindPatient: () => void;
+  onScanMember: () => void;
+  /** No QR to scan (dead phone): a manager approves the sale without it, audited. */
+  onManagerApprove: () => void;
   onRemoveLicensed: () => void;
   onRemoveRestricted: () => void;
   onRemoveDrops: () => void;
@@ -138,10 +143,19 @@ export function ComplianceSheet({
               )}
 
               {b.kind === "MEMBER" && (
-                <div className="mt-4">
-                  <PosButton variant="primary" onClick={onFindPatient}>
-                    <UserRound className="h-4 w-4" /> Find or sign up the member
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <PosButton variant="primary" onClick={onScanMember}>
+                    <ScanLine className="h-4 w-4" /> Scan QR
                   </PosButton>
+                  {customer ? (
+                    <PosButton variant="secondary" onClick={onManagerApprove}>
+                      <ShieldCheck className="h-4 w-4" /> Manager approval
+                    </PosButton>
+                  ) : (
+                    <PosButton variant="secondary" onClick={onFindPatient}>
+                      <UserRound className="h-4 w-4" /> Find or sign up the member
+                    </PosButton>
+                  )}
                 </div>
               )}
               {(b.kind === "PATIENT" || b.kind === "QUANTITY") && (

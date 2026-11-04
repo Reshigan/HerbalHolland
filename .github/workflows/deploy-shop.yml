@@ -39,6 +39,7 @@ env:
   DATABASE_URL: file:.data/build.sqlite
   SESSION_SECRET: build-only-never-uploaded-build-only-never-uploaded
   DEMO_MODE: "false"
+  APP_ONLY: "true"
   NEXT_TELEMETRY_DISABLED: "1"
 
 jobs:

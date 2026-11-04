@@ -5,6 +5,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "r
 import { Boxes, CloudOff, History, Loader2, Lock, RefreshCw, ShieldCheck, ShoppingBag, Store, UploadCloud, Wallet, Wifi } from "lucide-react";
 import { Mark } from "@/components/brand/logo";
 import { AppUpdate } from "./app-update";
+import { useAutoUpdate } from "@/components/ui/auto-update";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtTime } from "@/lib/format";
@@ -16,7 +17,7 @@ import {
   type DisplaySettings, type QueuedAudit,
 } from "./lib/storage";
 import { rememberPin, verifyOffline, canUnlockOffline, forgetPin } from "./lib/pin";
-import { parseOrderQr, receiptNumber, uuid } from "./lib/rules";
+import { memberNoFrom, parseOrderQr, receiptNumber, rsvpTicketFrom, uuid } from "./lib/rules";
 import { voucherCodeFrom } from "@/lib/vouchers";
 import { DEFAULT_PRINTER, kickDrawer, printerPaired, sendBytes, type PrinterSettings } from "./lib/print";
 import { receiptBytes } from "./lib/receipt";
@@ -427,7 +428,9 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         if (code.length < 4 || now - last >= 120) return;
         // Sheets own the keyboard, except a gift voucher scanned while the Sell tab's payment sheet is open, which
         // fills its tender (the handover sheet's voucher field takes a scan directly, as it has the focus).
-        if (dialog && (!voucherCodeFrom(code) || tabRef.current !== "sell")) return;
+        // Likewise a member's QR while the compliance sheet is asking for it.
+        const wanted = voucherCodeFrom(code) || ((memberNoFrom(code) || rsvpTicketFrom(code)) && document.querySelector("[data-testid=block-MEMBER]"));
+        if (dialog && (!wanted || tabRef.current !== "sell")) return;
         e.preventDefault();
         if (parseOrderQr(code)) {
           // Customer's collection QR → straight to that order's handover.
@@ -435,7 +438,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
           setTab("orders");
         } else {
           setTab("sell");
-          setTimeout(() => sellApi.current?.scan(code), 0);
+          setTimeout(() => sellApi.current?.scan(code, true), 0);
         }
       } else if (e.key.length === 1) {
         buf = now - last > 80 ? e.key : buf + e.key;
@@ -653,6 +656,9 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       evs.forEach((e) => window.removeEventListener(e, reset));
     };
   }, [unlocked, idleMs]);
+  // A new deploy: reload only on a locked or idle till with no sale open. A reload asks for the PIN again, so never between customers.
+  useAutoUpdate(() => !busyRef.current && !saleIsOpen(cartRef.current) && !document.querySelector("[role=dialog]") && (!unlocked || quiet));
+
   const saleOpen = saleIsOpen(cart);
   useEffect(() => {
     if (saleOpen || tab !== "sell") setQuiet(false);
@@ -720,6 +726,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       setPrinter,
       openDrawer,
       discardQueued,
+      recordAudit,
       training,
       startTraining,
       exitTraining,
@@ -730,7 +737,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       setDisplaySettings,
       idleMessages,
     };
-  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, handoffDone, handoff, toast, deviceId, orderScan, openOrderScan, clearOrderScan, printer, setPrinter, openDrawer, discardQueued, training, startTraining, exitTraining, trainingSale, display, displaySettings, setDisplaySettings, idleMessages, print, setTraining]);
+  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, handoffDone, handoff, toast, deviceId, recordAudit, orderScan, openOrderScan, clearOrderScan, printer, setPrinter, openDrawer, discardQueued, training, startTraining, exitTraining, trainingSale, display, displaySettings, setDisplaySettings, idleMessages, print, setTraining]);
 
   // ── Render ──────────────────────────────────────────────────────────────
   if (!ready) return <Splash />;

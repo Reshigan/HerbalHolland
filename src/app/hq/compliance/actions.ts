@@ -39,6 +39,7 @@ export async function saveCompliance(_: ActionState, fd: FormData): Promise<Acti
     channels: Object.fromEntries(CHANNELS.map((c) => [c, classes(fd, `ch_${c}`)])) as ComplianceSettings["channels"],
     tobaccoBillMode: bool(fd, "tobaccoBillMode"),
     membersOnly: bool(fd, "membersOnly"),
+    memberQrAtTill: bool(fd, "memberQrAtTill"),
     noIncentives: fd.has("noIncentivesShown") ? classes(fd, "noIncentives") : (before.noIncentives ?? []),
   };
   // Guardrails: the licence gate and the 18+ check on licensed classes can't be switched off from here.

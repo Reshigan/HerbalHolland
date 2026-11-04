@@ -9,7 +9,7 @@ export function GET() {
     start_url: "/pos",
     scope: "/pos",
     display: "standalone",
-    orientation: "any",
+    orientation: "landscape",
     background_color: "#0c0a09",
     theme_color: "#0c0a09",
     categories: ["business", "shopping"],

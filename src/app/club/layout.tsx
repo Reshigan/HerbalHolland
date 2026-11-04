@@ -4,6 +4,7 @@ import { ShopChrome } from "@/components/shop/chrome";
 import { ClubNav } from "@/components/shop/club-client";
 import { Container } from "@/components/shop/ui";
 import { AnalyticsBeacon } from "@/components/shop/analytics-beacon";
+import { appOnly, AppOnlyWall } from "@/components/shop/app-only";
 import { splashStartupImages } from "@/lib/pwa-splash";
 
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default async function ClubLayout({ children }: { children: React.ReactNo
       <div className={customer ? "pb-20 app:pb-0 sm:pb-0" : undefined}>
         {children}
       </div>
+      {appOnly() && <AppOnlyWall />}
       <AnalyticsBeacon />
     </ShopChrome>
   );

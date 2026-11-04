@@ -154,6 +154,13 @@ export function ComplianceForm({ action, value, legalReviewed, readOnly }: { act
             label="Members only"
             description="Every sale needs a registered member who has accepted the membership terms, online and at the till. Walk-ins sign up at the till in about 20 seconds; offline, the till takes the member number from their card and checks it when it reconnects."
           />
+          <Checkbox
+            name="memberQrAtTill"
+            defaultChecked={value.memberQrAtTill}
+            className="mt-3"
+            label="Scan the member's QR to enable a till sale"
+            description="With Members only on, a till sale can only be charged once the member's Rewards QR has been scanned. Finding a member by name or number doesn't count; a manager can approve a sale without the scan (recorded in the audit log). New members signed up at the till don't need it."
+          />
         </div>
 
         <div className={cn("rounded-2xl border p-4", tobacco ? "border-amber-500/40 bg-amber-50" : "border-ink-150")}>

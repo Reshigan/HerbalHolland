@@ -100,3 +100,9 @@ export function parseDismissal(raw: string | null | undefined): Dismissal | null
     return null;
   }
 }
+
+/**
+ * Pages that stay open in a browser when the shop is app only: the bio link and sign-up (how people reach the app),
+ * legal pages, batch certificates (printed QR codes), and order pages, which card payments return to in the browser.
+ */
+export const appOnlyExempt = (pathname: string) => ["/go", "/club/join", "/legal", "/batch", "/orders"].some((p) => pathname === p || pathname.startsWith(`${p}/`));

@@ -80,6 +80,7 @@ export const POST = withStaff(async (req, pos) => {
     pointsRedeemed: b.pointsRedeemed ?? 0,
     payments: b.payments,
     ageCheck: b.ageCheck,
+    memberScanned: b.memberScanned ?? undefined, // absent from tills on older code and sales queued before the rule
     buyer: b.buyer ?? null,
     invoiceEmail: b.invoiceEmail || null,
     trade: b.trade ? { tradeAccountId: b.trade.tradeAccountId } : null,

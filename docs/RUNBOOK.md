@@ -259,6 +259,12 @@ Vantax (Pty) Ltd if online). See the acceptable-use note in INTEGRATIONS.md. Don
 
 ## Releases
 
+Open apps update themselves, with nothing to install. Each build carries its commit (`NEXT_PUBLIC_BUILD_ID`) and
+`/api/version` says which is live; apps check every five minutes, on coming back into view and on reconnecting. Members
+and back-office staff reload on their next page change. Menu boards and the customer display reload straight away. A
+till reloads only when it's locked or idle with no sale open, because a reload asks for the PIN again. An APK change
+(`android/**`) still needs the till's update bar; web changes reach tills without it.
+
 - A release is a merge to main: `deploy-shop.yml` builds, migrates and deploys ([First deploy](#first-deploy), step
   2), one run at a time (concurrency group `deploy-shop`), and fails the run if `/api/health` doesn't answer. Changes
   under `sites/`, `docs/` and `e2e/` alone don't trigger it. Before a release that migrates, note the Time Travel
@@ -306,6 +312,15 @@ first-access sign-up.
 6. Watch the till member-attach rate, sign-ups per hour and SMS spend in the first 48 hours.
 
 ## Till hardware
+
+**Tablet.** Tills are 10-inch Android tablets in landscape (the till app and manifest lock it). They need Chrome and Google
+Play services: camera scanning uses the browser's BarcodeDetector, which relies on them on Android, so a tablet without
+Google services can't scan by camera. Keep a USB or Bluetooth scanner as the backup. The till remembers which camera it
+scans with: flip it in the scanner sheet if the tablet's stand faces the customer.
+
+**Scanning the member's QR.** A sale needs the member's Rewards QR (HQ → Compliance → "Member QR at the till"). The till
+asks for it before payment: **Scan QR**, or **Manager approval** if the member can't show it, which is audited. A typed
+member number or a name search adds the member but doesn't enable the sale.
 
 Every till works on a tablet or phone with nothing attached: receipts open in the browser's print dialog (receipt-styled,
 80 mm page), the camera or a keyboard-wedge scanner reads codes, and the customer display is a browser window. The

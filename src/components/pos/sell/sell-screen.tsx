@@ -12,6 +12,7 @@ import { checkCompliance, incentiveExcluded, REG_CLASS_LABEL } from "@/lib/compl
 import { search as searchProducts, searchIndex } from "@/lib/pos-search";
 import { zar, zarWhole } from "@/lib/money";
 import { voucherCodeFrom } from "@/lib/vouchers";
+import { isTillManager } from "@/lib/pos-refund";
 import { api, ApiError, errorText, OfflineError, TillError } from "../lib/api";
 import { priceBasket, redeemableCents, type PricingData } from "../lib/pricing";
 import { classifyBlock, dropIndex, memberNoFrom, offlineMember, parseBatchScan, parseOrderQr, rsvpTicketFrom, uuid } from "../lib/rules";
@@ -35,7 +36,7 @@ import type { BootDrop, CheckInDTO, ComplianceDTO, CustomerDetail, CustomerHit, 
 /** Trade mode before the server has priced the basket: nothing to show but the lines (retail prices would mislead). */
 const UNPRICED: QuoteDTO = { lines: [], subtotalCents: 0, discountCents: 0, offerCents: 0, totalCents: 0, vatCents: 0, pointsMultiplier: 1, applied: [], suggestions: [], pointsEstimate: 0, memberSavingsCents: 0, joinSavingsCents: 0, exCents: 0 };
 
-export type SellApi = { focusSearch: () => void; openCustomer: () => void; pay: () => void; scan: (code: string) => void; add: (variantId: string) => void };
+export type SellApi = { focusSearch: () => void; openCustomer: () => void; pay: () => void; scan: (code: string, viaScanner?: boolean) => void; add: (variantId: string) => void };
 
 export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c: Cart | ((c: Cart) => Cart)) => void; apiRef: React.RefObject<SellApi | null> }) {
   const pos = usePos();
@@ -179,7 +180,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   );
 
   const scan = useCallback(
-    (raw: string) => {
+    (raw: string, viaScanner = false) => {
       const code = raw.trim();
       if (!code) return;
       if (cartRef.current.trade && (memberNoFrom(code) || rsvpTicketFrom(code) || voucherCodeFrom(code))) {
@@ -193,12 +194,12 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       }
       const ticket = rsvpTicketFrom(code);
       if (ticket) {
-        void checkInRef.current(ticket); // event ticket QR → door check-in, member attached
+        void checkInRef.current(ticket, viaScanner); // event ticket QR → door check-in, member attached
         return;
       }
       const member = memberNoFrom(code);
       if (member) {
-        void attachMemberRef.current(member); // member card QR (or typed member no.) → attach straight away
+        void attachMemberRef.current(member, viaScanner); // member card QR (or typed member no.) → attach straight away
         return;
       }
       const voucher = voucherCodeFrom(code);
@@ -309,6 +310,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         storeLicences: boot.store.licences,
         ageCheckedAtCounter: c.ageCheck === "ID_SIGHTED" || c.ageCheck === "ID_NUMBER",
         staffCanDispense: me.canDispense,
+        memberScanned: c.memberScanned || training,
         settings: boot.settings.compliance,
       });
       const blocks = r.blocks.map((message) => ({ kind: classifyBlock(message), message }));
@@ -318,21 +320,21 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         blocks.push({ kind: "DROP", message: `${d.name} is a limited drop: member limits can't be checked offline. Remove it, or sell it when the till is back online.` });
       return { ok: blocks.length === 0, blocks, needsAgeCheck: r.needsAgeCheck, needsPrescription: r.needsPrescription, gramsInCart: r.gramsInCart, staffCanDispense: me.canDispense };
     },
-    [index, drops, boot, me.canDispense, licensedClasses],
+    [index, drops, boot, me.canDispense, licensedClasses, training],
   );
 
   const runCompliance = useCallback(
     async (c: Cart): Promise<ComplianceDTO> => {
       if (onlineRef.current) {
         try {
-          return await api<ComplianceDTO>("/api/pos/compliance", { body: { items: c.lines, customerId: c.customer?.id || null, ageCheck: c.ageCheck } });
+          return await api<ComplianceDTO>("/api/pos/compliance", { body: { items: c.lines, customerId: c.customer?.id || null, ageCheck: c.ageCheck, memberScanned: c.memberScanned || training } });
         } catch (e) {
           if (!(e instanceof OfflineError)) throw e;
         }
       }
       return localCompliance(c);
     },
-    [localCompliance],
+    [localCompliance, training],
   );
 
   // ── Checkout: fresh quote → compliance → payment ────────────────────────
@@ -536,6 +538,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       pointsRedeemed: r.points,
       payments: r.tenders,
       ageCheck: c.ageCheck ?? undefined,
+      memberScanned: c.memberScanned || training,
       buyer: r.buyer,
       invoiceEmail: null,
       staffId: me.id,
@@ -616,14 +619,14 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     );
   }, [publishDisplay, boot.store.name, boot.store.code, cart, quote, index, licensedClasses, stage, payProgress, done, idleMessages, training]);
 
-  /** Member card QR / member number → attach the member (prices re-quote at their tier). */
-  const attachMember = async (memberNo: string) => {
+  /** Member card QR / member number → attach the member (prices re-quote at their tier). `scanned`: a real QR scan, not typed. */
+  const attachMember = async (memberNo: string, scanned = false) => {
     if (cartRef.current.trade) {
       pos.toast("Leave trade mode to add a member. A sale is retail or trade, never both.", "warn");
       return;
     }
     if (!onlineRef.current) {
-      pickCustomer(offlineMember(memberNo), `${memberNo} added (checked when the till reconnects)`, "warn");
+      pickCustomer(offlineMember(memberNo), `${memberNo} added (checked when the till reconnects)`, "warn", scanned);
       return;
     }
     try {
@@ -634,7 +637,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         return;
       }
       const d = await api<{ customer: CustomerDetail }>(`/api/pos/customers/${r.customers[0].id}`);
-      pickCustomer(d.customer);
+      pickCustomer(d.customer, undefined, "ok", scanned);
     } catch (e) {
       pos.toast(errorText(e), "error");
     }
@@ -647,21 +650,23 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     if (online && offlineNo) void attachMemberRef.current(offlineNo);
   }, [online, offlineNo]);
 
-  const pickCustomer = (c: CustomerDetail, message = `${c.firstName} added to the sale`, tone: "ok" | "warn" = "ok") => {
-    setCart((x) => ({ ...x, customer: c, ageCheck: null, trade: null })); // a member ends trade mode: never both
+  const pickCustomer = (c: CustomerDetail, message = `${c.firstName} added to the sale`, tone: "ok" | "warn" = "ok", scanned = false) => {
+    // The same member looked up again (back online) keeps their scan; anyone else needs their own.
+    const memberScanned = scanned || (cartRef.current.memberScanned && cartRef.current.customer?.memberNo === c.memberNo);
+    setCart((x) => ({ ...x, customer: c, ageCheck: null, trade: null, memberScanned })); // a member ends trade mode: never both
     setCustSheet(null);
     setCustQuery(undefined);
     pos.toast(message, tone);
-    if (resumeCheckout.current) {
+    if (resumeCheckout.current || stageRef.current === "compliance") {
       resumeCheckout.current = false;
-      void checkout({ ...cartRef.current, customer: c, ageCheck: null, trade: null });
+      void checkout({ ...cartRef.current, customer: c, ageCheck: null, trade: null, memberScanned });
     }
   };
 
   // ── Trade-sale mode ─────────────────────────────────────────────────────
   /** The account chosen: the basket re-quotes at its trade prices (ex VAT); any member and counter check go. */
   const pickTrade = (a: TradeAccountDTO) => {
-    setCart((x) => ({ ...x, trade: a, customer: null, ageCheck: null }));
+    setCart((x) => ({ ...x, trade: a, customer: null, ageCheck: null, memberScanned: false }));
     setTradeSheet(false);
     pos.toast(a.status === "ON_HOLD" ? `Trade sale for ${a.name}. The account is on hold, so money only.` : `Trade sale for ${a.name} (prices ex VAT)`, a.status === "ON_HOLD" ? "warn" : "ok");
   };
@@ -672,15 +677,15 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   };
 
   /** Event ticket (HHRSVP:{code}) → door check-in at this store, today; the member joins the sale at their tier. */
-  const checkIn = async (ticket: string) => {
+  const checkIn = async (ticket: string, scanned = false) => {
     if (!onlineRef.current) {
       pos.toast("Offline: event check-in needs a connection. Try again when the till is back online.", "warn");
       return;
     }
     try {
       const r = await api<CheckInDTO>("/api/pos/events/checkin", { body: { code: ticket } });
-      if (r.first) pickCustomer(r.customer, `Welcome to ${r.event.title}. ${r.customer.firstName} is checked in.`);
-      else pickCustomer(r.customer, `Already checked in: ${r.customer.firstName}, ${r.event.title}`, "warn");
+      if (r.first) pickCustomer(r.customer, `Welcome to ${r.event.title}. ${r.customer.firstName} is checked in.`, "ok", scanned);
+      else pickCustomer(r.customer, `Already checked in: ${r.customer.firstName}, ${r.event.title}`, "warn", scanned);
     } catch (e) {
       pos.toast(errorText(e), "error");
     }
@@ -718,7 +723,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       onPay={() => void checkout()}
       payDisabledReason={payDisabledReason}
       checking={checking}
-      onDetachCustomer={() => setCart((c) => ({ ...c, customer: null, ageCheck: null }))}
+      onDetachCustomer={() => setCart((c) => ({ ...c, customer: null, ageCheck: null, memberScanned: false }))}
       customerCard={
         cart.trade ? (
           <TradeCard account={cart.trade} ageCheck={cart.ageCheck} onLeave={leaveTrade} />
@@ -733,7 +738,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
             onAddGift={addGift}
             onFind={() => setCustSheet("find")}
             onNew={() => setCustSheet("new")}
-            onDetach={() => setCart((c) => ({ ...c, customer: null, ageCheck: null }))}
+            onDetach={() => setCart((c) => ({ ...c, customer: null, ageCheck: null, memberScanned: false }))}
             onScan={() => setScanning("member")}
             onTrade={() => setTradeSheet(true)}
           />
@@ -804,6 +809,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         onMode={setCustSheet}
         onClose={() => (setCustSheet(null), setCustQuery(undefined), (resumeCheckout.current = false))}
         onPick={pickCustomer}
+        onCreated={(c) => pickCustomer(c, undefined, "ok", true)}
         online={online}
         joinUrl={boot.joinUrl}
         minAge={boot.settings.compliance.minAge}
@@ -818,10 +824,10 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       <CameraScanner
         open={!!scanning}
         title={scanning === "member" ? "Scan member card or event ticket" : "Scan a barcode"}
-        onClose={() => setScanning(null)}
+        onClose={() => (setScanning(null), (resumeCheckout.current = false))}
         onResult={(code) => {
           setScanning(null);
-          scan(code);
+          scan(code, true);
         }}
       />
 
@@ -839,6 +845,23 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
           setStage(null);
           resumeCheckout.current = true;
           setCustSheet("find");
+        }}
+        onScanMember={() => {
+          setStage(null);
+          resumeCheckout.current = true;
+          setScanning("member");
+        }}
+        onManagerApprove={() => {
+          // The member's phone is dead or their QR won't read: audited under the manager. They tap Charge after the hand-back.
+          const memberNo = cartRef.current.customer?.memberNo;
+          const approve = () => {
+            setCart((x) => ({ ...x, memberScanned: true }));
+            pos.recordAudit("sale.member_qr_override", memberNo ? `Member ${memberNo}` : undefined);
+            pos.toast("Approved without the QR: charge the sale");
+          };
+          setStage(null);
+          if (isTillManager(me.role)) approve();
+          else pos.switchUser("manager", approve);
         }}
         onRemoveLicensed={() => removeWhere(licensedClasses)}
         onRemoveRestricted={() => removeWhere(boot.settings.compliance.ageRestricted)}

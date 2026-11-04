@@ -71,6 +71,7 @@ export async function evaluateBasket(a: {
   storeLicences?: RegClass[];
   ageCheckedAtCounter?: boolean;
   staffCanDispense?: boolean;
+  memberScanned?: boolean;
 }) {
   const settings = await getSettings();
   const ctx = await customerContext(a.customerId);
@@ -82,6 +83,7 @@ export async function evaluateBasket(a: {
     gramsToday: ctx.gramsToday,
     ageCheckedAtCounter: a.ageCheckedAtCounter,
     staffCanDispense: a.staffCanDispense,
+    memberScanned: a.memberScanned,
     settings: settings.compliance,
   });
   return { ...result, ctx, settings };

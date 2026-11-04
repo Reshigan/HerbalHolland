@@ -4,8 +4,9 @@
 // (member cards, event tickets, collection codes, batch certificates). A viewfinder, a torch toggle where the camera
 // has one, and a plain "not supported" state that points at the alternatives. Keyboard-wedge scanners (USB or
 // Bluetooth "keyboard" scanners) work everywhere without this: the till listens for them on every screen.
+// Each till remembers which camera it scans with: a tablet on a stand usually wants the one facing the customer.
 import { useEffect, useRef, useState } from "react";
-import { Flashlight, FlashlightOff, ScanLine } from "lucide-react";
+import { Flashlight, FlashlightOff, ScanLine, SwitchCamera } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Alert, PosButton, Sheet } from "../ui";
 
@@ -41,6 +42,16 @@ const NOT_SUPPORTED: Record<Exclude<ScanSupport, "ok" | "checking">, string> = {
   insecure: "Camera scanning needs a secure (https) connection.",
 };
 
+type Facing = "environment" | "user";
+const CAMERA_KEY = "hh-camera";
+function savedFacing(): Facing {
+  try {
+    return localStorage.getItem(CAMERA_KEY) === "user" ? "user" : "environment";
+  } catch {
+    return "environment";
+  }
+}
+
 export function CameraScanner({ open, title, onResult, onClose }: { open: boolean; title: string; onResult: (code: string) => void; onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const track = useRef<MediaStreamTrack | null>(null);
@@ -48,6 +59,7 @@ export function CameraScanner({ open, title, onResult, onClose }: { open: boolea
   const [error, setError] = useState<string | null>(null);
   const [torch, setTorch] = useState<null | boolean>(null); // null = the camera has no torch
   const [last, setLast] = useState<string | null>(null);
+  const [facing, setFacing] = useState<Facing>(savedFacing);
   const done = useRef(onResult);
   done.current = onResult;
 
@@ -68,7 +80,7 @@ export function CameraScanner({ open, title, onResult, onClose }: { open: boolea
         const Ctor = (window as unknown as { BarcodeDetector: DetectorCtor }).BarcodeDetector;
         const formats = Ctor.getSupportedFormats ? (await Ctor.getSupportedFormats()).filter((f) => WANTED_FORMATS.includes(f)) : WANTED_FORMATS;
         const detector = new Ctor({ formats });
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
         if (stopped || !video.current) return;
         video.current.srcObject = stream;
         await video.current.play();
@@ -103,7 +115,15 @@ export function CameraScanner({ open, title, onResult, onClose }: { open: boolea
       stream?.getTracks().forEach((t) => t.stop());
       track.current = null;
     };
-  }, [open]);
+  }, [open, facing]);
+
+  const flipCamera = () => {
+    const next = facing === "user" ? "environment" : "user";
+    setFacing(next);
+    try {
+      localStorage.setItem(CAMERA_KEY, next);
+    } catch {} // private window: this session only
+  };
 
   const toggleTorch = async () => {
     const t = track.current;
@@ -132,7 +152,7 @@ export function CameraScanner({ open, title, onResult, onClose }: { open: boolea
             </div>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>A USB or Bluetooth barcode scanner: scan anywhere on the till. There&apos;s no set-up: it types the code and the till acts on it.</li>
-              <li>Type the barcode, SKU, member number or batch code into the search box and press Enter.</li>
+              <li>Type the barcode, SKU, member number or batch code into the search box and press Enter. A typed member number doesn&apos;t count as scanning their QR.</li>
             </ul>
           </div>
         </div>
@@ -140,7 +160,7 @@ export function CameraScanner({ open, title, onResult, onClose }: { open: boolea
         <Alert>{error}</Alert>
       ) : (
         <div className="relative overflow-hidden rounded-2xl bg-black" data-testid="viewfinder">
-          <video ref={video} className="aspect-[4/3] w-full object-cover" muted playsInline />
+          <video ref={video} className={cn("aspect-[4/3] w-full object-cover", facing === "user" && "-scale-x-100")} muted playsInline />
           {/* Viewfinder: a darkened surround, corner marks and a sweeping line (still when motion is reduced). */}
           <div className="pointer-events-none absolute inset-[14%] rounded-2xl shadow-[0_0_0_999px_rgb(0_0_0/0.45)]">
             {(["top-0 left-0 border-t-4 border-l-4 rounded-tl-2xl", "top-0 right-0 border-t-4 border-r-4 rounded-tr-2xl", "bottom-0 left-0 border-b-4 border-l-4 rounded-bl-2xl", "bottom-0 right-0 border-b-4 border-r-4 rounded-br-2xl"] as const).map((c) => (
@@ -148,6 +168,9 @@ export function CameraScanner({ open, title, onResult, onClose }: { open: boolea
             ))}
             <span className="absolute inset-x-3 top-1/2 h-0.5 bg-brand-500/80 motion-safe:animate-[scan_2.2s_ease-in-out_infinite]" />
           </div>
+          <PosButton variant="secondary" className="absolute top-3 right-3" onClick={flipCamera} aria-label={facing === "user" ? "Use the back camera" : "Use the front camera"}>
+            <SwitchCamera className="h-5 w-5" />
+          </PosButton>
           {torch != null && (
             <PosButton variant={torch ? "primary" : "secondary"} className="absolute bottom-3 right-3" onClick={() => void toggleTorch()} aria-pressed={torch} aria-label={torch ? "Turn the torch off" : "Turn the torch on"}>
               {torch ? <FlashlightOff className="h-5 w-5" /> : <Flashlight className="h-5 w-5" />} Torch

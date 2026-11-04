@@ -13,7 +13,7 @@ import { classifyBlock } from "@/components/pos/lib/rules";
 import type { ComplianceDTO } from "@/server/pos/types";
 import { asList } from "@/lib/json-list";
 
-const Body = z.object({ items: Items, customerId: z.string().nullish(), ageCheck: AgeCheck.nullish() });
+const Body = z.object({ items: Items, customerId: z.string().nullish(), ageCheck: AgeCheck.nullish(), memberScanned: z.boolean().nullish() });
 
 export const POST = withStaff(async (req, pos) => {
   const b = await readBody(req, Body);
@@ -36,6 +36,7 @@ export const POST = withStaff(async (req, pos) => {
       storeLicences: asList<RegClass>(pos.device.store.licences),
       ageCheckedAtCounter: b.ageCheck === "ID_SIGHTED" || b.ageCheck === "ID_NUMBER",
       staffCanDispense: pos.user.canDispense,
+      memberScanned: b.memberScanned ?? undefined,
     }),
     dropBlocks(b.customerId, b.items),
   ]);

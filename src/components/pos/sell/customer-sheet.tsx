@@ -20,6 +20,7 @@ export function CustomerSheet({
   onMode,
   onClose,
   onPick,
+  onCreated,
   online,
   joinUrl,
   minAge,
@@ -31,6 +32,8 @@ export function CustomerSheet({
   onMode: (m: "find" | "new") => void;
   onClose: () => void;
   onPick: (c: CustomerDetail) => void;
+  /** A member signed up here: their ID was just checked, so they need no QR scan. */
+  onCreated?: (c: CustomerDetail) => void;
   online: boolean;
   joinUrl: string;
   minAge: number;
@@ -60,7 +63,7 @@ export function CustomerSheet({
       ) : mode === "find" ? (
         <FindMember onPick={onPick} initialQuery={initialQuery} onSignUp={(phone) => (setPrefill(phone), onMode("new"))} />
       ) : (
-        <NewMember key={prefill} onCreated={onPick} joinUrl={joinUrl} minAge={minAge} training={training} phone={prefill} />
+        <NewMember key={prefill} onCreated={onCreated ?? onPick} joinUrl={joinUrl} minAge={minAge} training={training} phone={prefill} />
       )}
     </Sheet>
   );
