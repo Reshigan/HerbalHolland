@@ -69,8 +69,8 @@ export function JournalForm({ action, accounts, stores, companies, canPost, appr
             const acc = byId.get(l.account);
             const n = i + 1;
             return (
-              <li key={l.key} className={cn("grid grid-cols-2 gap-2 p-3", cols)}>
-                <Select aria-label={`Line ${n}: account`} value={l.account} onChange={(e) => set(l.key, { account: e.target.value, party: byId.get(e.target.value)?.party === acc?.party ? l.party : "" })} wrapperClassName="col-span-2 lg:col-span-1">
+              <li key={l.key} className={cn("grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem] gap-2 p-3", cols)}>
+                <Select aria-label={`Line ${n}: account`} value={l.account} onChange={(e) => set(l.key, { account: e.target.value, party: byId.get(e.target.value)?.party === acc?.party ? l.party : "" })} wrapperClassName="col-span-3 lg:col-span-1">
                   <option value="">Choose an account…</option>
                   {groups.map((g) => (
                     <optgroup key={g.t} label={TYPE_LABEL[g.t]}>
@@ -83,7 +83,7 @@ export function JournalForm({ action, accounts, stores, companies, canPost, appr
                   ))}
                 </Select>
                 {stores.length > 0 && (
-                  <Select aria-label={`Line ${n}: store`} value={l.store} onChange={(e) => set(l.key, { store: e.target.value })} wrapperClassName="col-span-2 sm:col-span-1">
+                  <Select aria-label={`Line ${n}: store`} value={l.store} onChange={(e) => set(l.key, { store: e.target.value })} wrapperClassName="col-span-3 sm:col-span-1">
                     <option value="">No store</option>
                     {stores.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -92,7 +92,7 @@ export function JournalForm({ action, accounts, stores, companies, canPost, appr
                     ))}
                   </Select>
                 )}
-                <div className="col-span-2 sm:col-span-1">
+                <div className={cn("col-span-3 lg:col-span-1", stores.length > 0 && "sm:col-span-2")}>
                   {acc?.party === "COMPANY" ? (
                     <Select aria-label={`Line ${n}: franchisee`} value={l.party} onChange={(e) => set(l.key, { party: e.target.value })}>
                       <option value="">Choose the franchisee…</option>
@@ -110,7 +110,7 @@ export function JournalForm({ action, accounts, stores, companies, canPost, appr
                 </div>
                 <Input aria-label={`Line ${n}: debit`} inputMode="decimal" value={l.debit} onChange={(e) => set(l.key, { debit: e.target.value, credit: e.target.value.trim() ? "" : l.credit })} placeholder="Debit" className={cn("tnum text-right", amounts[i].debit == null && "border-rose-400")} />
                 <Input aria-label={`Line ${n}: credit`} inputMode="decimal" value={l.credit} onChange={(e) => set(l.key, { credit: e.target.value, debit: e.target.value.trim() ? "" : l.debit })} placeholder="Credit" className={cn("tnum text-right", amounts[i].credit == null && "border-rose-400")} />
-                <Button type="button" variant="ghost" size="icon" className="col-span-2 justify-self-end lg:col-span-1" aria-label={`Remove line ${n}`} title="Remove line" disabled={lines.length <= 2} onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}>
+                <Button type="button" variant="ghost" size="icon" className="justify-self-end" aria-label={`Remove line ${n}`} title="Remove line" disabled={lines.length <= 2} onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}>
                   <Trash2 className="h-4 w-4" aria-hidden />
                 </Button>
               </li>

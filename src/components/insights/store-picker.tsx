@@ -6,9 +6,9 @@ import { ChevronDown } from "lucide-react";
 export function StorePicker({ stores, value, hrefs }: { stores: { code: string; name: string }[]; value: string; hrefs: Record<string, string> }) {
   const router = useRouter();
   return (
-    <label className="relative inline-flex h-10 max-w-full items-center">
+    <label className="relative flex h-10 w-full items-center sm:w-56">
       <span className="sr-only">Store</span>
-      <select value={value} onChange={(e) => router.push(hrefs[e.target.value])} className="h-10 max-w-full appearance-none truncate rounded-full border border-ink-150 bg-white pr-9 pl-4 text-sm font-semibold text-ink-850">
+      <select value={value} onChange={(e) => router.push(hrefs[e.target.value])} className="h-10 w-full appearance-none truncate rounded-full border border-ink-150 bg-white pr-9 pl-4 text-sm font-semibold text-ink-850">
         <option value="">All stores</option>
         {stores.map((s) => (
           <option key={s.code} value={s.code}>

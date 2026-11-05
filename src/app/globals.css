@@ -340,7 +340,8 @@
   .hh-table td a:not(:has(> *))::after { content: ""; position: absolute; inset: -0.75rem -0.25rem; }
 }
 
-/* A row of five tiles sits two across below lg; an odd last tile takes the whole row instead of leaving a hole. */
+/* A row of five tiles sits two across below lg; an odd last tile takes the whole row instead of leaving a hole.
+   When the first tile already spans the row the rest pair up, so the last one stays a single column. */
 @media (width < 64rem) {
-  .hh-tiles > :last-child:nth-child(odd) { grid-column: span 2; }
+  .hh-tiles:not(:has(> .col-span-2)) > :last-child:nth-child(odd) { grid-column: span 2; }
 }

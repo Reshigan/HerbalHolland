@@ -23,9 +23,9 @@ export function Stat({ label, value, delta, deltaLabel = "vs previous period", u
         <div className="font-display text-[1.65rem] font-semibold leading-none tracking-tight text-ink-950">{value}</div>
         {trend && trend.length > 1 && <Sparkline values={trend} className="h-8 w-24" />}
       </div>
-      <div className="mt-2 flex min-h-5 items-center gap-2 text-xs">
+      <div className="mt-2 flex min-h-5 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
         {delta != null && Number.isFinite(delta) && (
-          <span className={cn("inline-flex items-center gap-0.5 font-semibold", good ? "text-leaf-600" : "text-rose-600")}>
+          <span className={cn("inline-flex items-center gap-0.5 whitespace-nowrap font-semibold", good ? "text-leaf-600" : "text-rose-600")}>
             <span aria-hidden>{delta >= 0 ? "▲" : "▼"}</span>
             {Math.abs(delta) >= 10 ? ">999" : Math.abs(delta * 100).toFixed(1)}%
             <span className="sr-only">{good ? "(good)" : "(needs attention)"}</span>

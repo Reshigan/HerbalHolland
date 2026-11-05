@@ -101,7 +101,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
       />
 
       {/* Today, before the range: the numbers HQ and area managers act on first. */}
-      <section aria-label="Today" className={hqTeam ? "mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8" : "mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"}>
+      <section aria-label="Today" className={hqTeam ? "mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 2xl:grid-cols-8" : "mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"}>
         <Stat
           label={region ? "Region sales today" : "Network sales today"}
           value={zarCompact(takings.cur.grossCents)}

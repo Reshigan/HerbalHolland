@@ -16,7 +16,7 @@ export function RangeTabs({ path, current, params = {} }: { path: string; curren
           href={qs(p.key)}
           role="tab"
           aria-selected={current === p.key}
-          className={cn("inline-flex h-9 items-center justify-center whitespace-nowrap rounded-full px-3 text-xs font-semibold transition-colors", current === p.key ? "bg-ink-900 text-white" : "text-ink-500 hover:text-ink-900")}
+          className={cn("inline-flex h-11 items-center justify-center whitespace-nowrap sm:h-9 rounded-full px-3 text-xs font-semibold transition-colors", current === p.key ? "bg-ink-900 text-white" : "text-ink-500 hover:text-ink-900")}
         >
           {p.label}
         </Link>
