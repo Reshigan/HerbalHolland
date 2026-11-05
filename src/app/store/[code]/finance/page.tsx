@@ -71,13 +71,13 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
           <CardHeader title="Profit & loss" description="Ex VAT" />
           <CardBody className="pt-3">
             <Line label="Net sales" value={zar(pl.revenue)} strong />
-            {trade.netCents !== 0 && <Line label={<span className="pl-4">of which trade sales to business accounts</span>} value={zar(trade.netCents)} muted />}
-            <Line label={<span className="pl-4">incl. Rewards savings given to members</span>} value={saved ? `−${zar(saved)}` : zar(0)} muted />
-            {pl.summary.discountCents > 0 && <Line label={<span className="pl-4">incl. promotions and discounts</span>} value={`−${zar(pl.summary.discountCents)}`} muted />}
+            {trade.netCents !== 0 && <Line label={<span className="block pl-4">of which trade sales to business accounts</span>} value={zar(trade.netCents)} muted />}
+            <Line label={<span className="block pl-4">incl. Rewards savings given to members</span>} value={saved ? `−${zar(saved)}` : zar(0)} muted />
+            {pl.summary.discountCents > 0 && <Line label={<span className="block pl-4">incl. promotions and discounts</span>} value={`−${zar(pl.summary.discountCents)}`} muted />}
             {pl.summary.offerCents > 0 && (
               <Line
                 label={
-                  <span className="pl-8">
+                  <span className="block pl-8">
                     of which My Deals (<Link href={`${base}/statement`} className="font-medium text-brand-700 hover:underline">HQ credits these on your statement</Link>)
                   </span>
                 }
@@ -93,12 +93,12 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
             {pl.expenses
               .sort((a, b) => b.exVatCents - a.exVatCents)
               .map((e) => (
-                <Line key={e.category} label={<span className="pl-4">{EXPENSE_LABEL[e.category] ?? e.category}</span>} value={`−${zar(e.exVatCents)}`} />
+                <Line key={e.category} label={<span className="block pl-4">{EXPENSE_LABEL[e.category] ?? e.category}</span>} value={`−${zar(e.exVatCents)}`} />
               ))}
             <div className="mt-3 text-xs font-semibold text-ink-500">Franchise fees</div>
-            <Line label={<span className="pl-4">Royalty ({store.royaltyBps / 100}% of net sales)</span>} value={`−${zar(pl.fees.royalty)}`} />
-            <Line label={<span className="pl-4">Marketing fund levy ({store.levyBps / 100}%)</span>} value={`−${zar(pl.fees.levy)}`} />
-            <Line label={<span className="pl-4">E-commerce commission ({store.ecomBps / 100}% of online)</span>} value={`−${zar(pl.fees.ecom)}`} />
+            <Line label={<span className="block pl-4">Royalty ({store.royaltyBps / 100}% of net sales)</span>} value={`−${zar(pl.fees.royalty)}`} />
+            <Line label={<span className="block pl-4">Marketing fund levy ({store.levyBps / 100}%)</span>} value={`−${zar(pl.fees.levy)}`} />
+            <Line label={<span className="block pl-4">E-commerce commission ({store.ecomBps / 100}% of online)</span>} value={`−${zar(pl.fees.ecom)}`} />
             <div className="my-1 border-t border-ink-900" />
             <Line label="Net profit" value={<span className={pl.netProfit < 0 ? "text-rose-600" : "text-ink-950"}>{zar(pl.netProfit)}</span>} strong className="text-base" />
             <p className="mt-2 text-xs text-ink-500">Excludes owner salaries paid outside the business, depreciation and income tax. Wholesale stock is expensed as it sells (cost of sales), not when bought.</p>
@@ -112,9 +112,9 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
               <>
                 <Line label="Output tax on sales" value={zar(vat.output)} />
                 <div className="mt-2 text-xs font-semibold text-ink-500">Input tax</div>
-                <Line label={<span className="pl-4">Stock received</span>} value={`−${zar(vat.stockInput)}`} />
-                <Line label={<span className="pl-4">Expenses (claimable)</span>} value={`−${zar(vat.expenseInput)}`} />
-                <Line label={<span className="pl-4">Franchise fees</span>} value={`−${zar(vat.feeInput)}`} />
+                <Line label={<span className="block pl-4">Stock received</span>} value={`−${zar(vat.stockInput)}`} />
+                <Line label={<span className="block pl-4">Expenses (claimable)</span>} value={`−${zar(vat.expenseInput)}`} />
+                <Line label={<span className="block pl-4">Franchise fees</span>} value={`−${zar(vat.feeInput)}`} />
                 <div className="my-1 border-t border-ink-900" />
                 <Line label={vat.payable >= 0 ? "VAT payable to SARS" : "VAT refund due"} value={zar(Math.abs(vat.payable))} strong className="text-base" />
                 <p className="mt-2 text-xs text-ink-500">
