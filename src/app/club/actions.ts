@@ -3,8 +3,10 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { PushSub } from "@/lib/push-sub";
 import { db } from "@/server/db";
-import { getCustomer } from "@/server/auth";
+import { getCustomer, getStaff } from "@/server/auth";
 import { audit } from "@/server/audit";
+import { actorOf } from "@/server/hq/guard";
+import { INSIGHT_ROLES } from "@/server/insights";
 import { COLLISION_REFUSED, collisionsUsedUp, noteCollision, setConsent } from "@/server/customers";
 import { savePushSubscription, vapidPublicKey } from "@/server/push";
 import type { MsgChannel } from "@/generated/prisma/client";
@@ -17,6 +19,19 @@ const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
 
 // `values` echoes what was submitted: React resets the form after the action, so the member's input survives an error.
 export type ProfileState = { ok?: boolean; error?: string; fields?: Partial<Record<"firstName" | "email" | "homeStoreId", string>>; values?: Record<"firstName" | "lastName" | "email" | "homeStoreId", string> };
+
+/**
+ * Keeps the Sales and Members tabs on this card after the staff sign-in ends. Owners and HQ aren't on a store's team
+ * page, so they link their own card here, signed in both ways on the one phone. The figures still ask for a staff login.
+ */
+export async function linkOwnerCard() {
+  const [c, staff] = await Promise.all([getCustomer(), getStaff()]);
+  if (!c || !staff || !INSIGHT_ROLES.includes(staff.role) || staff.memberId) return;
+  if (await db.user.findUnique({ where: { memberId: c.id }, select: { id: true } })) return;
+  await db.user.update({ where: { id: staff.id }, data: { memberId: c.id } });
+  await audit(db, actorOf(staff), "staff.member_link", { entity: "User", entityId: staff.id, data: { name: staff.name, memberNo: c.memberNo, before: null } });
+  refresh();
+}
 
 export async function updateProfile(_: ProfileState, form: FormData): Promise<ProfileState> {
   const c = await getCustomer();
