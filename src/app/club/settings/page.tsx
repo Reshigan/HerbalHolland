@@ -2,13 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BadgeCheck, BadgePercent, Bell, LogOut, ShieldCheck } from "lucide-react";
 import { db } from "@/server/db";
-import { getCustomer } from "@/server/auth";
+import { getCustomer, getStaff } from "@/server/auth";
+import { INSIGHT_ROLES } from "@/server/insights";
 import { vapidPublicKey } from "@/server/push";
 import { signOut } from "@/server/shop/actions";
 import { partnerOffers } from "@/server/partners";
 import { consentTrail } from "@/server/shop/club";
 import { getFranchisor, getRetailStores, homeStoreOptions } from "@/server/shop/context";
-import { disablePush, enablePush, setChannelConsent, setPersonalisedOffers } from "../actions";
+import { disablePush, enablePush, linkOwnerCard, setChannelConsent, setPersonalisedOffers } from "../actions";
 import { ConsentToggles } from "@/components/shop/club-client";
 import { PrefSwitch } from "@/components/shop/launch-forms";
 import { PushToggle } from "@/components/shop/push-toggle";
@@ -29,6 +30,8 @@ export default async function ClubSettings() {
   const customer = await getCustomer();
   if (!customer) redirect("/club/join?next=/club/settings");
   const [trail, stores, company, devices, offers] = await Promise.all([consentTrail(customer.id), getRetailStores(), getFranchisor(), db.pushSubscription.count({ where: { customerId: customer.id } }), partnerOffers()]);
+  const [staff, cardHolder] = await Promise.all([getStaff(), db.user.findUnique({ where: { memberId: customer.id }, select: { id: true } })]);
+  const mayLinkCard = !!staff && INSIGHT_ROLES.includes(staff.role) && !staff.memberId && !cardHolder;
   const privacyEmail = contactEmailOf(company);
   const note = (ch: string, on: boolean) => {
     const e = trail.get(ch);
@@ -123,6 +126,16 @@ export default async function ClubSettings() {
             </Panel>
           )}
 
+          {mayLinkCard && (
+            <Panel className="p-5 sm:p-6">
+              <h2 className="font-display text-lg font-semibold text-white">Sales and Members tabs</h2>
+              <p className="mt-2 text-sm text-ink-400">Keep these tabs on this card after your staff sign-in ends. The figures still ask for your staff login.</p>
+              <form action={linkOwnerCard}>
+                <button className={buttonClass("outline-dark", "md", "mt-4")}>Keep the tabs</button>
+              </form>
+            </Panel>
+          )}
+
           <Panel className="p-5 text-sm leading-relaxed text-ink-400">
             <h2 className="font-display text-lg font-semibold text-white">Your data</h2>
             <p className="mt-2">
@@ -146,6 +159,11 @@ export default async function ClubSettings() {
               <LogOut className="h-4 w-4" /> Sign out
             </button>
           </form>
+          {!staff && !cardHolder && (
+            <Link href="/login?next=/club/settings" className="block py-2 text-center text-sm font-semibold text-ink-400 hover:text-white">
+              Staff sign-in
+            </Link>
+          )}
         </aside>
       </div>
     </Container>

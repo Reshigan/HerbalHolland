@@ -132,7 +132,7 @@ export default async function FranchiseLeadsPage({ searchParams }: { searchParam
                   <Link href={`/hq/franchise/${l.id}`} className="font-medium text-ink-900 hover:text-brand-700">
                     {l.name}
                   </Link>
-                  <span className="block truncate text-xs text-ink-500" title={l.email}>{l.email}</span>
+                  <span className="block max-w-44 truncate text-xs text-ink-500 sm:max-w-none" title={l.email}>{l.email}</span>
                   <span className="tnum block whitespace-nowrap text-xs text-ink-500">{displayPhone(l.phone)}</span>
                 </Td>
                 <Td className="hidden min-w-32 sm:table-cell">
