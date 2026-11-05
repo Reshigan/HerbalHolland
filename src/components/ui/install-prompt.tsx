@@ -86,8 +86,10 @@ function IosSteps({ className }: { className?: string }) {
 /**
  * `priority`: the moment right after joining. The card ignores an earlier "Not now", leads with the step, and says what
  * comes next (notifications), because the offer is the point of the page rather than a nudge beside it.
+ * `required`: the app-only wall, where this card is the only way forward. It can't be dismissed, and where the browser
+ * offers no install event (Firefox, an app already installed, a declined prompt) it gives the browser-menu route instead.
  */
-export function InstallPrompt({ app, variant = "card", once = false, priority = false, className }: { app: InstallApp; variant?: "card" | "bar" | "menu" | "button" | "sheet"; once?: boolean; priority?: boolean; className?: string }) {
+export function InstallPrompt({ app, variant = "card", once = false, priority = false, required = false, className }: { app: InstallApp; variant?: "card" | "bar" | "menu" | "button" | "sheet"; once?: boolean; priority?: boolean; required?: boolean; className?: string }) {
   const [state, setState] = useState<InstallState | null>(null);
   const [evt, setEvt] = useState<PromptEvent | null>(null);
   const [gone, setGone] = useState(false);
@@ -98,7 +100,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
   const passive = variant === "menu" || variant === "button"; // a menu entry is never "dismissed"; it just sits there until the app is installed
 
   useEffect(() => {
-    const dismissal = passive || priority ? null : parseDismissal(read(installKey(app)));
+    const dismissal = passive || priority || required ? null : parseDismissal(read(installKey(app)));
     const seenAt = once ? Number(read(installKey(app, "seen"))) || null : null;
     const s = installState({
       ua: navigator.userAgent,
@@ -110,7 +112,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
     });
     setState(s);
     // Right after joining, a browser that can't install (WhatsApp, Instagram, Facebook…) still gets the way there.
-    if (priority && !s.installed && s.mode === "none") setHandoff(browserHandoff(navigator.userAgent, location.href, navigator.maxTouchPoints));
+    if ((priority || required) && !s.installed && s.mode === "none") setHandoff(browserHandoff(navigator.userAgent, location.href, navigator.maxTouchPoints));
     if (!s.show) return;
     const sync = () => setEvt(window.__hhInstall ?? null);
     sync();
@@ -131,7 +133,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
       window.removeEventListener("appinstalled", onInstalled);
       window.removeEventListener(SYNC, sync);
     };
-  }, [app, once, passive, priority]);
+  }, [app, once, passive, priority, required]);
 
   // The sheet waits for a second page in this visit, then a few seconds more: never in the way of a first look.
   const pathname = usePathname();
@@ -156,7 +158,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const visible = armed && !!state && state.show && !gone && (state.mode === "ios-steps" || (state.mode === "prompt" && !!evt));
+  const visible = armed && !!state && state.show && (required || (!gone && (state.mode === "ios-steps" || (state.mode === "prompt" && !!evt))));
 
   // A once-only placement (the shop home) counts as shown the first time it actually appears.
   useEffect(() => {
@@ -190,7 +192,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
     }
   };
 
-  if (handoff && !gone && state)
+  if (handoff && (required || !gone) && state)
     return (
       <section className={cn("rounded-2xl border border-brand-500/40 bg-brand-500/[0.06] p-4 text-ink-100 sm:p-5", className)} aria-label={copy.title(state.platform)}>
         <div className="eyebrow mb-3 text-[0.62rem] text-brand-500">One more step</div>
@@ -211,9 +213,9 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
               </p>
             )}
           </div>
-          <button type="button" onClick={() => setGone(true)} aria-label={copy.dismissLabel} title={copy.dismissLabel} className="-mr-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
+          {!required && <button type="button" onClick={() => setGone(true)} aria-label={copy.dismissLabel} title={copy.dismissLabel} className="-mr-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
             <X className="h-5 w-5" aria-hidden />
-          </button>
+          </button>}
         </div>
       </section>
     );
@@ -323,25 +325,34 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
 
   // "card"
   const till = app === "till";
-  const eyebrow = priority ? "One more step" : copy.eyebrow;
+  const lead = priority || required;
+  const manual = required && !ios && !evt; // no install event to fire: the browser's own menu does it
+  const eyebrow = lead ? "One more step" : copy.eyebrow;
   return (
-    <section className={cn("rounded-2xl border border-ink-800 bg-ink-900/70 p-4 text-ink-100 sm:p-5", priority && "border-brand-500/40 bg-brand-500/[0.06]", className)} aria-label={title} {...shared}>
+    <section className={cn("rounded-2xl border border-ink-800 bg-ink-900/70 p-4 text-ink-100 sm:p-5", lead && "border-brand-500/40 bg-brand-500/[0.06]", className)} aria-label={title} {...shared}>
       {eyebrow && <div className="eyebrow mb-3 text-[0.62rem] text-brand-500">{eyebrow}</div>}
       <div className="flex items-start gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500 text-ink-950">
           <Download className="h-5 w-5" strokeWidth={1.9} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className={cn("font-display font-semibold leading-snug text-white", priority ? "text-lg" : "text-base")}>{title}</h2>
-          <p className="mt-0.5 text-sm text-ink-400">{priority ? `${copy.benefit} Then switch on notifications in Settings to hear about drops and events first.` : copy.benefit}</p>
+          <h2 className={cn("font-display font-semibold leading-snug text-white", lead ? "text-lg" : "text-base")}>{title}</h2>
+          <p className="mt-0.5 text-sm text-ink-400">{lead ? `${copy.benefit} Then switch on notifications in Settings to hear about drops and events first.` : copy.benefit}</p>
           {ios && (
             <p className="mt-3 text-sm leading-relaxed text-ink-300">
               <IosSteps />
             </p>
           )}
-          {(till || !ios) && (
+          {manual && (
+            <p className="mt-3 text-sm leading-relaxed text-ink-300">
+              Open your browser&apos;s menu <b className="font-semibold text-white">⋮</b> and choose <b className="font-semibold text-white">Install app</b> or{" "}
+              <b className="font-semibold text-white">Add to Home screen</b>.
+            </p>
+          )}
+          {required && <p className="mt-3 text-sm text-ink-400">Already have it? Open Herbal Holland from your home screen.</p>}
+          {(till || (!ios && !manual)) && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {!ios && (
+              {!ios && !manual && (
                 <button type="button" onClick={install} disabled={busy} className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 hover:bg-brand-400 disabled:opacity-60">
                   <Download className="h-4 w-4" aria-hidden /> Install
                 </button>
@@ -354,7 +365,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
             </div>
           )}
         </div>
-        {!till && (
+        {!till && !required && (
           <button type="button" onClick={() => dismiss(copy.dismiss)} aria-label={copy.dismissLabel} title={copy.dismissLabel} className="-mr-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
             <X className="h-5 w-5" aria-hidden />
           </button>

@@ -48,6 +48,14 @@ const CSS = `
 .zr-sign{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:28px;break-inside:avoid}
 .zr-sign div{padding-top:8px;border-top:1px solid var(--zr-ink);font-size:11px;color:var(--zr-muted)}
 .zr-foot{display:flex;justify-content:space-between;gap:16px;margin-top:22px;padding-top:12px;border-top:1px solid var(--zr-line);font-size:11px;color:var(--zr-muted)}
+@media screen and (max-width:640px){
+  .zr{padding:20px 16px;border-radius:1rem}
+  .zr-head{flex-wrap:wrap;gap:12px}.zr-title{text-align:left}
+  .zr-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .zr-grid{grid-template-columns:minmax(0,1fr)}
+  .zr-variance{padding:12px 16px}.zr-variance .zr-display{font-size:24px}
+  .zr-sign{gap:16px}.zr-foot{flex-wrap:wrap;gap:4px 16px}
+}
 @media print{
   .zr{box-shadow:none;border-radius:0;max-width:none;padding:0;color:#000}
   .zr-variance{-webkit-print-color-adjust:exact;print-color-adjust:exact}

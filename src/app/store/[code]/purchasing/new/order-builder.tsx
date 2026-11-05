@@ -171,7 +171,7 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
             <Label htmlFor="po-notes">Note to {dcName} (optional)</Label>
             <Input id="po-notes" name="notes" maxLength={500} placeholder="Delivery instructions, urgent items…" />
           </div>
-          <dl className="grid grid-cols-4 gap-4 text-sm lg:w-[28rem]">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4 lg:w-[28rem]">
             <div>
               <dt className="text-xs text-ink-500">Lines · units</dt>
               <dd className="tnum font-semibold text-ink-900">
@@ -191,7 +191,7 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
               <dd className="tnum font-display text-lg font-semibold leading-tight text-ink-950">{zar(subtotal + vat)}</dd>
             </div>
           </dl>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex">
             <SubmitButton name="intent" value="draft" variant="outline" size="lg" disabled={!chosen.length} pendingLabel="Saving…">
               Save draft
             </SubmitButton>

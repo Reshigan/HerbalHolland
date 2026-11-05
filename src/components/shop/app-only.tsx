@@ -18,7 +18,7 @@ export function AppOnlyWall() {
           <h1 className="font-display text-2xl font-semibold text-white">Herbal Holland lives in the app</h1>
           <p className="mt-2 text-ink-300">The shop, your Rewards card, drops and orders are all in the app. Install it to carry on. Adults 18+.</p>
         </div>
-        <InstallPrompt app="rewards" variant="card" priority />
+        <InstallPrompt app="rewards" variant="card" required />
         <div className="hidden items-center gap-4 rounded-2xl border border-ink-800 bg-ink-900/70 p-4 lg:flex">
           <QrCode value={`${APP_URL()}/club`} label="QR code to open Herbal Holland on your phone" className="h-28 w-28 shrink-0" />
           <p className="text-sm text-ink-300">On a computer? Scan this with your phone to install the app there.</p>
