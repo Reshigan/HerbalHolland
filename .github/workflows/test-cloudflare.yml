@@ -90,8 +90,18 @@ jobs:
           test -n "$URL"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           printf '{"SESSION_SECRET":"%s","CRON_SECRET":"%s","APP_URL":"%s"}' "$SESSION_SECRET" "$CRON_SECRET" "$URL" | npx wrangler secret bulk --config wrangler.staging.jsonc
-          for i in $(seq 1 30); do curl -sf "$URL/api/health" && break; sleep 3; done
-          curl -sf "$URL/api/health" | tee health.json | jq -e '.ok and .db == "up"'
+          # A request can fail in the seconds after a good one while the secrets' new version settles, so one good answer
+          # proves little. Five in a row do, and any bad answer is printed with its status and body.
+          good=0
+          for i in $(seq 1 60); do
+            code=$(curl -s -o health.json -w '%{http_code}' "$URL/api/health") || true
+            echo "health $code: $(head -c 300 health.json)"
+            if [ "$code" = 200 ]; then good=$((good + 1)); else good=0; fi
+            if [ "$good" = 5 ]; then break; fi
+            sleep 2
+          done
+          test "$good" = 5
+          jq -e '.ok and .db == "up"' health.json
 
       - name: The four scheduled jobs through their routes (what the Cron Triggers call)
         run: |
