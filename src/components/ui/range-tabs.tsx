@@ -9,14 +9,14 @@ export function RangeTabs({ path, current, params = {} }: { path: string; curren
     return `${path}?${p.toString()}`;
   };
   return (
-    <div className="inline-flex rounded-full border border-ink-150 bg-white p-1 shadow-card" role="tablist" aria-label="Date range">
+    <div className="grid w-full grid-cols-3 rounded-3xl border border-ink-150 bg-white p-1 shadow-card sm:inline-flex sm:w-auto sm:rounded-full" role="tablist" aria-label="Date range">
       {PRESETS.map((p) => (
         <Link
           key={p.key}
           href={qs(p.key)}
           role="tab"
           aria-selected={current === p.key}
-          className={cn("inline-flex h-9 items-center whitespace-nowrap rounded-full px-3 text-xs font-semibold transition-colors", current === p.key ? "bg-ink-900 text-white" : "text-ink-500 hover:text-ink-900")}
+          className={cn("inline-flex h-9 items-center justify-center whitespace-nowrap rounded-full px-3 text-xs font-semibold transition-colors", current === p.key ? "bg-ink-900 text-white" : "text-ink-500 hover:text-ink-900")}
         >
           {p.label}
         </Link>

@@ -102,7 +102,7 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
         </div>
       </section>
 
-      <div className="grid grid-cols-3 gap-3 rounded-2xl bg-ink-50 p-4 ring-1 ring-ink-100 print:bg-transparent print:ring-ink-200">
+      <div className="grid gap-3 rounded-2xl bg-ink-50 sm:grid-cols-3 print:grid-cols-3 p-4 ring-1 ring-ink-100 print:bg-transparent print:ring-ink-200">
         <div>
           <div className="text-xs font-semibold text-ink-500">Net sales ex VAT</div>
           <div className="tnum mt-1 font-display text-xl font-semibold text-ink-950">{zar(st.input.netSalesExVatCents)}</div>
@@ -122,8 +122,11 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
           <tr className="border-y border-ink-200 text-left text-xs text-ink-500">
             <th className="py-2.5 pr-3 font-semibold">Line</th>
             <th className="hidden py-2.5 px-3 font-semibold sm:table-cell print:table-cell">Basis</th>
-            <th className="py-2.5 px-3 text-right font-semibold">Credit</th>
-            <th className="py-2.5 pl-3 text-right font-semibold">Debit</th>
+            <th className="py-2.5 pl-3 text-right font-semibold sm:px-3 print:px-3">
+              <span className="sm:hidden print:hidden">Amount</span>
+              <span className="hidden sm:inline print:inline">Credit</span>
+            </th>
+            <th className="hidden py-2.5 pl-3 text-right font-semibold sm:table-cell print:table-cell">Debit</th>
           </tr>
         </thead>
         <tbody>
@@ -139,10 +142,10 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
                 <span className="block text-xs font-normal text-ink-500 sm:hidden print:hidden">{l.detail}</span>
               </td>
               <td className="hidden py-2 px-3 text-ink-600 sm:table-cell print:table-cell">{l.detail}</td>
-              <td className="py-2 px-3 text-right text-leaf-700">
+              <td className="py-2 pl-3 text-right text-leaf-700 sm:px-3 print:px-3">
                 <Amount cents={l.cents} />
               </td>
-              <td className="py-2 pl-3 text-right text-ink-500">—</td>
+              <td className="hidden py-2 pl-3 text-right text-ink-500 sm:table-cell print:table-cell">—</td>
             </tr>
           ))}
           <tr>
@@ -157,13 +160,22 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
                 <span className="block text-xs font-normal text-ink-500 sm:hidden print:hidden">{l.detail}</span>
               </td>
               <td className="hidden py-2 px-3 text-ink-600 sm:table-cell print:table-cell">{l.detail}</td>
-              <td className="py-2 px-3 text-right text-ink-500">—</td>
+              <td className="hidden py-2 px-3 text-right text-ink-500 sm:table-cell print:table-cell">—</td>
               <td className="py-2 pl-3 text-right text-ink-900">
                 <Amount cents={l.cents} sign="−" />
               </td>
             </tr>
           ))}
-          <tr className="border-t-2 border-ink-900 font-semibold text-ink-950">
+          {/* A phone has one amount column, so the two totals take a row each. */}
+          <tr className="border-t-2 border-ink-900 font-semibold text-ink-950 sm:hidden print:hidden">
+            <td className="pt-3 pb-1 pr-3">Total credits</td>
+            <td className="tnum whitespace-nowrap pt-3 pb-1 pl-3 text-right">{zar(st.credits)}</td>
+          </tr>
+          <tr className="font-semibold text-ink-950 sm:hidden print:hidden">
+            <td className="pt-1 pb-3 pr-3">Total debits</td>
+            <td className="tnum whitespace-nowrap pt-1 pb-3 pl-3 text-right">−{zar(st.debits)}</td>
+          </tr>
+          <tr className="hidden border-t-2 border-ink-900 font-semibold text-ink-950 sm:table-row print:table-row">
             <td className="py-3 pr-3" colSpan={2}>
               Totals
             </td>

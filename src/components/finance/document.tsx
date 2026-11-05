@@ -15,7 +15,7 @@ export function DocumentPrintStyles({ paper = "A4" }: { paper?: "A4" | "receipt"
 /** The white sheet a document is printed on: A4 proportions on screen, edge to edge on paper. */
 export function Sheet({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) {
   return (
-    <article className={cn("doc-sheet mx-auto max-w-[210mm] rounded-2xl bg-white p-8 text-ink-850 shadow-card ring-1 ring-ink-150 sm:p-12", className)} {...props}>
+    <article className={cn("doc-sheet mx-auto max-w-[210mm] rounded-2xl bg-white p-5 text-ink-850 shadow-card ring-1 ring-ink-150 sm:p-12", className)} {...props}>
       {children}
     </article>
   );

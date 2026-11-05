@@ -74,7 +74,7 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
         </div>
       </section>
 
-      <div className="grid grid-cols-3 gap-3 rounded-2xl bg-ink-50 p-4 ring-1 ring-ink-100 print:bg-transparent print:ring-ink-200">
+      <div className="grid gap-3 rounded-2xl bg-ink-50 sm:grid-cols-3 print:grid-cols-3 p-4 ring-1 ring-ink-100 print:bg-transparent print:ring-ink-200">
         <div>
           <div className="text-xs font-semibold text-ink-500">Opening balance</div>
           <div className="tnum mt-1 font-display text-xl font-semibold text-ink-950" data-testid="st-opening">{zar(st.opening)}</div>
@@ -89,7 +89,8 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
         </div>
       </div>
 
-      <table className="mt-6 w-full border-collapse text-sm">
+      <div className="mt-6 overflow-x-auto print:overflow-visible">
+      <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-y border-ink-200 text-left text-xs text-ink-500">
             <th scope="col" className="py-2.5 pr-3 font-semibold">Date</th>
@@ -147,6 +148,7 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
           </tr>
         </tbody>
       </table>
+      </div>
 
       <section className="mt-8 text-sm">
         <DocLabel>Age analysis at {fmtDate(st.asAt < st.to ? st.asAt : new Date(st.to.getTime() - 1))}</DocLabel>

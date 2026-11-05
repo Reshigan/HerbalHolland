@@ -10,7 +10,7 @@ export function Donut({ data, format = "zar", centerLabel, layout = "stack", cla
   const R = 52, C = 2 * Math.PI * R, gap = items.length > 1 ? 2.5 : 0;
   let offset = 0;
   return (
-    <ChartFrame className={`flex items-center gap-5 ${layout === "row" ? "flex-row" : "flex-col"} ${className ?? ""}`}>
+    <ChartFrame className={`flex items-center gap-5 ${layout === "row" ? "flex-row flex-wrap justify-center" : "flex-col"} ${className ?? ""}`}>
       <svg viewBox="0 0 140 140" className="h-40 w-40 shrink-0 -rotate-90" role="img" aria-label="Share breakdown">
         <circle cx={70} cy={70} r={R} fill="none" stroke="var(--color-ink-100)" strokeWidth={16} />
         {items.map((d) => {
@@ -38,7 +38,7 @@ export function Donut({ data, format = "zar", centerLabel, layout = "stack", cla
           </text>
         )}
       </svg>
-      <ul className={`min-w-0 space-y-1.5 text-sm ${layout === "row" ? "flex-1" : "w-full"}`}>
+      <ul className={`min-w-0 space-y-1.5 text-sm ${layout === "row" ? "flex-1 basis-56" : "w-full"}`}>
         {items.map((d) => (
           <li key={d.label} className="flex items-center justify-between gap-3" data-tip={`${d.label}\n${fmtValue(d.value, format)}`}>
             <span className="inline-flex min-w-0 items-center gap-2 text-ink-700">
