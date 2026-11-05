@@ -50,7 +50,7 @@ export function AreaChart({
           </g>
         ))}
         {labels.map((l, i) =>
-          i % every === 0 || i === n - 1 ? (
+          (i % every === 0 && x(n - 1) - x(i) >= 56) || i === n - 1 ? (
             <text key={i} x={x(i)} y={H - 8} textAnchor={i === 0 ? "start" : i === n - 1 ? "end" : "middle"} fontSize={11} fill="var(--color-ink-400)">
               {l}
             </text>

@@ -1,4 +1,5 @@
 // Hour × weekday heatmap on a single-hue (orange) sequential ramp.
+import { cn } from "@/lib/cn";
 import { ChartFrame } from "./chart-frame";
 import { fmtValue, type ValueFormat } from "./format";
 
@@ -14,7 +15,7 @@ export function Heatmap({ cells, hours, format = "number", className }: { cells:
       <div className="grid gap-[3px]" style={{ gridTemplateColumns: `2.5rem repeat(${hours.length}, minmax(0, 1fr))` }}>
         <span />
         {hours.map((h) => (
-          <span key={h} className="tnum text-center text-[0.65rem] text-ink-500">
+          <span key={h} className={cn("tnum text-center text-[0.65rem] text-ink-500", h % 3 !== 0 && "invisible sm:visible")}>
             {String(h).padStart(2, "0")}
           </span>
         ))}
