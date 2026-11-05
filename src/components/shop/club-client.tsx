@@ -21,7 +21,8 @@ const OWNER_TABS = [
 ];
 
 /**
- * Rewards section nav: tabs on larger screens, an app-style bottom bar on phones. On larger screens one underline
+ * Rewards section nav: tabs on larger screens, an app-style bottom bar on phones. Eight tabs don't fit below lg, and
+ * the owner's two would sit past the scroll edge, so there they get a row of their own. On larger screens one underline
  * slides between the tabs (a 1px bar, moved and stretched with a transform only); until it has been measured, and
  * without html.motion, each tab underlines itself.
  */
@@ -43,7 +44,7 @@ export function ClubNav({ owner = false }: { owner?: boolean }) {
     <>
       <nav ref={bar} aria-label="Rewards" data-slide={slide ? "" : undefined} className="scrollbar-none group/nav relative -mx-4 hidden gap-1 overflow-x-auto border-b border-ink-850 px-4 app:flex sm:mx-0 sm:flex sm:px-0">
         {(owner ? [...TABS, ...OWNER_TABS] : TABS).map((t) => (
-          <Link key={t.href} href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors", active(t.href) ? "border-brand-500 text-white group-data-[slide]/nav:border-transparent" : "border-transparent text-ink-400 hover:text-white")}>
+          <Link key={t.href} href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors", OWNER_TABS.includes(t) && "max-lg:hidden", active(t.href) ? "border-brand-500 text-white group-data-[slide]/nav:border-transparent" : "border-transparent text-ink-400 hover:text-white")}>
             <t.icon className="h-4 w-4" /> {t.label}
           </Link>
         ))}
@@ -60,6 +61,15 @@ export function ClubNav({ owner = false }: { owner?: boolean }) {
           ))}
         </ul>
       </nav>
+      {owner && (
+        <div className="mt-4 grid grid-cols-2 gap-2 lg:hidden">
+          {OWNER_TABS.map((t) => (
+            <Link key={t.href} href={t.href} className="flex h-12 items-center justify-center gap-2 rounded-xl border border-ink-800 bg-ink-900 text-sm font-medium text-ink-100 transition-colors hover:text-white">
+              <t.icon className="h-4 w-4 text-brand-400" aria-hidden /> {t.label}
+            </Link>
+          ))}
+        </div>
+      )}
     </>
   );
 }
