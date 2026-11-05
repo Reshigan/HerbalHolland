@@ -68,7 +68,10 @@ jobs:
       - name: Start the Worker (wrangler dev with the local D1 and R2, secrets from .dev.vars)
         run: |
           printf 'SESSION_SECRET=%s\nDEMO_MODE=%s\nAPP_URL=%s\nCRON_SECRET=%s\nMESSAGING_PROVIDER=log\nAPP_ONLY=false\n' "$SESSION_SECRET" "$DEMO_MODE" "$APP_URL" "$CRON_SECRET" > .dev.vars
-          (npx wrangler dev --port 3000 --ip 127.0.0.1 > server.log 2>&1 &)
+          # --local-upstream: without it the Worker sees the route in wrangler.jsonc as its origin, so the redirect after a
+          # server action is fetched from production. Its build id differs, so the browser does a full page load instead of
+          # a soft navigation, and a click that lands before hydration submits a plain GET and the action is lost.
+          (npx wrangler dev --port 3000 --ip 127.0.0.1 --local-upstream 127.0.0.1:3000 > server.log 2>&1 &)
           for i in $(seq 1 90); do curl -sf http://127.0.0.1:3000/api/health && break; sleep 2; done
       - run: node e2e/checkout.mjs test-results/e2e-checkout
         env:
