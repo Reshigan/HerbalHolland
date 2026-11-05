@@ -12,6 +12,7 @@ import { timingSafeEqual } from "node:crypto";
 import { sha256 } from "@/server/crypto";
 import { JOBS, runJob } from "@/server/jobs";
 import { db } from "@/server/db";
+import { reportFailure } from "@/server/alerts";
 
 // The lease is held for the whole run, so it must outlast the longest job: daily, whose books step may post for eight
 // minutes on a catch-up night (ledgerNightly; a Cron Trigger's run ends within fifteen). A run that dies without
@@ -29,13 +30,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ job: st
   // JobRun row (D1 has no advisory locks): one statement takes it when the last run finished (okAt or failedAt after
   // startedAt, which runJob writes) or started more than LOCK_TIMEOUT ago, so a crashed run never holds it for good.
   const now = new Date();
-  const taken = await db.$executeRaw`
-    INSERT INTO "JobRun" (job, "startedAt") VALUES (${job}, ${now})
-    ON CONFLICT (job) DO UPDATE SET "startedAt" = excluded."startedAt"
-    WHERE "JobRun"."startedAt" IS NULL OR "JobRun"."okAt" >= "JobRun"."startedAt" OR "JobRun"."failedAt" >= "JobRun"."startedAt"
-      OR "JobRun"."startedAt" < ${new Date(now.getTime() - LOCK_TIMEOUT)}`;
-  const out = taken ? { ran: true as const, ...(await runJob(job)) } : { ran: false as const };
-  if (!out.ran) return NextResponse.json({ skipped: "already running" });
-  if (out.failed.length) return NextResponse.json({ ...out.result, failed: out.failed }, { status: 500 });
-  return NextResponse.json(out.result);
+  try {
+    const taken = await db.$executeRaw`
+      INSERT INTO "JobRun" (job, "startedAt") VALUES (${job}, ${now})
+      ON CONFLICT (job) DO UPDATE SET "startedAt" = excluded."startedAt"
+      WHERE "JobRun"."startedAt" IS NULL OR "JobRun"."okAt" >= "JobRun"."startedAt" OR "JobRun"."failedAt" >= "JobRun"."startedAt"
+        OR "JobRun"."startedAt" < ${new Date(now.getTime() - LOCK_TIMEOUT)}`;
+    const out = taken ? { ran: true as const, ...(await runJob(job)) } : { ran: false as const };
+    if (!out.ran) return NextResponse.json({ skipped: "already running" });
+    if (out.failed.length) return NextResponse.json({ ...out.result, failed: out.failed }, { status: 500 });
+    return NextResponse.json(out.result);
+  } catch (e) {
+    // The run itself never started or never finished. Named here because a thrown route answers 500 with an empty body,
+    // which is all the scheduler's log and the staging run could show. `error` is what the staging run retries once on.
+    await reportFailure(e, `cron ${job}`);
+    return NextResponse.json({ error: String((e as Error)?.message ?? e).slice(0, 300) }, { status: 500 });
+  }
 }

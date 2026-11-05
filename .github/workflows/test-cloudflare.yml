@@ -96,8 +96,13 @@ jobs:
       - name: The four scheduled jobs through their routes (what the Cron Triggers call)
         run: |
           for job in frequent staff-push daily operations; do
-            code=$(curl -s -o "cron-$job.json" -w '%{http_code}' -X POST "$URL/api/cron/$job" -H "Authorization: Bearer $CRON_SECRET")
-            echo "$job → $code: $(head -c 300 "cron-$job.json")"
+            for try in 1 2; do
+              code=$(curl -s -o "cron-$job.json" -w '%{http_code}' -X POST "$URL/api/cron/$job" -H "Authorization: Bearer $CRON_SECRET")
+              echo "$job → $code: $(head -c 300 "cron-$job.json")"
+              # A run that could not start says so in `error`, and gets one more go. A step that failed (`failed`) does not.
+              test "$code" = 500 && test "$try" = 1 && jq -e .error "cron-$job.json" > /dev/null || break
+              sleep 20
+            done
             test "$code" = 200
           done
         env:
