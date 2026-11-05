@@ -93,6 +93,15 @@ describe("A scheduled job", () => {
     const ok = await call("frequent");
     expect(ok.status).toBe(200);
     expect(await ok.json()).toMatchObject({ campaigns: 0, ledger: { posted: expect.any(Number) } });
+    // A run that can't start names why, where an uncaught throw would answer an empty 500.
+    await db.$executeRawUnsafe(`ALTER TABLE "JobRun" RENAME TO "JobRunGone"`);
+    try {
+      const r = await call("frequent");
+      expect(r.status).toBe(500);
+      expect(((await r.json()) as { error: string }).error).toMatch(/JobRun/);
+    } finally {
+      await db.$executeRawUnsafe(`ALTER TABLE "JobRunGone" RENAME TO "JobRun"`);
+    }
     vi.unstubAllEnvs();
   });
 
