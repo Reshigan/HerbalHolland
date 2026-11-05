@@ -99,7 +99,7 @@ export default async function FranchiseLeadsPage({ searchParams }: { searchParam
               <Th className="hidden lg:table-cell">{CAPITAL_LABEL}</Th>
               <Th className="hidden lg:table-cell">Pharmacist</Th>
               <Th className="hidden sm:table-cell">Status</Th>
-              <Th className="hidden md:table-cell">Owner</Th>
+              <Th className="hidden lg:table-cell">Owner</Th>
             </tr>
           </thead>
           <tbody>
@@ -144,7 +144,7 @@ export default async function FranchiseLeadsPage({ searchParams }: { searchParam
                 <Td className="hidden whitespace-nowrap sm:table-cell">
                   <LeadStatusBadge status={l.status} />
                 </Td>
-                <Td className="hidden whitespace-nowrap md:table-cell">{l.ownerId ? <span className="text-ink-800">{owners.get(l.ownerId) ?? "Former staff member"}</span> : <span className="text-ink-500">Unassigned</span>}</Td>
+                <Td className="hidden whitespace-nowrap lg:table-cell">{l.ownerId ? <span className="text-ink-800">{owners.get(l.ownerId) ?? "Former staff member"}</span> : <span className="text-ink-500">Unassigned</span>}</Td>
               </Tr>
             ))}
           </tbody>
