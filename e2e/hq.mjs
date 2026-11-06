@@ -56,7 +56,7 @@ async function until(fn, ms = 20_000, every = 150) {
 /** Success/info notices (and flashes after a redirect) are role=status; errors and field errors are role=alert. */
 const notice = (text, p = page) => p.getByRole("status").filter({ hasText: text }).first();
 const alertIn = (scope, text) => scope.getByRole("alert").filter({ hasText: text }).first();
-/** Client forms only handle a submit once React has hydrated them (before that the browser would submit natively). */
+/** Client forms keep their values and field errors only once React has hydrated them (before that a submit is a page post). */
 async function hydrated(locator, p = page) {
   const el = locator.first();
   await el.waitFor();
@@ -693,6 +693,18 @@ try {
   await act("promotions.setPromotionActive (resume)", () => headerOf().getByRole("button", { name: "Resume" }).click(), () => notice("Promotion resumed.").waitFor());
   assert((await one(`select active from "Promotion" where id = $1`, [promo.id])).active === true, "resumed");
   await shot("promotion");
+
+  // A tap before hydration must still run the action, as a normal form post. JavaScript off stands in for that gap.
+  const earlyCtx = await browser.newContext({ javaScriptEnabled: false, storageState: await ctx.storageState() });
+  const early = await earlyCtx.newPage();
+  await early.goto(page.url());
+  await early.locator("h1").first().locator("xpath=../..").getByRole("button", { name: "Pause" }).click();
+  await early.getByRole("status").filter({ hasText: "Promotion paused." }).first().waitFor();
+  await earlyCtx.close();
+  assert((await one(`select active from "Promotion" where id = $1`, [promo.id])).active === false, "a tap before hydration ran the action");
+  await page.reload();
+  await hydrated(headerOf().getByRole("button", { name: "Resume" }));
+  await act("promotions.setPromotionActive (resume again)", () => headerOf().getByRole("button", { name: "Resume" }).click(), () => notice("Promotion resumed.").waitFor());
 
   // ── Drops ─────────────────────────────────────────────────────────────────
   step("Drops: schedule a drop of the test variant a year out (validation first), edit it, delete it");

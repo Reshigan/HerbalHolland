@@ -1,8 +1,10 @@
 "use client";
 // Server-action forms for the store back office, the HQ console and the books: inline success/error notices, field
 // errors, pending state and a deliberate second step for destructive actions.
-// Submits through a transition (not the form `action` prop) so React doesn't wipe the
-// fields when validation fails.
+// Submits through a transition, not the form `action` prop, so React doesn't wipe the fields when validation fails.
+// The prop is still set for the gap before hydration: a tap then posts the form to the server action as a normal page
+// request, where it would otherwise be a plain GET and the action would never run. Once hydrated, onSubmit prevents
+// that default, so React skips the prop.
 import { createContext, useActionState, useContext, useEffect, useRef, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,7 @@ export function ActionForm({
         aria-label={ariaLabel}
         className={className}
         aria-busy={pending}
+        action={run}
         onSubmit={(e) => {
           e.preventDefault();
           const fd = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
