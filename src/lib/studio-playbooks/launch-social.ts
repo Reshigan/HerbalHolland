@@ -1,11 +1,13 @@
-// The Founding Members social drive: six weeks on social, from the day the list opens (with the online shop) to the
-// night it closes, built to fill the list. One feed post a day, five a week; three short videos a week (Reels and
-// TikToks, each with its script in the brief: the hook line, three beats and the end card); a Story every day, by
+// The Founding Members social drive: the last five weeks of the list on social, up to the night it closes, built to
+// fill it. One feed post a day, five a week at most; up to three short videos a week (Reels and TikToks, each with its
+// script in the brief: the hook line, three beats and the end card); a Story every day, by
 // hand (the rota below, LAUNCH_SOCIAL_STORIES, since Stories can't be posted by API). The sequence: the hook (the
 // number 2,026), then proof (members only, licensed, the people), the mechanism (join in 20 seconds; a friend
 // moves you up 250 places), urgency (the closing date) and social proof (the milestones). Laid out for a store: the
 // shared posts go out once, naming every town, and each town's own posts (Fridays, 19:00) follow a week later for the
-// second town, so Hillcrest and Hilton each get their moment and the feed still keeps to five a week.
+// second town, so Hillcrest and Hilton each get their moment and the feed still keeps to five a week. The list closes
+// on a Thursday, New Year's Eve, so the last two weeks are thinner: Christmas Day and the Day of Goodwill take a Friday
+// and a Saturday, and nothing goes out on them.
 //
 // The four milestone posts (500, 1,000, 1,500 and 2,026 members) are placeholders on the calendar: they carry
 // `milestone`, and they start as "post by hand" and HQ posts each the day HQ → Founding Members shows that count.
@@ -27,7 +29,7 @@ export const LAUNCH_SOCIAL_HASHTAGS = {
   facebook: [] as string[],
 } as const;
 
-/** A Story a day, by hand, Monday to Sunday, for the six weeks: short, vertical, gone in a day. */
+/** A Story a day, by hand, Monday to Sunday, for the drive: short, vertical, gone in a day. */
 export const LAUNCH_SOCIAL_STORIES = [
   "Monday: the places taken so far, as a number on the orange frame (from HQ → Founding Members), and the link sticker to join.",
   "Tuesday: a member advisor answers one question in 15 seconds (what a Founding Member gets, how the numbered card works, how to move up).",
@@ -47,14 +49,14 @@ export const LAUNCH_SOCIAL: Playbook[] = [
   {
     key: "founding-social",
     name: "Founding Members: the social drive",
-    blurb: "Six weeks on social to fill the Founding Members list, from the day it opens to the night it closes: one post a day, three Reels a week with their scripts, a Story a day by hand, and the milestones (500, 1,000, 1,500 and 2,026) posted by hand as the list reaches them. Shared posts once for every town; each town's own Fridays a week apart.",
+    blurb: "The last five weeks of the Founding Members list on social, up to the night it closes: one post a day at most, up to three Reels a week with their scripts, a Story a day by hand, and the milestones (500, 1,000, 1,500 and 2,026) posted by hand as the list reaches them. Shared posts once for every town; each town's own Fridays a week apart.",
     store: true,
     anchor: "The list closes at midnight",
-    weekday: 0,
-    why: "the list closes at midnight on a Sunday, six weeks after it opens with the online shop on a Tuesday",
+    weekday: 4,
+    why: "the list closes at midnight on New Year's Eve, a Thursday, and its posts keep to their weekday slots around the holidays",
     items: [
       // ── Week 1: the hook. The number. ──
-      post("hook", -40, T.morning, {
+      post("hook", -37, T.morning, {
         shared: true,
         text: paras(
           "Sawubona. 2,026 places. That's the whole list.",
@@ -65,7 +67,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "countdown", eyebrow: "Founding Members", headline: "2,026", sub: "places on the list. Free to join, for adults 18+. Closes at midnight on {date}." },
         brief: "Card as it is, posted at 07:00. Story the same day: the number 2,026 on the orange frame, then the link sticker to join.",
       }),
-      video("why-2026", -38, T.midday, "Why 2,026?", {
+      video("why-2026", -35, T.midday, "Why 2,026?", {
         shared: true,
         text: paras(
           "Why 2,026? Because it's the year we open, and because a number you can count is a number you can feel. The first 2,026 members get a numbered card, 0001 to 2026, and once those places are taken, there are no more.",
@@ -75,7 +77,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "countdown", eyebrow: "Founding Members", headline: "Cards 0001 to 2026", sub: "Numbered cards for the first 2,026 members. Then there are no more." },
         brief: "Reel/TikTok, 20 seconds, vertical. Hook (0–3 s): '2,026. Why that number?' over the windmill mark turning. Beat 1: 'It's the year we open' as the year appears on the orange frame. Beat 2: 'The first 2,026 members get a numbered card' as a card counts up from 0001. Beat 3: 'Once the places are taken, there are no more' as the counter stops at 2026. End card: 'Join free in 20 seconds. Link in bio. Adults 18+.' Brand artwork only, no people, no products. Story the same day: the counter clip with the link sticker.",
       }),
-      video("town-hello", -37, T.evening, "{town}, howzit.", {
+      video("town-hello", -34, T.evening, "{town}, howzit.", {
         text: paras(
           "{town}, howzit. The windmill is coming to your hills, and the first 2,026 places on the Founding Members list are open now, wherever in South Africa you are.",
           `${JOIN} #HerbalHolland #HollandMeetsTheHills #KZN`,
@@ -83,18 +85,18 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "reveal", eyebrow: "Holland, meet the Hills", headline: "{town}, howzit.", sub: "The windmill is coming to your hills. 2,026 Founding places are open." },
         brief: "Reel/TikTok, 20–30 seconds, vertical, shot in {town}. Hook (0–3 s): '{town}, howzit' over the drive in at golden hour. Beat 1: the view (Hillcrest: Botha's Hill and the Valley of a Thousand Hills; Hilton: the Midlands mist lifting off the village green). Beat 2: the shopfront under its wrap, the orange frame just showing. Beat 3: the windmill mark turning over the ridge line. End card: '2,026 Founding places. Join free in 20 seconds. Adults 18+.' No people in shot, or adults over 25 with signed releases. Story the same day: a still from the view with the link sticker.",
       }),
-      post("numbered-card", -36, T.saturday, {
+      post("numbered-card", -33, T.saturday, {
         shared: true,
         text: paras(
           "Your number, your card.",
           "Join Herbal Holland Rewards and you have a place on the Founding Members list, in the order you joined. When the list closes at midnight on {date}, the first 2,026 places become Founding Members, each with a numbered card in the Rewards app. Your place is in the app from the moment you join.",
           `${JOIN} #HerbalHolland`,
         ),
-        short: "Your number, your card. Join Herbal Holland Rewards and you have a place on the Founding Members list, in the order you joined. The first 2,026 places get a numbered card when the list closes on {date}. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
+        short: "Your number, your card. Join Rewards and you have a place on the Founding Members list, in the order you joined. The first 2,026 places get a numbered card when the list closes on {date}. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
         card: { template: "headline", eyebrow: "Founding Members", headline: "Your number, your card.", sub: "A place on the list the moment you join, in the order you joined." },
         brief: "Card as it is, Saturday 09:00. Story the same day: the Founding place in the Rewards app, a screen recording with demo details.",
       }),
-      video("turning", -35, T.sundayEvening, "Something's turning in the hills.", {
+      video("turning", -32, T.sundayEvening, "Something's turning in the hills.", {
         shared: true,
         text: paras(
           "Something's turning in the hills. A Dutch windmill, drawn from our first window poster, and the hills of KwaZulu-Natal: that's where we come from and where we're going. Our stores in {towns} open their doors soon, and the Founding Members list is open now.",
@@ -106,7 +108,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
       }),
 
       // ── Week 2: proof. Members only, licensed, the people. ──
-      post("lab-tested", -34, T.morning, {
+      post("lab-tested", -31, T.morning, {
         shared: true,
         text: paras(
           "What you're joining.",
@@ -117,7 +119,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "promise", eyebrow: "What you're joining", headline: "Members only. Plain English.", lines: ["Free to join, for adults 18+", "Licensed stores, ID at the door and the till", "A team that knows the shelf", "Plain English, no hype"] },
         brief: "Card as it is, Monday 07:00. Story the same day: a member advisor shows the Rewards card on a phone, 15 seconds, and the link sticker.",
       }),
-      video("the-people", -33, T.evening, "The people behind the windmill.", {
+      video("the-people", -30, T.evening, "The people behind the windmill.", {
         shared: true,
         text: paras(
           "The people behind the windmill. Member advisors from the Upper Highway and the Midlands, who'll check your ID, show you around and answer your questions in plain English. They're the reason we say welkom and mean it.",
@@ -127,7 +129,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "headline", eyebrow: "The team", headline: "The people behind the windmill.", sub: "From the Upper Highway and the Midlands. Welkom, and we mean it." },
         brief: "Reel/TikTok, 30 seconds, vertical. Hook (0–3 s): three faces, one after another, each saying 'Sawubona' or 'Howzit' to camera. Beat 1: each names their town (Kloof, Howick, Pinetown, wherever they live). Beat 2: each says one thing they'll do for a member: check your ID, show you around, answer a plain question. Beat 3: the team together in the orange frame. End card: 'Join free in 20 seconds. Adults 18+.' Adults over 25 only, signed releases, no products in shot. Story the same day: one advisor's 'Sawubona' clip with the link sticker.",
       }),
-      video("licensed", -31, T.midday, "What licensed means.", {
+      video("licensed", -28, T.midday, "What licensed means.", {
         shared: true,
         text: paras(
           "What licensed means. Our stores hold their licences and show them on the wall. We check your ID when you join and at the door and the till, every time, because we're for adults 18+. The first 2,026 members hold a numbered card to that promise.",
@@ -137,7 +139,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "headline", eyebrow: "Learn", headline: "What licensed means.", sub: "Licences on the wall. ID when you join, at the door and the till." },
         brief: "Reel/TikTok, 25 seconds, vertical, talking head with cutaways. Hook (0–3 s): 'What does licensed actually mean?' Beat 1: the licence frame going up on the wall. Beat 2: an ID being checked at the door and at the till (hands only, demo card). Beat 3: the Rewards card on a phone at the till. End card: '2,026 Founding places. Join free in 20 seconds. Adults 18+.' No products in shot. Story the same day: the ID-check clip, 10 seconds, and the link sticker.",
       }),
-      post("milestone-500", -29, T.saturday, {
+      post("milestone-500", -26, T.saturday, {
         shared: true, milestone: 500,
         text: paras(
           "The first 500 are in. Siyabonga.",
@@ -150,7 +152,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
       }),
 
       // ── Week 3: the mechanism. 20 seconds to join; a friend moves you up 250 places. ──
-      post("twenty-seconds", -27, T.morning, {
+      post("twenty-seconds", -24, T.morning, {
         shared: true,
         text: paras(
           "Join in 20 seconds.",
@@ -161,7 +163,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "promise", eyebrow: "Founding Members", headline: "Join in 20 seconds.", lines: ["Open the link in bio", "Your name, mobile and date of birth", "Accept the membership terms", "Your place on the list is yours", "Free, for adults 18+"] },
         brief: "Card as it is, Monday 07:00. Story the same day: a stopwatch over a screen recording of the join, demo details, 20 seconds flat, and the link sticker.",
       }),
-      video("move-up-250", -26, T.evening, "Your friend moves you up 250 places.", {
+      video("move-up-250", -23, T.evening, "Your friend moves you up 250 places.", {
         shared: true,
         text: paras(
           "Your friend moves you up 250 places. Share your link from the Rewards app, and every friend who joins with it moves you up 250 places on the Founding Members list. Three friends, 750 places. You both get 50 points on their first purchase, and joining is free for adults 18+.",
@@ -171,7 +173,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "headline", eyebrow: "Founding Members", headline: "Your friend moves you up 250 places.", sub: "Share your link from the Rewards app. Three friends, 750 places." },
         brief: "Reel/TikTok, 20 seconds, vertical, a phone screen recording with hands only. Hook (0–3 s): 'Your friend moves you up 250 places.' Beat 1: the Founding place in the Rewards app (demo details, place 1,340). Beat 2: tap Share, send the link on WhatsApp. Beat 3: the place jumps to 1,090 as the friend joins. End card: 'Join free in 20 seconds. Adults 18+.' Adult over 25, signed release. Story the same day: the jump clip and the link sticker.",
       }),
-      video("the-list", -24, T.midday, "The list, in 30 seconds.", {
+      video("the-list", -21, T.midday, "The list, in 30 seconds.", {
         shared: true,
         text: paras(
           "The list, in 30 seconds. Join free and you have a place, in the order you joined. Your link moves you up 250 places for every friend who joins. At midnight on {date} the list closes, and the first 2,026 places become Founding Members: a numbered card, and at least Sprout tier for 14 months.",
@@ -181,16 +183,16 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "promise", eyebrow: "Founding Members", headline: "The list, simply.", lines: ["Join free: a place, in the order you joined", "Your link: 250 places up per friend", "Closes at midnight on {date}", "The first 2,026: a numbered card", "At least Sprout tier for 14 months"] },
         brief: "Reel/TikTok, 30 seconds, vertical, a member advisor to camera with on-screen text. Hook (0–3 s): 'The Founding Members list, in 30 seconds.' Beat 1: 'Join free, you have a place.' Beat 2: 'Your link moves you up 250 a friend.' Beat 3: 'At midnight on {date} the first 2,026 become Founding Members.' End card: 'Join free in 20 seconds. Adults 18+.' Adult over 25, signed release. Story the same day: the three lines as text stickers with the link sticker.",
       }),
-      video("town-advisors", -23, T.evening, "{town}, meet your member advisors.", {
+      video("town-advisors", -20, T.evening, "{town}, meet your member advisors.", {
         text: paras(
-          "{town}, meet your member advisors: the people who'll say sawubona at the door, check your ID and show you around when we open. Ask them anything about the Founding Members list in the comments.",
+          "{town}, meet your member advisors: the people who say sawubona at the door, check your ID and show you around. Ask them anything about the Founding Members list in the comments.",
           `${JOIN} #HerbalHolland #HollandMeetsTheHills`,
         ),
-        short: "{town}, meet your member advisors: the people who'll say sawubona at the door, check your ID and show you around when we open. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "The team", headline: "{town}, meet your member advisors.", sub: "The people who'll say sawubona at the door." },
-        brief: "Reel/TikTok, 30 seconds, vertical, shot in {town}. Hook (0–3 s): '{town}, meet your member advisors' as they walk into frame outside the store. Beat 1: each says their name and where they're from. Beat 2: each says the first thing they'll say to a member at the door. Beat 3: one shows the Founding place in the Rewards app and says 'Your link moves you up 250 places.' End card: 'Join free in 20 seconds. Adults 18+.' Adults over 25, signed releases, no products in shot. Story the same day: one advisor's 15-second hello with the link sticker.",
+        short: "{town}, meet your member advisors: the people who say sawubona at the door, check your ID and show you around. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "The team", headline: "{town}, meet your member advisors.", sub: "The people who say sawubona at the door." },
+        brief: "Reel/TikTok, 30 seconds, vertical, shot in {town}. Hook (0–3 s): '{town}, meet your member advisors' as they walk into frame outside the store. Beat 1: each says their name and where they're from. Beat 2: each says the first thing they say to a member at the door. Beat 3: one shows the Founding place in the Rewards app and says 'Your link moves you up 250 places.' End card: 'Join free in 20 seconds. Adults 18+.' Adults over 25, signed releases, no products in shot. Story the same day: one advisor's 15-second hello with the link sticker.",
       }),
-      post("family-group", -22, T.saturday, {
+      post("family-group", -19, T.saturday, {
         shared: true,
         text: paras(
           "Drop your link in the family group.",
@@ -203,7 +205,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
       }),
 
       // ── Week 4: urgency. The closing date, and what you'd miss. ──
-      post("closing-date", -20, T.morning, {
+      post("closing-date", -17, T.morning, {
         shared: true,
         text: paras(
           "The Founding Members list closes at midnight on {date}.",
@@ -214,7 +216,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "countdown", eyebrow: "Founding Members", headline: "Closes at midnight, {date}.", sub: "The first 2,026 places. Free to join, for adults 18+." },
         brief: "Card as it is, Monday 07:00. Story the same day: the countdown sticker to {date} and the link sticker.",
       }),
-      video("what-you-get", -19, T.evening, "What a Founding Member gets.", {
+      video("what-you-get", -16, T.evening, "What a Founding Member gets.", {
         shared: true,
         text: paras(
           "What a Founding Member gets. A numbered card in the Rewards app. At least Sprout tier for 14 months, with Sprout-tier savings on eligible items. Early access to selected drops. And an invitation to a Founding Members' Evening every December, in {towns}. The list closes at midnight on {date}.",
@@ -224,17 +226,18 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "promise", eyebrow: "Founding Members", headline: "What a Founding Member gets.", lines: ["A numbered card in the Rewards app", "At least Sprout tier for 14 months", "Sprout-tier savings on eligible items", "Early access to selected drops", "A Founding Members' Evening every December"] },
         brief: "Reel/TikTok, 20 seconds, vertical. Hook (0–3 s): 'Four things a Founding Member gets.' Beat 1: the numbered card flips over in the Rewards app. Beat 2: 'Sprout tier for 14 months' on the orange frame. Beat 3: the Founding Members' Evening: the store at dusk, coffee and rooibos on the counter, people over 25 (signed releases). End card: 'Closes at midnight on {date}. Join free in 20 seconds. Adults 18+.' No products in shot. Story the same day: the card flip and the link sticker.",
       }),
-      video("summer", -17, T.midday, "Summer in the hills.", {
-        shared: true,
+      post("two-weeks", -14, T.morning, {
+        shared: true, pinned: true,
         text: paras(
-          "Summer in the hills. Jacarandas over Pietermaritzburg, the mist burning off the Midlands by nine, the afternoon storm rolling up the Valley of a Thousand Hills and the smell of rain on the Upper Highway. The windmill opens its doors in {towns} this summer, and the Founding Members list closes at midnight on {date}.",
-          `${JOIN} #HollandMeetsTheHills #HerbalHolland #KZN`,
+          "Two weeks to go: the Founding Members list closes at midnight on {date}.",
+          "Join free and you're on it. The first 2,026 places get a numbered card and at least Sprout tier for 14 months. Your link moves you up 250 places for every friend who joins.",
+          `${JOIN} #HerbalHolland`,
         ),
-        short: "Summer in the hills: jacarandas, Midlands mist, the afternoon storm up the Valley of a Thousand Hills. The windmill opens this summer, and the Founding Members list closes on {date}. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "reveal", eyebrow: "Summer in KZN", headline: "Summer in the hills.", sub: "The windmill opens in {towns} this summer. The list closes on {date}." },
-        brief: "Reel/TikTok, 25 seconds, vertical, no people. Hook (0–3 s): a storm front over the Valley of a Thousand Hills, 'Summer in the hills'. Beat 1: jacarandas in Pietermaritzburg, mist lifting off Hilton. Beat 2: rain on the Upper Highway, then sun. Beat 3: the windmill mark turning over both towns. End card: 'The list closes at midnight on {date}. Join free in 20 seconds. Adults 18+.' Story the same day: the storm clip with the countdown sticker.",
+        short: "Two weeks to go: the Founding Members list closes at midnight on {date}. The first 2,026 places get a numbered card and at least Sprout tier for 14 months. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "countdown", eyebrow: "Founding Members", headline: "Two weeks.", sub: "The list closes at midnight on {date}. Free to join, for adults 18+." },
+        brief: "Card as it is, Thursday 07:00. Story the same day: the countdown sticker and the link sticker.",
       }),
-      post("milestone-1000", -15, T.saturday, {
+      post("milestone-1000", -12, T.saturday, {
         shared: true, milestone: 1000,
         text: paras(
           "1,000 in. Half the list is taken.",
@@ -247,18 +250,17 @@ export const LAUNCH_SOCIAL: Playbook[] = [
       }),
 
       // ── Week 5: urgency, with the mechanism. ──
-      post("two-weeks", -13, T.morning, {
-        shared: true, pinned: true,
+      video("summer", -10, T.midday, "Summer in the hills.", {
+        shared: true,
         text: paras(
-          "Two weeks to go: the Founding Members list closes at midnight on {date}.",
-          "Join free and you're on it. The first 2,026 places get a numbered card and at least Sprout tier for 14 months. Your link moves you up 250 places for every friend who joins.",
-          `${JOIN} #HerbalHolland`,
+          "Summer in the hills. Jacarandas over Pietermaritzburg, the mist burning off the Midlands by nine, the afternoon storm rolling up the Valley of a Thousand Hills and the smell of rain on the Upper Highway. The windmill's doors are open in {towns}, and the Founding Members list closes at midnight on {date}.",
+          `${JOIN} #HollandMeetsTheHills #HerbalHolland #KZN`,
         ),
-        short: "Two weeks to go: the Founding Members list closes at midnight on {date}. The first 2,026 places get a numbered card and at least Sprout tier for 14 months. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "countdown", eyebrow: "Founding Members", headline: "Two weeks.", sub: "The list closes at midnight on {date}. Free to join, for adults 18+." },
-        brief: "Card as it is, Monday 07:00. Story the same day: the countdown sticker and the link sticker.",
+        short: "Summer in the hills: jacarandas, Midlands mist, the afternoon storm up the Valley of a Thousand Hills. The windmill's doors are open, and the Founding Members list closes on {date}. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "reveal", eyebrow: "Summer in KZN", headline: "Summer in the hills.", sub: "The windmill's doors are open in {towns}. The list closes on {date}." },
+        brief: "Reel/TikTok, 25 seconds, vertical, no people. Hook (0–3 s): a storm front over the Valley of a Thousand Hills, 'Summer in the hills'. Beat 1: jacarandas in Pietermaritzburg, mist lifting off Hilton. Beat 2: rain on the Upper Highway, then sun. Beat 3: the windmill mark turning over both towns. End card: 'The list closes at midnight on {date}. Join free in 20 seconds. Adults 18+.' Story the same day: the storm clip with the countdown sticker.",
       }),
-      video("card-0001", -12, T.evening, "Card 0001.", {
+      video("card-0001", -9, T.evening, "Card 0001.", {
         shared: true,
         text: paras(
           "Card 0001. Somebody holds it, and the Rewards app shows them so. Every Founding Member's card is numbered, 0001 to 2026, in the order they joined, and your link moves you up 250 places a friend. The list closes at midnight on {date}.",
@@ -268,7 +270,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "headline", eyebrow: "Founding Members", headline: "Card 0001.", sub: "Somebody holds it. Every Founding card is numbered, in the order they joined." },
         brief: "Reel/TikTok, 15 seconds, vertical, macro. Hook (0–3 s): the numbered card in the Rewards app, 0001 filling the screen. Beat 1: the card tilts, the windmill catches the light. Beat 2: the number ticks up through the list, 0417, 1208. Beat 3: it stops at 2026, then the screen goes to warm black. End card: 'Where will your number be? Join free in 20 seconds. Adults 18+.' No people. Story the same day: the tick-up clip and the link sticker.",
       }),
-      video("ask-three", -10, T.midday, "Ask three people.", {
+      video("ask-three", -7, T.midday, "Ask three people.", {
         shared: true,
         text: paras(
           "Ask three people. Your link is in the Rewards app, and every friend who joins with it moves you up 250 places. Three friends is 750 places: the difference between the back of the list and a Founding card. The list closes at midnight on {date}.",
@@ -278,16 +280,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "headline", eyebrow: "Bring a friend", headline: "Ask three people.", sub: "Three friends who join with your link is 750 places up." },
         brief: "Reel/TikTok, 20 seconds, vertical. Hook (0–3 s): 'Ask three people' over a phone held up outside, in the hills. Beat 1: the link shared to three names on WhatsApp (demo details). Beat 2: three ticks come back. Beat 3: the Founding place jumps 750. End card: 'Closes at midnight on {date}. Join free in 20 seconds. Adults 18+.' Hands only, an adult over 25 with a signed release. Story the same day: the 750 jump and the link sticker.",
       }),
-      video("town-windows", -9, T.evening, "{town}, the windows go up.", {
-        text: paras(
-          "{town}, the windows go up. The orange frame, the windmill, and a first look inside. The Founding Members list closes at midnight on {date}: join before then and your numbered card is waiting at the door.",
-          `${JOIN} #HerbalHolland #HollandMeetsTheHills`,
-        ),
-        short: "{town}, the windows go up: the orange frame, the windmill, a first look inside. The Founding Members list closes at midnight on {date}. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "reveal", eyebrow: "Behind the orange frame", headline: "{town}, the windows go up.", sub: "The list closes at midnight on {date}." },
-        brief: "Reel/TikTok, 25 seconds, vertical, a timelapse in {town}. Hook (0–3 s): the wrap coming off the window. Beat 1: the orange frame going up, hands only. Beat 2: the windmill mark on the glass, the hills reflected in it. Beat 3: the first look inside, the counter and the licence frame on the wall, no products. End card: 'The list closes at midnight on {date}. Join free in 20 seconds. Adults 18+.' Story the same day: the window reveal and the countdown sticker.",
-      }),
-      post("milestone-1500", -8, T.saturday, {
+      post("milestone-1500", -4, T.sunday, {
         shared: true, milestone: 1500,
         text: paras(
           "1,500 in. 526 places left.",
@@ -300,7 +293,17 @@ export const LAUNCH_SOCIAL: Playbook[] = [
       }),
 
       // ── Week 6: social proof, and the close. ──
-      post("milestone-2026", -6, T.morning, {
+      video("closes-thursday", -3, T.midday, "The list closes on Thursday.", {
+        shared: true, pinned: true,
+        text: paras(
+          "The list closes on Thursday at midnight. Three days to go. Join Herbal Holland Rewards free before then and you're on the Founding Members list; share your link from the app and every friend who joins moves you up 250 places.",
+          `${JOIN} #HerbalHolland #HollandMeetsTheHills`,
+        ),
+        short: "The list closes on Thursday at midnight. Three days to go. Join free before then and you're on the Founding Members list; your link moves you up 250 places a friend. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "countdown", eyebrow: "Founding Members", headline: "Thursday, midnight.", sub: "The list closes on {date}. Three days to go." },
+        brief: "Reel/TikTok, 15 seconds, vertical. Hook (0–3 s): 'Three days' on the orange frame. Beat 1: the join, 20 seconds sped up to five (demo details). Beat 2: the link shared on WhatsApp. Beat 3: the place jumps 250. End card: 'Closes Thursday at midnight. Join free in 20 seconds. Adults 18+.' Hands only, an adult over 25 with a signed release. Story the same day: the countdown sticker to Thursday and the link sticker.",
+      }),
+      post("milestone-2026", -2, T.morning, {
         shared: true, milestone: 2026,
         text: paras(
           "2,026. Every place is taken. Siyabonga.",
@@ -311,7 +314,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "countdown", eyebrow: "Founding Members", headline: "2,026", sub: "Every place is taken. Siyabonga." },
         brief: "Milestone: mark it 'by hand' and post it the day HQ → Founding Members shows 2,026 members, if the list fills before it closes; skip it if it doesn't. Card as it is. Story the same day: the team saying siyabonga, 10 seconds, adults over 25 with signed releases.",
       }),
-      video("who-is-on-it", -5, T.evening, "Who's on the list.", {
+      video("who-is-on-it", -1, T.evening, "Who's on the list.", {
         shared: true,
         text: paras(
           "Who's on the list. Members from Kloof to Howick and Durban to Pietermaritzburg, and from across South Africa, each with a number in the Rewards app. The list closes at midnight on {date}, and the first 2,026 become Founding Members.",
@@ -321,17 +324,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         card: { template: "headline", eyebrow: "Founding Members", headline: "Who's on the list.", sub: "From Kloof to Howick and across South Africa. Closes at midnight on {date}." },
         brief: "Reel/TikTok, 30 seconds, vertical. Hook (0–3 s): 'Who's on the Founding Members list?' Beat 1: three real members who've agreed to appear (adults over 25, signed releases), each says their first name, their town and their number. Beat 2: a map of KZN filling with windmill marks, Hillcrest and Hilton last. Beat 3: the Rewards app showing a place moving up 250. End card: 'Closes at midnight on {date}. Join free in 20 seconds. Adults 18+.' Story the same day: one member's line with the link sticker.",
       }),
-      video("closes-sunday", -3, T.midday, "The list closes on Sunday.", {
-        shared: true, pinned: true,
-        text: paras(
-          "The list closes on Sunday at midnight. Three days to go. Join Herbal Holland Rewards free before then and you're on the Founding Members list; share your link from the app and every friend who joins moves you up 250 places.",
-          `${JOIN} #HerbalHolland #HollandMeetsTheHills`,
-        ),
-        short: "The list closes on Sunday at midnight. Three days to go. Join free before then and you're on the Founding Members list; your link moves you up 250 places a friend. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "countdown", eyebrow: "Founding Members", headline: "Sunday, midnight.", sub: "The list closes on {date}. Three days to go." },
-        brief: "Reel/TikTok, 15 seconds, vertical. Hook (0–3 s): 'Three days' on the orange frame. Beat 1: the join, 20 seconds sped up to five (demo details). Beat 2: the link shared on WhatsApp. Beat 3: the place jumps 250. End card: 'Closes Sunday at midnight. Join free in 20 seconds. Adults 18+.' Hands only, an adult over 25 with a signed release. Story the same day: the countdown sticker to Sunday and the link sticker.",
-      }),
-      post("closes-tonight", 0, T.sunday, {
+      post("closes-tonight", 0, T.morning, {
         shared: true, pinned: true,
         text: paras(
           "Last call: the Founding Members list closes at midnight tonight.",
@@ -340,7 +333,7 @@ export const LAUNCH_SOCIAL: Playbook[] = [
         ),
         short: "Last call: the Founding Members list closes at midnight tonight. The first 2,026 places get a numbered card and at least Sprout tier for 14 months. Join free in 20 seconds: link in bio. Adults 18+. #HerbalHolland",
         card: { template: "countdown", eyebrow: "Founding Members", headline: "Midnight tonight.", sub: "Last call for the Founding Members list. Free to join, for adults 18+." },
-        brief: "Card as it is, Sunday 08:00. Stories through the day: the countdown sticker at 08:00, 12:00, 18:00 and 21:00, each with the link sticker.",
+        brief: "Card as it is, Thursday 07:00. Stories through the day: the countdown sticker at 07:00, 12:00, 18:00 and 21:00, each with the link sticker.",
       }),
     ],
   },

@@ -27,13 +27,13 @@ export default async function ClubInvoices({ searchParams }: { searchParams: Pro
     <Container className="pt-8">
       <h1 className="font-display text-3xl font-semibold tracking-tight text-white">Purchase history</h1>
       <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-ink-400">
-        Everything you've bought, in store and online. Tap one for its tax invoice from the store that sold it.
+        Everything you've bought, in store and in the app. Tap one for its tax invoice from the store that sold it.
         {customer.email ? (
           <span className="inline-flex items-center gap-1">
             <Mail className="h-3.5 w-3.5" /> Emailed to {customer.email}
           </span>
         ) : (
-          <span>Add an email address in Settings to receive them automatically.</span>
+          <span>Add an email address in your profile to receive them automatically.</span>
         )}
       </p>
       {rows.length ? (
@@ -47,11 +47,11 @@ export default async function ClubInvoices({ searchParams }: { searchParams: Pro
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="min-w-0 truncate font-medium text-white">{items(s.lines, s._count.lines)}</span>
+                      <span className="line-clamp-2 min-w-0 font-medium text-white">{items(s.lines, s._count.lines)}</span>
                       {s.kind === "REFUND" && <Tag tone="amber">Refund</Tag>}
-                      {s.channel === "ONLINE" && <Tag>Online</Tag>}
+                      {s.channel === "ONLINE" && <Tag>App</Tag>}
                     </div>
-                    <div className="truncate text-xs text-ink-450">
+                    <div className="text-xs text-ink-450">
                       {fmtDate(s.createdAt)} · {s.store.name} · {s.title} {s.number}
                       {s.pointsEarned > 0 && ` · earned ${fmtPoints(s.pointsEarned)}`}
                     </div>

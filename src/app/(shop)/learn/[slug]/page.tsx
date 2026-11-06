@@ -11,14 +11,14 @@ import { ProductArt } from "@/components/product/art";
 import { Container } from "@/components/shop/ui";
 import { JsonLd } from "@/components/shop/json-ld";
 import { QuestQuiz } from "@/components/shop/quest-quiz";
-import { ARTICLES, resolveArticle } from "@/components/shop/learn/articles";
+import { liveArticles, resolveArticle } from "@/components/shop/learn/articles";
 import { ArticleBody } from "@/components/shop/learn/bodies";
 import { fmtDate } from "@/lib/format";
 import { publicQuest } from "@/lib/quests";
 import { articleJsonLd, breadcrumbJsonLd, LOCALE, metaDescription, pageTitle, parseReviewer, SITE_NAME, siteUrl } from "@/lib/seo";
 
 export function generateStaticParams() {
-  return ARTICLES.map((a) => ({ slug: a.slug }));
+  return liveArticles().map((a) => ({ slug: a.slug }));
 }
 
 /** The article for the URL. An alias slug is sent to the one canonical URL (308), so no guide exists at two addresses. */
@@ -46,9 +46,10 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
   const [settings, customer] = await Promise.all([getSettings(), getCustomer()]);
   const quest = publicQuest(a.slug);
   const done = quest && customer ? !!(await db.questCompletion.findUnique({ where: { customerId_key: { customerId: customer.id, key: a.slug } } })) : false;
-  const i = ARTICLES.indexOf(a);
-  const next = ARTICLES[(i + 1) % ARTICLES.length];
-  const more = ARTICLES.filter((x) => x.slug !== a.slug).slice(0, 3);
+  const articles = liveArticles();
+  const i = articles.indexOf(a);
+  const next = articles[(i + 1) % articles.length];
+  const more = articles.filter((x) => x.slug !== a.slug).slice(0, 3);
   // Named reviewer (E-E-A-T) only when HQ has set one; shown on the page and in the schema, never invented.
   const reviewer = parseReviewer(process.env.CONTENT_REVIEWER);
   const base = siteUrl();

@@ -4,8 +4,13 @@
 @custom-variant app (@media (display-mode: standalone));
 
 @media (display-mode: standalone) {
-  html { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
+  html { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; scrollbar-color: var(--color-ink-700) transparent; }
+  a, button { -webkit-touch-callout: none; }
+  .divide-y > li > a:active { background: rgb(255 255 255 / 0.05); }
 }
+
+html { caret-color: var(--color-brand-500); }
+a, button, input, select, textarea, label, summary { touch-action: manipulation; }
 
 /*
  * Herbal Holland design tokens.
@@ -228,10 +233,12 @@
 @keyframes hh-burst { 0% { opacity: 0; transform: translateY(0) scale(0.4); } 18% { opacity: 1; transform: translateY(-18px) scale(1); } 100% { opacity: 0; transform: translateY(-120px) scale(0.7); } }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* Each page arrives with a short fade. Opacity only, and no fill afterwards: a lasting transform would capture fixed bars. */
+  html.motion .hh-route { animation: hh-fade 180ms ease-out backwards; }
   .hh-press { transition: transform var(--dur-fast) var(--ease-out-expo); }
   .hh-press:active { transform: scale(0.97); }
   .hh-lift { transition: transform var(--dur-fast) ease-out, box-shadow var(--dur-fast) ease-out, border-color var(--dur-fast) ease-out; }
-  .hh-lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+  @media (hover: hover) { .hh-lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); } }
   .hh-lift.hh-press:active { transform: scale(0.97); }
 
   html.motion .hh-enter:not(.hh-stagger), html.motion .hh-enter.hh-stagger > * { animation: hh-rise var(--dur) var(--ease-out-expo) var(--hh-delay, 0ms) both; }
@@ -270,8 +277,6 @@
 }
 .hh-skeleton { position: relative; overflow: hidden; background: var(--color-ink-900); border-radius: 0.75rem; }
 .hh-skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.06) 50%, transparent 65%); transform: translateX(-120%) skewX(-12deg); }
-@media (prefers-reduced-motion: reduce) {
-}
 
 /*
  * Insights: the back office's light components on the member app's dark ground. The tokens are remapped instead of the

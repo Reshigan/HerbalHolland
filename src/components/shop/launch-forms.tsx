@@ -40,7 +40,7 @@ export function WatchDrop({ action, signedIn, next, already, reach, className }:
               <Link href="/club/settings#notifications" className="font-semibold text-white underline">
                 Turn on app notifications
               </Link>{" "}
-              (or SMS in Settings) so we can reach you when it opens.
+              (or SMS in your profile) so we can reach you when it opens.
             </>
           )}
         </p>

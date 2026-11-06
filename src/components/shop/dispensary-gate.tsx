@@ -43,7 +43,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
             )}
             {access.reason === "VERIFY_AGE" && (
               <Callout tone="warn" icon={<IdCard className="h-5 w-5" />} title="Verify your age first">
-                Add your SA ID number in <Link href="/club/settings" className="font-semibold text-white underline">your Rewards settings</Link>, or show your ID or passport in any store.
+                Add your SA ID number in <Link href="/club/settings" className="font-semibold text-white underline">your profile</Link>, or show your ID or passport in any store.
               </Callout>
             )}
           </div>

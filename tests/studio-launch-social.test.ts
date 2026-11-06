@@ -1,4 +1,4 @@
-// The Founding Members social drive (src/lib/studio-playbooks/launch-social.ts): six weeks of social built to fill the
+// The Founding Members social drive (src/lib/studio-playbooks/launch-social.ts): the last five weeks of social, built to fill the
 // list, held to the platforms' rules (no product, price, consumption or health words anywhere: Meta and TikTok remove
 // cannabis and CBD promotion) and to its own shape: one feed post a day, five a week, three Reels a week with their
 // scripts, the milestones by hand, Hillcrest and Hilton a week apart.
@@ -11,7 +11,7 @@ import { dayKey } from "@/lib/format";
 
 const pb = PLAYBOOKS.find((p) => p.key === "founding-social")!;
 const TOWNS = ["Hillcrest", "Hilton"];
-const CLOSE = "2026-12-06"; // the list closes at midnight on the Sunday after opening week
+const CLOSE = "2026-12-31"; // the list closes at midnight on New Year's Eve, a Thursday
 const isVideo = (i: PlaybookItem) => i.title?.startsWith("[Reel/TikTok]") ?? false;
 const lines = (i: PlaybookItem) => [i.title, i.text, i.short, i.card?.eyebrow, i.card?.headline, i.card?.sub, ...(i.card?.lines ?? []), i.brief].filter((x): x is string => !!x);
 
@@ -32,18 +32,18 @@ function bothTowns(): (Draft & { town: string })[] {
 }
 
 describe("the Founding Members social drive", () => {
-  it("is a six-week, social-only store pack that ends the night the list closes", () => {
+  it("is a five-week, social-only store pack that ends the night the list closes", () => {
     expect(pb.store).toBe(true);
-    expect(pb.weekday).toBe(0);
+    expect(pb.weekday).toBe(4);
     expect(pb.items.every((i) => i.channel === "SOCIAL")).toBe(true);
-    expect(Math.min(...pb.items.map((i) => i.day))).toBe(-40); // the Tuesday the list opens with the online shop
+    expect(Math.min(...pb.items.map((i) => i.day))).toBe(-37); // Tuesday 24 November
     expect(Math.max(...pb.items.map((i) => i.day))).toBe(0);
-    expect(pb.items.length).toBe(27);
+    expect(pb.items.length).toBe(26);
   });
 
-  it("has fifteen Reels, each with its script: the hook line, three beats and the end card", () => {
+  it("has fourteen Reels, each with its script: the hook line, three beats and the end card", () => {
     const videos = pb.items.filter(isVideo);
-    expect(videos.length).toBe(15);
+    expect(videos.length).toBe(14);
     for (const v of videos) {
       expect(v.brief, v.key).toMatch(/^Reel\/TikTok/);
       for (const part of ["Hook", "Beat 1", "Beat 2", "Beat 3", "End card"]) expect(v.brief, `${v.key}: ${part}`).toContain(part);
@@ -115,40 +115,38 @@ describe("the Founding Members social drive", () => {
   it("posts at the South African times: 07:00, 12:00 or 19:00 on weekdays, 09:00 on Saturdays, 08:00 or 18:30 on Sundays", () => {
     const T = LAUNCH_SOCIAL_TIMES;
     for (const i of pb.items) {
-      const dow = ((i.day % 7) + 7) % 7; // day T is a Sunday
+      const dow = (((i.day + 4) % 7) + 7) % 7; // day T is a Thursday
       const slots = dow === 0 ? [T.sunday, T.sundayEvening] : dow === 6 ? [T.saturday] : [T.morning, T.midday, T.evening];
       expect(slots, `${i.key} on day ${i.day}`).toContain(i.time);
-      expect(dow, `${i.key}: no Wednesday posts (election day falls on one)`).not.toBe(3);
     }
     expect(LAUNCH_SOCIAL_STORIES.length).toBe(7);
   });
 
-  it("laid out for both towns: thirty posts, one a day and five a week, three Reels a week, Hilton a week behind Hillcrest, nothing refused", () => {
+  it("laid out for both towns: twenty-eight posts, one a day and five a week at most, up to three Reels a week, Hilton a week behind Hillcrest, nothing refused", () => {
     const all = bothTowns();
     expect(all.filter((d) => d.blocked || /Shares its day|Another campaign/.test(d.moved ?? "")).map((d) => `${d.town}: ${d.key}: ${d.blocked ?? d.moved}`)).toEqual([]);
-    expect(all.length).toBe(30);
-    expect(all.filter((d) => d.title?.startsWith("[Reel/TikTok]")).length).toBe(18);
+    expect(all.length).toBe(28);
+    expect(all.filter((d) => d.title?.startsWith("[Reel/TikTok]")).length).toBe(16);
     const byDay = new Map<string, string[]>();
     for (const d of all) byDay.set(dayKey(d.at), [...(byDay.get(dayKey(d.at)) ?? []), d.key]);
     expect([...byDay].filter(([, v]) => v.length > 1)).toEqual([]);
     const byWeek = new Map<string, Draft[]>();
     for (const d of all) byWeek.set(week(dayKey(d.at)), [...(byWeek.get(week(dayKey(d.at))) ?? []), d]);
     expect([...byWeek].map(([w, v]) => [w, v.length, v.filter((d) => d.title?.startsWith("[Reel/TikTok]")).length])).toEqual([
-      ["2026-10-26", 5, 3], ["2026-11-02", 5, 3], ["2026-11-09", 5, 3], ["2026-11-16", 5, 3], ["2026-11-23", 5, 3], ["2026-11-30", 5, 3],
+      ["2026-11-23", 5, 3], ["2026-11-30", 5, 3], ["2026-12-07", 5, 3], ["2026-12-14", 5, 2], ["2026-12-21", 4, 3], ["2026-12-28", 4, 2],
     ]);
     // Each town's own posts: Hillcrest on its Fridays, Hilton's the Friday after, each naming its town.
     const own = all.filter((d) => !d.shared);
     expect(own.map((d) => [d.town, d.key, dayKey(d.at)])).toEqual([
-      ["Hillcrest", "town-hello", "2026-10-30"], ["Hilton", "town-hello", "2026-11-06"],
-      ["Hillcrest", "town-advisors", "2026-11-13"], ["Hilton", "town-advisors", "2026-11-20"],
-      ["Hillcrest", "town-windows", "2026-11-27"], ["Hilton", "town-windows", "2026-12-04"],
+      ["Hillcrest", "town-hello", "2026-11-27"], ["Hilton", "town-hello", "2026-12-04"],
+      ["Hillcrest", "town-advisors", "2026-12-11"], ["Hilton", "town-advisors", "2026-12-18"],
     ]);
     for (const d of own) expect(d.text).toContain(d.town);
     expect(all.filter((d) => d.shared).every((d) => d.town === "Hillcrest")).toBe(true);
     expect(all.filter((d) => /\{(towns|town|date)\}/.test(d.text))).toEqual([]);
-    // The last word is the close: Sunday 6 December at 08:00, pinned.
+    // The last word is the close: Thursday 31 December at 07:00, pinned.
     const last = all.at(-1)!;
-    expect([last.key, last.at.toISOString(), last.pinned]).toEqual(["closes-tonight", "2026-12-06T06:00:00.000Z", true]);
+    expect([last.key, last.at.toISOString(), last.pinned]).toEqual(["closes-tonight", "2026-12-31T05:00:00.000Z", true]);
     // And every post passes the channel's screen on its day.
     expect(all.flatMap((d) => screenDraft(d).map((f) => `${d.key}: ${f.term} (${f.reason})`))).toEqual([]);
   });

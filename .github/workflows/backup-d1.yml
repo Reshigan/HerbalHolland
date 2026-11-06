@@ -19,9 +19,19 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci --ignore-scripts
       - name: Export
-        run: npx wrangler d1 export herbal-holland --remote --output backup.sql
+        run: |
+          # wrangler.jsonc carries a placeholder database_id, as in deploy-shop.yml: look the real one up with an
+          # empty config, so wrangler doesn't match the name to its binding, and write it in for the export.
+          echo '{}' > .no-config.jsonc
+          DB_ID=$(npx wrangler d1 info herbal-holland --json --config .no-config.jsonc | jq -r '.uuid')
+          rm -f .no-config.jsonc
+          test -n "$DB_ID" -a "$DB_ID" != null
+          sed -i -E "s/(\"database_name\": \"herbal-holland\", \"database_id\": \")[^\"]*/\1$DB_ID/" wrangler.jsonc
+          grep -q "\"database_id\": \"$DB_ID\"" wrangler.jsonc
+          npx wrangler d1 export herbal-holland --remote --output backup.sql
       - name: Encrypt
         run: |
+          test -n "$BACKUP_PASSPHRASE" || { echo "::error::The BACKUP_PASSPHRASE secret is not set"; exit 1; }
           gzip -9 backup.sql
           gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "backup.sql.gz.gpg" backup.sql.gz
         env:

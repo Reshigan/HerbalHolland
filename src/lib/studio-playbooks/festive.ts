@@ -54,7 +54,7 @@ export const FESTIVE: Playbook[] = [
           "Hi {{firstName}},",
           "Three weeks ago, on Tuesday 1 December, our doors opened in Hillcrest and Hilton. Siyabonga for coming to say hello, for joining Herbal Holland Rewards, and for such a warm welcome to the hills.",
           "Opening week, in pictures. Our photos from the Members' Evening and Open Day are on our Instagram and Facebook pages: the coffee cart, the local makers' tables, the Learn sessions with the team, and a good few of you in our orange frame. Thank you to everyone who said yes to a photo.",
-          "Founding Members. The list closed on Sunday 6 December, and every Founding Member's numbered card is in the Rewards app. If you're one of them, you hold at least Sprout tier for 14 months, and you're invited to a Founding Members' Evening every December.",
+          "Founding Members. The list closes at midnight on Thursday 31 December: your place is in the Rewards app, and every friend who joins with your link moves you up 250 places. The first 2,026 places get a numbered card, at least Sprout tier for 14 months, and an invitation to a Founding Members' Evening every December.",
           "What's on in January. The Windmill, No. 3 lands on Tuesday 5 January. Every Tuesday, Read the label, a four-part Learn series on reading a label, line by line. And our first Gezellig evenings (gezellig is Dutch for warm, sociable, at home): Hillcrest on Thursday 21 January and Hilton on Friday 22 January, 18:00–20:00, for members who RSVP in the Rewards app.",
           "Over the holidays, each store's festive hours are on its page at shop.herbalholland.com.",
           "Happy holidays, and see you in the new year,\nThe Herbal Holland team",

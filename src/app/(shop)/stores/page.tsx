@@ -90,7 +90,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
             Search stores by name, suburb or city
           </label>
           <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-ink-400" />
-          <input id="stores-q" name="q" type="search" enterKeyHint="search" defaultValue={q} maxLength={60} placeholder="Suburb, city or store name" className={`${inputClass} h-12 rounded-full pl-11`} />
+          <input id="stores-q" name="q" type="search" enterKeyHint="search" defaultValue={q} maxLength={60} placeholder="Suburb, city or store" className={`${inputClass} h-12 rounded-full pl-11`} />
         </Form>
         <NearMeButton />
       </div>

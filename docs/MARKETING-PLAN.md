@@ -29,7 +29,7 @@ to the public at all. So we grow the one asset nobody can switch off: a consente
 **Decisions** (approved as proposed, except the budget amount, which is still to come):
 
 1. Founding Members [first **2,026** places · Sprout floor (5% instant savings) for **14 months** · list closes
-   **Sun 6 Dec 23:59**, after opening weekend, so opening-weekend visitors can still join].
+   **Thu 31 Dec 23:59**, New Year's Eve, so the whole festive season can still join].
 2. Opening events [the Members' Evening Thu 3 Dec at both stores; Open Day Sat 5 Dec at both].
 3. The launch budget (§12 gives the split).
 4. Paid local media: community newspapers and a few boards near the stores, brand-only [yes, modest].
@@ -100,7 +100,7 @@ eight weeks of real data. Sales targets come from finance's store P&Ls, not from
 | KPI | By Sun 6 Dec 2026 | By Nov 2027 | By Nov 2028 |
 |---|---|---|---|
 | Rewards members (network) | 5,000 | 20,000 | 50,000 (with new stores) |
-| Founding Members list full (2,026) | before it closes on Sun 6 Dec | — | — |
+| Founding Members list full (2,026) | before it closes on Thu 31 Dec | — | — |
 | SMS / email consent at sign-up | 70% / 60% | 70% / 60% | 70% / 60% |
 | Push opt-in among app installs | 40% | 40% | 45% |
 | Member attach at the till | 50% in opening week | 60% | 65% |
@@ -173,16 +173,16 @@ Every post and message below goes on the day and at the time the Studio's playbo
 | **Tue 1 Dec 09:00** | **Doors open** in Hillcrest and Hilton | _Sivulile. We're open._ On the feed (LinkedIn too) at 07:00, Google 08:30, push 09:00, email 09:05, the Channel 09:30; _Day one, done_ at 19:00 |
 | Thu 3 Dec 18:00–20:30 | The Members' Evening, at both stores | For members who RSVP in the Rewards app; ID at the door |
 | Sat 5 Dec 09:00–14:00 | **Open Day** at both stores | Everyone 18+; an SMS to each store's members at 09:00 |
-| Sun 6 Dec 23:59 | The Founding Members list closes | Last call: push on Sat 5 Dec at 11:00, the feed on Sun 6 Dec at 08:00. Numbering runs automatically overnight |
-| Mon 7 Dec | Founding Member numbers in the app | Feed 07:00, email 16:00, push 18:30 |
-| Thu 10 Dec 10:00 | **The Founding Members' Drop** opens, online and in store, until Sat 12 Dec | Teaser Tue 8 Dec; higher tiers get in early (the drops page shows each member's time); email at 16:00 to members who chose merch |
+| Thu 31 Dec 23:59 | The Founding Members list closes | Last call: push at 11:00 and the feed at 07:00 on Wed 30 Dec, since New Year's Eve belongs to the ride-home post. Numbering runs automatically overnight; the numbers go out on Mon 4 Jan |
+| Thu 10 Dec 10:00 | **The merch drop** opens, online and in store, until Sat 12 Dec | Teaser Tue 8 Dec; higher tiers get in early (the drops page shows each member's time); email at 16:00 to members who chose merch |
 | Mon 14 Dec – Sun 3 Jan 2027 | The festive season | Three quiet weeks; festive hours on each store's page, never in the copy |
 | Wed 16 Dec | Day of Reconciliation | Nothing goes out; no heritage-themed content |
 | Fri 25 Dec, Sat 26 Dec, Fri 1 Jan 2027 | Christmas Day, the Day of Goodwill, New Year's Day | Nothing goes out |
+| Mon 4 Jan 2027 | Founding Member numbers in the app | Feed 07:00, push 18:30; no email of its own, the Windmill on Tue 5 Jan carries them |
 
 ### 6.2 Founding Members
 
-HQ → Founding Members: list closes **Sun 6 Dec 2026, 23:59** · **2,026** places · founding tier **Sprout** ·
+HQ → Founding Members: list closes **Thu 31 Dec 2026, 23:59** · **2,026** places · founding tier **Sprout** ·
 **14 months** · **250** places up per referral. After change A, the date closes the list without blocking orders.
 
 - **What Founding Members get:** a numbered card (#0001–#2026) in the Rewards app; at least Sprout (5% instant savings on
@@ -280,8 +280,8 @@ posted by hand. Times are SAST; a feed post with no time given goes at one of th
 | 5 · 9–15 Nov | The Founding Members list; a product goes online (Tue 10 Nov); invitations (Wed 11 Nov) | Feed: how the list works (Mon 9); you're invited: opening week (Wed 11, 19:00); the product's Learn carousel (Thu 12, moved off Wed 11); move up with your link (Fri 13); Hillcrest, show us around (Sat 14) | The product (Tue 10): email at 16:00 and push at 18:30 to the members who chose its interest. Invitations to each store's members: push (Wed 11, 18:30), SMS (Thu 12, 10:00) | Healthcare-professional evening, Hillcrest (Thu 12 Nov) |
 | 6 · 16–22 Nov | _The Windmill_, No. 2; the teams; press | Feed: what Founding Members get (Tue 17); meet the Hillcrest team (Thu 19); Hilton, show us around (Sat 21); bring a friend (Sun 22). Google: Open Day, each store (Mon 16) | _The Windmill_, No. 2: our doors open on Tuesday 1 December (Tue 17, 16:00, all members); your Founding place, by push (Thu 19) | Press release (Tue 17, embargoed); walk-throughs Thu 19 (Hillcrest) and Fri 20 Nov (Hilton); healthcare-professional evening, Hilton (Thu 19 Nov); print notices |
 | 7 · 23–29 Nov | The windows and the countdown; the gift email, with no Black Friday sale | Feed: our windows go up this week (Mon 23); 7 days to go (Tue 24); meet the Hilton team (Thu 26); Tuesday, 09:00 (Sun 29, 18:30). Google: opening hours, each store (Mon 23) | The gift email (Thu 26, 16:00): the merch as gifts | The windows go up; staff training |
-| 8 · 30 Nov–6 Dec | **Opening**: the doors (Tue 1 Dec), the Members' Evening (Thu 3), Open Day (Sat 5); the list closes (Sun 6) | Feed: open tomorrow (Mon 30, 19:00); Sivulile: we're open, LinkedIn too (Tue 1, 07:00) and day one, done (19:00); tonight: the Members' Evening (Thu 3, 12:00); Open Day today (Sat 5, 07:30); last call (Sun 6, 08:00). Google: we're open (Tue 1), Open Day (Sat 5). Channel: we're open (Tue 1) | Opening day (Tue 1): push at 09:00 to each store's members, email at 09:05 to all members. Open Day SMS to each store's members (Sat 5, 09:00); the last-call push (Sat 5, 11:00) | Neighbours' preview (Mon 30, 17:00); both stores to trading (Tue 1, 07:00); photo call (Tue 1, 09:00); print notices |
-| 9 · 7–13 Dec | The numbers; the Founding Members' Drop (Thu 10 to Sat 12 Dec) | Feed: your numbers are in (Mon 7); the drop's teaser (Tue 8); drop day (Thu 10); Siyabonga, Hillcrest (Fri 11); last day of the drop (Sat 12) | The numbers (Mon 7): email at 16:00, push at 18:30. The drop (Thu 10): email at 16:00 to members who chose merch, push at 18:30 | Review cards at the tills |
+| 8 · 30 Nov–6 Dec | **Opening**: the doors (Tue 1 Dec), the Members' Evening (Thu 3), Open Day (Sat 5) | Feed: open tomorrow (Mon 30, 19:00); Sivulile: we're open, LinkedIn too (Tue 1, 07:00) and day one, done (19:00); tonight: the Members' Evening (Thu 3, 12:00); Open Day today (Sat 5, 07:30); last call (Sun 6, 08:00). Google: we're open (Tue 1), Open Day (Sat 5). Channel: we're open (Tue 1) | Opening day (Tue 1): push at 09:00 to each store's members, email at 09:05 to all members. Open Day SMS to each store's members (Sat 5, 09:00); the last-call push (Sat 5, 11:00) | Neighbours' preview (Mon 30, 17:00); both stores to trading (Tue 1, 07:00); photo call (Tue 1, 09:00); print notices |
+| 9 · 7–13 Dec | The merch drop (Thu 10 to Sat 12 Dec) | Feed: how the list works (Mon 7); the drop's teaser (Tue 8); drop day (Thu 10); Siyabonga, Hillcrest (Fri 11); last day of the drop (Sat 12) | The drop (Thu 10): email at 16:00 to members who chose merch, push at 18:30 | Review cards at the tills |
 | 10 · 14–20 Dec | The festive season begins; Day of Reconciliation (Wed 16, silent) | Feed: festive hours (Tue 15); stop in on your way to the coast (Thu 17); Siyabonga, Hilton (Fri 18); gift the windmill (Sat 19). Channel: festive hours and the N3 (Thu 17) | Festive hours SMS (Tue 15, 10:00); gift the windmill, by push to members who chose merch (Thu 17) | Festive rosters |
 | 11 · 21–27 Dec | Thank you; happy holidays (nothing on 25 or 26 Dec) | Feed: read a lab result (Tue 22); three weeks in the hills, LinkedIn too (Wed 23); happy holidays, LinkedIn too (Thu 24). Channel: happy holidays (Thu 24) | Thank you for December, and what's on in January (Mon 21): email at 16:00, push at 18:30 | Festive hours in store (on each store's page) |
 | 12 · 28 Dec–3 Jan | Plan your ride home; a safe trip home (nothing on 1 Jan) | Feed: Rewards, simply (Tue 29); plan your ride home (Thu 31, 19:00); safe trip home (Sat 2 Jan). Channel: celebrating tonight? (Thu 31) | No sends | N3 return traffic from about 2 Jan |
@@ -299,7 +299,7 @@ new words. HQ → Marketing → Studio lists the packs, each with its day T and 
 | Brand launch (`launch.ts`) | Our accounts go live: a Tuesday | Two weeks on social before the shop opens: welkom, why a windmill, Holland is flat, reading a lab result, Rewards, Dutch heritage · African soil, the Windmill Tee and the hills; how we work, on LinkedIn; the Channel's welkom. Every post points to first access at herbalholland.com |
 | Online shop launch (`launch.ts`) | The shop opens: a Tuesday | A Saturday teaser and the eve; opening day on the feed, LinkedIn and the Channel, with the one promised message to the first-access list; how joining and delivery work; Founding Members, explained; _The Windmill_, No. 1, and its push; the merch |
 | Store opening (`launch.ts`) | Doors open at 09:00: a Tuesday | One store, from its reveal 33 days out to the thank-you: the Good Neighbour Promise, the neighbourhood, the team, the invitations, _The Windmill_, No. 2, the windows, the countdown, opening day on every channel, the Members' Evening on the Thursday, Open Day on the Saturday, and its Google posts |
-| Founding Members (`launch.ts`) | The list closes at midnight: a Sunday | The list's last four weeks: how it works, moving up with your link, what Founding Members get, bring a friend, the last call (by push on the Saturday, on the feed on the Sunday) and the numbers. No live counts: members see their own place in the Rewards app |
+| Founding Members (`launch.ts`) | The list closes at midnight on New Year's Eve: a Thursday | The list's last four weeks: how it works, moving up with your link, what Founding Members get, bring a friend, the last call (by push and on the feed the day before) and the numbers (on the feed and by push; The Windmill carries them by email). No live counts: members see their own place in the Rewards app |
 | Hiring (`launch.ts`) | Applications close: a Friday | Member advisors and store managers: the call and the last day on the feed and LinkedIn, each role on LinkedIn, one Channel post. We never charge to apply |
 | Merch drop (`launch.ts`) | The drop opens at 10:00: a Thursday | A teaser on the Tuesday; drop day (the feed, an email to members who chose merch, a push); the last day, the Saturday. Higher tiers get in early |
 | New online (`new-online.ts`) | The product goes online: a Tuesday (the second and fourth of the month) | One product, for the members who chose its interest: an email at 16:00 built only from its facts, a push at 18:30, and next morning a Learn carousel on its category that names no product and sells nothing. Laid out on its own when a product goes live (the catalogue's "Announce it"): the first free one of the plan's Tuesdays (`NEW_ONLINE_DAYS`) a week or more away, one product each |
@@ -452,8 +452,8 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 ### Year 1: settle in (December 2026 to November 2027)
 
 **December 2026: the launch, then a quiet festive season.** The opening is in §6 (§6.9 has it week by week).
-- Dates: doors open Tue 1 Dec · the Members' Evening Thu 3 Dec · Open Day Sat 5 Dec · the Founding Members list closes
-  Sun 6 Dec · numbers Mon 7 Dec · the Founding Members' Drop Thu 10 to Sat 12 Dec · Day of Reconciliation Wed 16 Dec ·
+- Dates: doors open Tue 1 Dec · the Members' Evening Thu 3 Dec · Open Day Sat 5 Dec · the merch drop
+  Thu 10 to Sat 12 Dec · Day of Reconciliation Wed 16 Dec ·
   Christmas Day Fri 25 Dec, the Day of Goodwill Sat 26 Dec · New Year's Day Fri 1 Jan.
 - Hero: the opening, then _Festive season 2026_ (`festive.ts`, Mon 14 Dec to Sun 3 Jan): three quiet weeks, three feed
   posts a week, one WhatsApp Channel post a week, and nothing on 16, 25 or 26 December or 1 January.
@@ -756,7 +756,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
    - **Members, always:** the platform's own wording now says _member_ wherever it said customer; walk-ins stay
      _walk-ins_.
 3. **Loading the launch into the platform** (waiting for your store details and production access): launch settings; both stores as opening soon;
-   the events; the Founding Members' Drop; the launch laid out in the Studio (§7); new Learn articles (_Your first
+   the events; the merch drop; the launch laid out in the Studio (§7); new Learn articles (_Your first
    visit_, _The Good Neighbour Promise_, _Holland, meet the Hills_); STRATEGY.md §8 updated.
 
 ### Out of scope
@@ -775,9 +775,9 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 1. **Done (27 Sep):** plan approved; A–D built and tested.
 2. **Next, from you:** the store details (addresses, hours, phone numbers, managers), who packs online orders until
    1 December, and the launch budget.
-3. **By Fri 9 Oct:** deploy; connect the brand accounts to the platform; in HQ, set the list to close Sun 6 Dec
+3. **By Fri 9 Oct:** deploy; connect the brand accounts to the platform; in HQ, set the list to close Thu 31 Dec
    23:59 (2,026 places, Sprout, 14 months, 250 places per referral); create both stores as opening soon; load the
-   events and the Founding Members' Drop, and lay the launch out in the Studio (§7).
+   events and the merch drop, and lay the launch out in the Studio (§7).
 4. **Tue 13 Oct:** the brand launches on social. **Tue 27 Oct:** the online shop opens (§6.1).
 5. **By Fri 16 Oct:** counsel's answers (the playbooks' words, s18A for Schedule 0 CBD, the event formats); build E if
    needed.

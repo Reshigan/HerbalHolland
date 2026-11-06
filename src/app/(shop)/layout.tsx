@@ -2,7 +2,8 @@ import type { Viewport } from "next";
 import { ShopChrome } from "@/components/shop/chrome";
 import { InstallPrompt } from "@/components/ui/install-prompt";
 import { AnalyticsBeacon } from "@/components/shop/analytics-beacon";
-import { appOnly, AppOnlyWall } from "@/components/shop/app-only";
+import { AppOnlyWall } from "@/components/shop/app-only";
+import { appOnly } from "@/lib/install";
 
 // Edge to edge in the installed app: the offers bar and the tab bar pad themselves for the notch and home indicator.
 export const viewport: Viewport = { viewportFit: "cover" };

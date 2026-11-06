@@ -101,9 +101,21 @@ export function parseDismissal(raw: string | null | undefined): Dismissal | null
   }
 }
 
-/**
- * Pages that stay open in a browser when the shop is app only: the bio link and sign-up (how people reach the app),
- * legal pages, batch certificates (printed QR codes), order pages, which card payments return to in the browser, and
- * partner brands, where a member who joined in a browser lands after ticking a share.
- */
-export const appOnlyExempt = (pathname: string) => ["/go", "/club/join", "/club/partners", "/legal", "/batch", "/orders"].some((p) => pathname === p || pathname.startsWith(`${p}/`));
+/** Herbal Holland sells only in the installed app and on the till, so with APP_ONLY=true a browser is turned away from everything else. */
+export const appOnly = () => process.env.APP_ONLY === "true";
+
+// What a browser may still open when the shop is app only. Anything not listed is closed, so a new route fails closed.
+const OPEN_IN_BROWSER = [
+  // How people reach the app, and what must never sit behind it: bio link and sign-up, the install page, legal pages,
+  // batch certificates (printed QR codes), order pages (card payments return there in the browser), partner brands (a
+  // member who joined in a browser lands there after ticking a share), shared Rewards cards, support and unsubscribe.
+  "/go", "/app", "/club/join", "/club/partners", "/legal", "/batch", "/orders", "/s", "/support", "/unsubscribe",
+  // The till and the back office, which sign in on their own.
+  "/pos", "/hq", "/store", "/staff", "/books", "/insights", "/account", "/login", "/logout", "/invoice", "/labels", "/media", "/social", "/menu",
+  // Images and icons, including the ones the install page itself shows.
+  "/brand", "/pwa-icon", "/pwa-splash", "/apple-icon", "/icon",
+];
+// Trade buyers order in the app like everyone else; only the pages that explain and start an account stay open.
+const OPEN_TRADE = ["/trade", "/trade/apply", "/trade/terms", "/trade/login"];
+
+export const appOnlyOpen = (pathname: string) => OPEN_TRADE.includes(pathname) || OPEN_IN_BROWSER.some((p) => pathname === p || pathname.startsWith(`${p}/`));

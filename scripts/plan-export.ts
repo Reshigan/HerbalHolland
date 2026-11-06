@@ -11,7 +11,7 @@ const CALENDAR: { key: string; anchor: string; town?: string; stagger?: number; 
   { key: "shop-launch", anchor: "2026-10-27" },
   ...TOWNS.map((town, i) => ({ key: "store-opening", anchor: "2026-12-01", town, stagger: i * 7, skipShared: i > 0 })),
   { key: "hiring", anchor: "2026-10-30" },
-  { key: "founding-members", anchor: "2026-12-06" },
+  { key: "founding-members", anchor: "2026-12-31" },
   { key: "merch-drop", anchor: "2026-12-10" },
   ...PLAYBOOKS.filter((p) => p.date).map((p) => ({ key: p.key, anchor: p.date! })),
   ...NEW_ONLINE_DAYS.map((anchor) => ({ key: "new-online", anchor })),

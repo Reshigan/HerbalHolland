@@ -19,7 +19,7 @@ import {
   TITLE_MAX,
   websiteJsonLd,
 } from "@/lib/seo";
-import { ARTICLES, resolveArticle } from "@/components/shop/learn/articles";
+import { ARTICLES, liveArticles, resolveArticle } from "@/components/shop/learn/articles";
 import { dayKey } from "@/lib/format";
 import { resolvePrice, type PriceListRule } from "@/lib/pricing-rules";
 
@@ -80,7 +80,7 @@ describe("article dates and aliases", () => {
     expect(articleDateProblems([ok], "2026-09-28")).toEqual([]);
     expect(articleDateProblems([{ ...ok, updated: "2026-08-31" }], "2026-09-28")).toHaveLength(1);
     expect(articleDateProblems([{ ...ok, updated: "2026-09-29" }], "2026-09-28")).toHaveLength(1);
-    expect(articleDateProblems([{ ...ok, published: "2026-10-01", updated: "2026-10-01" }], "2026-09-28")).toHaveLength(2);
+    expect(articleDateProblems([{ ...ok, published: "2026-10-01", updated: "2026-10-01" }], "2026-09-28")).toEqual([]); // queued
     expect(articleDateProblems([{ ...ok, published: "28/09/2026" }], "2026-09-28").join()).toContain("YYYY-MM-DD");
     expect(articleDateProblems([ok, { slug: "b", aliases: ["a"], published: "2026-09-01", updated: "2026-09-01" }], "2026-09-28").join()).toContain("already");
   });
@@ -89,6 +89,13 @@ describe("article dates and aliases", () => {
     expect(resolveArticle("heritage-landraces")).toMatchObject({ alias: false, article: { slug: "heritage-landraces" } });
     expect(resolveArticle("heritage-landraces-story")).toMatchObject({ alias: true, article: { slug: "heritage-landraces" } });
     expect(resolveArticle("nope")).toBeNull();
+  });
+  it("keeps a weekly article hidden until its Monday, then puts it first", () => {
+    expect(resolveArticle("install-the-app", "2026-11-08")).toBeNull();
+    expect(liveArticles("2026-11-08").map((a) => a.slug)).not.toContain("install-the-app");
+    expect(resolveArticle("install-the-app", "2026-11-09")).toMatchObject({ alias: false });
+    expect(liveArticles("2026-11-09")[0].slug).toBe("install-the-app");
+    expect(liveArticles("2026-11-16").slice(0, 2).map((a) => a.slug)).toEqual(["founding-members-list", "install-the-app"]);
   });
 });
 

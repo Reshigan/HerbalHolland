@@ -88,14 +88,14 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
           <b>Adults only.</b> You must be {compliance.minAge} or older to join and to buy. You join with your own South African mobile number and your date of birth, and before you buy we check your SA ID number or, if you&apos;re not a South African citizen, a passport we&apos;ve seen. One membership per person.
         </p>
         <p>
-          <b>True, current details.</b> Keep your details up to date in Rewards → Settings. We may ask to see your ID at any time (at the till, on collection or on delivery), and we won&apos;t sell or hand over age-restricted products if we can&apos;t confirm your age.
+          <b>True, current details.</b> Keep your details up to date in your profile. We may ask to see your ID at any time (at the till, on collection or on delivery), and we won&apos;t sell or hand over age-restricted products if we can&apos;t confirm your age.
         </p>
         <p>
           <b>Your card is personal.</b> Your membership and the QR code in the Rewards app are for you only. Don&apos;t let anyone else use them, and tell us straight away if you think someone has.
         </p>
       </Important>
       <P>
-        <b className="text-white">Ending your membership.</b> You can end it at any time in Rewards → Settings or at any store. Use your points first: they can&apos;t be paid out in cash. We keep the records the law requires after your membership ends, as the privacy notice explains.
+        <b className="text-white">Ending your membership.</b> You can end it at any time in your profile or at any store. Use your points first: they can&apos;t be paid out in cash. We keep the records the law requires after your membership ends, as the privacy notice explains.
       </P>
 
       <H2>4. Buying from us</H2>
@@ -146,7 +146,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
           "Never on medicines: licensed medicines earn no points, get no member savings and can't be paid for with points (Medicines Act s18A).",
           `Bonuses: ${l.signupBonus} points when you join, ${l.birthdayBonus} in your birthday month, and ${l.referralBonus} each for you and a friend you refer, after their first purchase.`,
           "Points and savings have no cash value, can't be transferred or sold, and are taken back if a purchase is refunded.",
-          "My Deals: personal offers based on what you buy, only while you allow it. Switch them off any time in Rewards → Settings.",
+          "My Deals: personal offers based on what you buy, only while you allow it. Switch them off any time in your profile.",
           "Changes: we'll give you at least 20 business days' notice before any change that reduces the value of your points or savings. If we end Rewards, you'll have at least 3 months to use your points.",
         ]}
       />
@@ -174,7 +174,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
 
       <H2>10. Your personal information and our messages</H2>
       <P>
-        We handle your personal information as our <Link href="/legal/privacy" className="text-brand-400 underline">privacy notice</Link> explains. In short: we confirm your age with a secure fingerprint of your ID number (only the last four digits stay readable), keep a record of what you buy as the law requires, and keep the version of these terms you accepted. We send marketing only on the channels you opt into (POPIA s69), only at the times the CPA allows (weekdays 08:00–20:00, Saturdays 09:00–13:00, never on Sundays or public holidays), and every message tells you how to opt out: reply STOP or change your choices in Rewards → Settings.
+        We handle your personal information as our <Link href="/legal/privacy" className="text-brand-400 underline">privacy notice</Link> explains. In short: we confirm your age with a secure fingerprint of your ID number (only the last four digits stay readable), keep a record of what you buy as the law requires, and keep the version of these terms you accepted. We send marketing only on the channels you opt into (POPIA s69), only at the times the CPA allows (weekdays 08:00–20:00, Saturdays 09:00–13:00, never on Sundays or public holidays), and every message tells you how to opt out: reply STOP or change your choices in your profile.
       </P>
 
       <H2>11. Suspending or ending a membership</H2>

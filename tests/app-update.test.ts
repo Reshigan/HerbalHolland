@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isUnattended, needsReload, reloadsOnResume } from "@/lib/app-update";
-import { appOnlyExempt } from "@/lib/install";
+import { appOnlyOpen } from "@/lib/install";
 
 describe("auto-update", () => {
   it("reloads for a new build, once", () => {
@@ -24,8 +24,8 @@ describe("auto-update", () => {
 });
 
 describe("app only", () => {
-  it("leaves open what a browser must reach, and walls the rest", () => {
-    for (const p of ["/go", "/club/join", "/club/partners", "/legal/terms", "/batch/B123", "/orders/HH123"]) expect(appOnlyExempt(p)).toBe(true);
-    for (const p of ["/", "/shop", "/club", "/club/orders", "/checkout", "/gopher"]) expect(appOnlyExempt(p)).toBe(false);
+  it("leaves open what a browser must reach, and closes the rest", () => {
+    for (const p of ["/go", "/app", "/club/join", "/club/partners", "/legal/terms", "/batch/B123", "/orders/HH123", "/s/abc", "/pos", "/pos/display", "/hq/settings", "/store/pta01", "/login", "/pwa-icon/192", "/apple-icon", "/trade", "/trade/apply", "/trade/terms", "/trade/login"]) expect(appOnlyOpen(p)).toBe(true);
+    for (const p of ["/", "/shop", "/p/amnesia-haze", "/cart", "/checkout", "/gift", "/learn", "/learn/points", "/stores", "/drops", "/specials", "/club", "/club/orders", "/r/1/abc", "/trade/range", "/trade/cart", "/trade/checkout", "/trade/orders", "/gopher", "/applied", "/nowhere"]) expect(appOnlyOpen(p)).toBe(false);
   });
 });

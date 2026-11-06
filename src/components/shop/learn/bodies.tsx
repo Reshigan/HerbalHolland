@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { AlertTriangle, Baby, Car, CheckCircle2, Clock, FileCheck2, FlaskConical, IdCard, Lock, Pill, ScanLine, Stethoscope, Wine } from "lucide-react";
 import { TIERS, fmtPoints } from "@/lib/loyalty-rules";
+import { WeeklyBody } from "./weekly";
 import { zarWhole } from "@/lib/money";
 import type { Settings } from "@/server/settings";
 
@@ -396,11 +397,11 @@ function KznStores() {
       <P>Each store&apos;s page has its hours, directions and what&apos;s in stock.</P>
       <H2>Members only, and free to join</H2>
       <P>
-        Everyone who shops with us is a member of Herbal Holland Rewards. Joining takes about a minute: your mobile number, a one-time code, your name and your date of birth. We check your ID once, before your first online order or at your first store visit. <A href="/club/join">Join free</A>.
+        Everyone who shops with us is a member of Herbal Holland Rewards. Joining takes about a minute: your mobile number, a one-time code, your name and your date of birth. We check your ID once, before your first order in the app or at your first store visit. <A href="/club/join">Join free</A>.
       </P>
       <H2>Founding Members</H2>
       <P>
-        Everyone who joins before 30 November is on the Founding Members list, and the first 2,026 places get a numbered Founding card. Every friend who joins with your link moves you 250 places up.
+        Everyone who joins before 31 December is on the Founding Members list, and the first 2,026 places get a numbered Founding card. Every friend who joins with your link moves you 250 places up.
       </P>
       <p className="mt-10 text-sm text-ink-450">Adults 18+ only. Keep every product locked away and out of reach.</p>
     </>
@@ -428,6 +429,6 @@ export function ArticleBody({ slug, settings }: { slug: string; settings: Settin
     case "kwazulu-natal-stores":
       return <KznStores />;
     default:
-      return null;
+      return <WeeklyBody slug={slug} />;
   }
 }

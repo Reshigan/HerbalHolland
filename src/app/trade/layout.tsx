@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { AppOnlyWall } from "@/components/shop/app-only";
 import { TradeChrome } from "@/components/trade/chrome";
+import { appOnly } from "@/lib/install";
 
 // Everything in the portal stays out of search unless a page says otherwise (the landing, the application and the
 // trade terms do).
@@ -10,5 +12,10 @@ export const metadata: Metadata = {
 };
 
 export default function TradeLayout({ children }: { children: React.ReactNode }) {
-  return <TradeChrome>{children}</TradeChrome>;
+  return (
+    <>
+      {appOnly() && <AppOnlyWall />}
+      <TradeChrome>{children}</TradeChrome>
+    </>
+  );
 }

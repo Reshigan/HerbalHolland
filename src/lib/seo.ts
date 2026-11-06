@@ -80,7 +80,7 @@ export const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 export type DatedArticle = { slug: string; published: string; updated: string; aliases?: string[] };
 
-/** Problems with the article records: bad or future dates, an update before publication, or a duplicate slug/alias. */
+/** Problems with the article records: bad dates, an update before publication or after today, or a duplicate slug/alias. A future `published` is fine: that article waits in the queue. */
 export function articleDateProblems(articles: DatedArticle[], today: string): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
@@ -88,8 +88,7 @@ export function articleDateProblems(articles: DatedArticle[], today: string): st
     if (!DATE_RE.test(a.published)) out.push(`${a.slug}: published "${a.published}" is not YYYY-MM-DD`);
     if (!DATE_RE.test(a.updated)) out.push(`${a.slug}: updated "${a.updated}" is not YYYY-MM-DD`);
     if (a.updated < a.published) out.push(`${a.slug}: updated ${a.updated} is before published ${a.published}`);
-    if (a.published > today) out.push(`${a.slug}: published ${a.published} is in the future (today ${today})`);
-    if (a.updated > today) out.push(`${a.slug}: updated ${a.updated} is in the future (today ${today})`);
+    if (a.published <= today && a.updated > today) out.push(`${a.slug}: updated ${a.updated} is in the future (today ${today})`);
     for (const s of [a.slug, ...(a.aliases ?? [])]) {
       if (seen.has(s)) out.push(`${a.slug}: "${s}" is already another article's slug or alias`);
       seen.add(s);

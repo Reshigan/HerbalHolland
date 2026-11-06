@@ -59,7 +59,7 @@ live, then national.
 
 ## Needs the owner
 
-- Open the Founding Members list: HQ → Launch, list closes 1 December 2026 08:00.
+- Open the Founding Members list: HQ → Launch, list closes Thursday 31 December 2026 23:59.
 - Connect the social accounts in HQ → Marketing → Social so the Studio's scheduled posts go out.
 - Store phones and the Bluff and Pietermaritzburg hours; Google Business Profiles (see GOOGLE-BUSINESS-PROFILES.md).
 - Publish the real product range.

@@ -20,7 +20,7 @@ import { partnerArrival, partnerOffers } from "@/server/partners";
 
 export const metadata: Metadata = {
   title: { absolute: "Join Herbal Holland Rewards" },
-  description: "Join Herbal Holland Rewards free with your mobile number (adults 18+). Earn points in every store and online.",
+  description: "Join Herbal Holland Rewards free with your mobile number (adults 18+). Earn points in every store and in the app.",
   robots: { index: true, follow: true },
 };
 
@@ -74,7 +74,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
                 }`
               : referrer
                 ? `Join Herbal Holland Rewards free. After your first purchase you'll both get ${fmtPoints(settings.loyalty.referralBonus)}, on top of your ${fmtPoints(settings.loyalty.signupBonus)} welcome bonus.`
-                : `Free, no passwords and no plastic. Your card lives on your phone and works in ${trading.length > 1 ? `all ${trading.length} stores` : "every store"} and online.`}
+                : `Free, no passwords and no plastic. Your card lives on your phone and works in ${trading.length > 1 ? `all ${trading.length} stores` : "every store"} and in the app.`}
           </p>
           {qrStore && (
             <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-brand-500/40 bg-brand-500/10 px-4 py-2 text-sm text-brand-200">
@@ -97,6 +97,10 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             We ask only what we need: your number to sign you in, your age to keep things legal, and an email address if you&apos;d like invoices by email. Marketing is opt-in, per channel, and you can change it any time.{" "}
             <Link href="/legal/privacy" className="underline hover:text-ink-300">
               Privacy notice
+            </Link>
+            {" · "}
+            <Link href="/trade/login" className="underline hover:text-ink-300">
+              Trade sign-in
             </Link>
           </p>
         </div>

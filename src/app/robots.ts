@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { appOnly } from "@/lib/install";
 
 // Per request, so it uses the running server's APP_URL rather than the build's.
 export const dynamic = "force-dynamic";
@@ -6,6 +7,8 @@ export const dynamic = "force-dynamic";
 const base = () => (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 export default function robots(): MetadataRoute.Robots {
+  // App only: the shop isn't on the web, so search sees just the pages a browser can still open.
+  if (appOnly()) return { rules: [{ userAgent: "*", allow: ["/club/join", "/go", "/legal/", "/trade$", "/trade/apply", "/trade/terms"], disallow: ["/"] }], sitemap: `${base()}/sitemap.xml`, host: base() };
   return {
     rules: [
       {

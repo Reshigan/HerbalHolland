@@ -109,8 +109,8 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           />
         </Panel>
       )}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
+        <div className="mx-auto w-full max-w-md space-y-4 md:max-w-none">
           <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} firstYear={!m.customer.foundingNo && !!m.floor && !!launch.at && m.customer.createdAt < launch.at} floorUntil={floorUntil} countFrom={countFrom} earned={earned} className={sp.welcome ? "hh-shimmer-once" : undefined} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
           <WalletButtons />
@@ -125,8 +125,9 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               Your {m.tier.name} price takes {savings[m.tier.key]}% off instantly, and you earn {settings.loyalty.earnPer100} points for every R100. Member since {fmtDate(m.customer.createdAt)}.
             </p>
             {m.savedCents > 0 && (
-              <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-brand-500/40 bg-brand-500/10 px-4 py-2 text-sm text-brand-100">
-                <BadgePercent className="h-4 w-4 text-brand-400" /> You&apos;ve saved <strong className="tnum text-white">{zar(m.savedCents)}</strong> with Herbal Holland Rewards
+              <p className="mt-4 flex w-fit max-w-full items-center gap-2 rounded-2xl border border-brand-500/40 bg-brand-500/10 px-4 py-2 text-sm text-brand-100">
+                <BadgePercent className="h-4 w-4 shrink-0 text-brand-400" />
+                <span>You&apos;ve saved <strong className="tnum text-white">{zar(m.savedCents)}</strong> with Herbal Holland Rewards</span>
               </p>
             )}
             <div className="mt-4 flex flex-wrap gap-2">
@@ -199,13 +200,13 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                 </div>
                 <Meter value={m.spend} max={m.goal.tier.minCents} className="mt-2" label={`Progress to ${m.goal.tier.name}`} />
                 <p className="mt-2 text-xs text-ink-450">
-                  {m.goal.mode === "keep" ? "Your tier is reviewed with every purchase against your last 12 months of spend in store and online." : "Tiers follow your rolling 12-month spend in store and online."}
+                  {m.goal.mode === "keep" ? "Your tier is reviewed with every purchase against your last 12 months of spend in store and in the app." : "Tiers follow your rolling 12-month spend in store and in the app."}
                 </p>
               </div>
             ) : (
               <p className="mt-5 text-sm text-brand-200">You&apos;re at our top tier. Thank you for being one of our best members.</p>
             )}
-            <div className="mt-5 grid grid-cols-1 gap-3 border-t border-ink-800 pt-5 sm:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-3 border-t border-ink-800 pt-5 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
               <div>
                 <h3 className="text-xs font-semibold text-ink-400">Your perks</h3>
                 <ul className="mt-2 space-y-1.5 text-sm text-ink-100">
@@ -307,7 +308,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             </ul>
           ) : (
             <div className="mt-3 text-sm text-ink-400">
-              No online orders yet.{" "}
+              No app orders yet.{" "}
               <Link href="/shop" className="font-semibold text-brand-400 hover:underline">
                 Start shopping
               </Link>
@@ -401,8 +402,8 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
       </div>
 
       {!m.customer.ageVerifiedAt && (
-        <Callout tone="warn" title="Verify your age to order online" className="mt-6">
-          Add your SA ID number in <Link href="/club/settings" className="font-semibold text-white underline">Settings</Link>, or show your ID or passport at any store.
+        <Callout tone="warn" title="Verify your age to order in the app" className="mt-6">
+          Add your SA ID number in <Link href="/club/settings" className="font-semibold text-white underline">your profile</Link>, or show your ID or passport at any store.
         </Callout>
       )}
     </Container>
@@ -429,7 +430,7 @@ async function Landing() {
             <span className="text-brand-500">Pay less, earn points.</span>
           </h1>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-300">
-            Members pay less instantly, {trading.length ? `in ${plural(trading.length, "store")} and online` : "online"}, and earn {settings.loyalty.earnPer100} points for every R100 to spend like cash. 1 point = R1.
+            Members pay less instantly, {trading.length ? `in ${plural(trading.length, "store")} and in the app` : "in the app"}, and earn {settings.loyalty.earnPer100} points for every R100 to spend like cash. 1 point = R1.
           </p>
           <ul className="mt-8 grid grid-cols-1 max-w-xl gap-3 sm:grid-cols-2">
             {[

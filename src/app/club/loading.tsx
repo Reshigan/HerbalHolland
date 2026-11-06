@@ -4,8 +4,8 @@ import { Container } from "@/components/shop/ui";
 export default function Loading() {
   return (
     <Container className="pt-8" role="status" aria-live="polite" aria-label="Loading your card">
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
+        <div className="mx-auto w-full max-w-md space-y-4 md:max-w-none">
           <Bone className="aspect-[1.6/1] rounded-[1.6rem]" />
           <Bone className="mx-auto h-3 w-2/3" />
           <div className="flex gap-2">

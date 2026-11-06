@@ -82,7 +82,7 @@ export function WelcomeGiftBanner({ gift, where = "card", canBuy = true, classNa
           <div className="font-semibold text-white">
             Your welcome gift: {what} with your first purchase
           </div>
-          <div className="mt-0.5 text-ink-300">{where === "bag" ? "Add it to your bag and it comes off at checkout." : `${gift.description ? `${gift.description} ` : ""}Online or at any till.`}</div>
+          <div className="mt-0.5 text-ink-300">{where === "bag" ? "Add it to your bag and it comes off at checkout." : `${gift.description ? `${gift.description} ` : ""}In the app or at any till.`}</div>
         </div>
       </div>
       {gift.product && canBuy && <AddToBag plain variantId={gift.product.variantId} name={gift.product.name} label="Add it to your bag" className="shrink-0" />}
@@ -100,10 +100,10 @@ export function DealsPanel({ deals, personalised }: { deals: Deal[]; personalise
           <BadgePercent className="h-5 w-5 text-brand-500" /> My Deals
         </h2>
         <Link href="/club/settings#deals" className="text-sm font-semibold text-brand-400 hover:underline">
-          Settings
+          Profile
         </Link>
       </div>
-      <p className="mt-1 text-sm text-ink-400">Personal deals on your card. They apply automatically at the till and online, with no codes and one use each.</p>
+      <p className="mt-1 text-sm text-ink-400">Personal deals on your card. They apply automatically at the till and in the app, with no codes and one use each.</p>
       {deals.length ? (
         <ul className="mt-3 divide-y divide-ink-800">
           {deals.map((d) => {
@@ -118,7 +118,7 @@ export function DealsPanel({ deals, personalised }: { deals: Deal[]; personalise
                 )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-ink-100">{d.title}</span>
-                  <span className="block text-xs text-ink-450">Ends {fmtDay(d.endsAt)} · applies automatically at the till and online</span>
+                  <span className="block text-xs text-ink-450">Ends {fmtDay(d.endsAt)} · applies automatically at the till and in the app</span>
                 </span>
                 <Tag tone="orange" className="shrink-0">
                   {d.label}
