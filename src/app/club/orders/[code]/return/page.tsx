@@ -28,7 +28,7 @@ export default async function ReturnPage({ params, searchParams }: { params: Pro
 
   return (
     <Container className="max-w-3xl pt-8">
-      <Link href={`/orders/${order.code}`} className="inline-flex items-center gap-1 text-sm font-medium text-ink-400 hover:text-white">
+      <Link href={`/orders/${order.code}`} className="relative inline-flex items-center gap-1 after:absolute after:-inset-x-2 after:-inset-y-3 text-sm font-medium text-ink-400 hover:text-white">
         <ChevronLeft className="h-4 w-4" aria-hidden /> Order {order.code}
       </Link>
       {sp.done && (

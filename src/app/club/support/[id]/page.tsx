@@ -24,7 +24,7 @@ export default async function ClubTicket({ params, searchParams }: { params: Pro
 
   return (
     <Container className="max-w-3xl pt-8">
-      <Link href="/club/support" className="inline-flex items-center gap-1 text-sm font-medium text-ink-400 hover:text-white">
+      <Link href="/club/support" className="relative inline-flex items-center gap-1 after:absolute after:-inset-x-2 after:-inset-y-3 text-sm font-medium text-ink-400 hover:text-white">
         <ChevronLeft className="h-4 w-4" aria-hidden /> Help &amp; returns
       </Link>
       {sp.sent && (
