@@ -122,6 +122,10 @@ for (const role of ROLES.filter((r) => !only || r.name === only)) {
   // Studio cards come from Browser Rendering, a remote service: under wrangler dev the route answers 503 by design.
   const noBrowserLocally = (url, status) => status === 503 && /\/hq\/marketing\/studio\/card\//.test(url);
   page.on("response", (r) => r.url().startsWith(BASE) && r.status() >= 400 && r.request().resourceType() !== "document" && !noBrowserLocally(r.url(), r.status()) && issue(`http ${r.status()}`, r.url().slice(BASE.length)));
+  const inFlight = new Set();
+  page.on("request", (r) => inFlight.add(r));
+  page.on("requestfinished", (r) => inFlight.delete(r));
+  page.on("requestfailed", (r) => inFlight.delete(r));
   if (role.login) await role.login(page);
 
   const seen = new Set();
@@ -152,13 +156,21 @@ for (const role of ROLES.filter((r) => !only || r.name === only)) {
       if (r.status !== 200 && !noBrowserLocally(key, r.status)) issue(`download ${r.status}`, key);
       continue;
     }
+    // Single stalls have hit unrelated pages that then load in under 3 seconds, so one stall is logged with what was still
+    // in flight and the page gets a second go. A page that stalls twice is a problem.
     let res;
-    try {
-      res = await page.goto(href, { waitUntil: "load", timeout: 30_000 });
-    } catch (e) {
-      issue("timeout", e.message.split("\n")[0]);
-      continue;
+    for (let attempt = 1; ; attempt++) {
+      inFlight.clear();
+      try {
+        res = await page.goto(href, { waitUntil: "load", timeout: 30_000 });
+        break;
+      } catch (e) {
+        const waiting = [...inFlight].map((r) => `${r.resourceType()} ${r.url().replace(BASE, "")}`);
+        console.log(`STALL [${role.name}] ${key} attempt ${attempt}, still in flight: ${waiting.join(", ") || "nothing"}`);
+        if (attempt === 2) { issue("timeout", e.message.split("\n")[0]); break; }
+      }
     }
+    if (!res) continue;
     const status = res?.status() ?? 0;
     const final = new URL(page.url());
     const m = await page.evaluate(METRICS).catch(() => ({}));

@@ -169,6 +169,11 @@ try {
   assert(moodResults > 0 && (await page.getByText(/\d+ results? for/).isVisible()), `/shop?mood=${mood}: ${moodResults} products, filter shown`);
   await page.getByRole("link", { name: new RegExp(`^Remove filter ${esc(mood)}`, "i") }).click();
   await page.getByRole("heading", { level: 1, name: "The range" }).waitFor();
+  // The full range is taller than any screen: its cards must still rise in once the grid is in view.
+  const firstCard = page.locator("main article").first();
+  await firstCard.scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector("main article")).opacity === "1", null, { timeout: 5000 });
+  ok(`the full range shows its cards (${await page.locator("main article").count()})`);
   await timed("Shop: category chip", () => page.getByLabel("Categories").getByRole("link", { name: new RegExp(`^${esc(target.catName)}`) }).click(), () => page.getByRole("heading", { level: 1, name: target.catName }).waitFor());
   assert(page.url().includes(`category=${target.cat}`), `category ${target.catName} (${await page.locator("main article").count()} products)`);
   await shot(page, "category");

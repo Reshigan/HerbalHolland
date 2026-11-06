@@ -17,13 +17,14 @@ export function Reveal({ as: Tag = "div", stagger = false, className, children, 
     const el = ref.current;
     if (!el || el.hasAttribute("data-in")) return;
     if (!canMove() || typeof IntersectionObserver === "undefined") return el.setAttribute("data-in", "");
+    // No ratio threshold: a long grid (the full catalogue is 8000px on a phone) can never show 15% of itself at once.
     const io = new IntersectionObserver(
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return;
         el.setAttribute("data-in", "");
         io.disconnect();
       },
-      { threshold: 0.15, rootMargin: "-10% 0px" },
+      { rootMargin: "-10% 0px" },
     );
     io.observe(el);
     return () => io.disconnect();
