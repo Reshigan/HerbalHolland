@@ -58,7 +58,7 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
             <ul className="mt-3 space-y-1 text-sm text-ink-400">
               {order.lines.map((l) => (
                 <li key={l.id} className="flex justify-between gap-3">
-                  <span className="truncate">
+                  <span className="min-w-0">
                     {l.qty}× {l.variant.product.name} · {l.variant.name}
                   </span>
                   <span className="tnum shrink-0">{zar(l.totalCents)}</span>
@@ -78,7 +78,7 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
               )}
               {vouchers.map((v) => (
                 <li key={v.code} className="flex justify-between gap-3 text-leaf-100">
-                  <span className="truncate">Gift voucher {v.code}</span>
+                  <span className="min-w-0">Gift voucher {v.code}</span>
                   <span className="tnum shrink-0">−{zar(v.cents)}</span>
                 </li>
               ))}

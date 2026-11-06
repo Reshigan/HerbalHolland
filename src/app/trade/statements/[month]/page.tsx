@@ -24,9 +24,9 @@ export default async function TradeStatementPage({ params }: { params: Promise<{
   return (
     <Container className="pt-10 sm:pt-14">
       <DocumentPrintStyles />
-      <div className="no-print mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="no-print mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <Link href="/trade/statements" className="text-sm text-ink-400 hover:text-white">
+          <Link href="/trade/statements" className="relative inline-flex items-center gap-1 after:absolute after:-inset-x-2 after:-inset-y-3 text-sm text-ink-400 hover:text-white">
             ← All statements
           </Link>
           <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">Statement · {fmtMonth(`${month}-15T12:00:00Z`)}</h1>

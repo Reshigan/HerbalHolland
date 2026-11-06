@@ -27,7 +27,7 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
           <Mark className="h-12 w-12 text-brand-600" />
           <Wordmark className="text-base" />
         </div>
-        <div className="text-right">
+        <div className="sm:text-right print:text-right">
           <div className="eyebrow text-brand-700">Trade statement</div>
           <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-ink-950">{monthLabel}</h1>
           <dl className="mt-3 space-y-0.5 text-sm text-ink-700">
@@ -89,7 +89,39 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
         </div>
       </div>
 
-      <div className="mt-6 overflow-x-auto print:overflow-visible">
+      {/* On a phone the five columns don't fit, so each entry reads as a row of its own; the table is the document. */}
+      <ul className="mt-6 divide-y divide-ink-100 border-y border-ink-200 text-sm sm:hidden print:hidden">
+        <li className="flex justify-between gap-3 py-2.5">
+          <div>
+            <div className="font-medium text-ink-900">Opening balance</div>
+            <div className="text-xs text-ink-500">{fmtDate(st.from)}</div>
+          </div>
+          <div className="tnum text-ink-900">{zar(st.opening)}</div>
+        </li>
+        {st.lines.map((l, i) => (
+          <li key={i} className="flex justify-between gap-3 py-2.5">
+            <div className="min-w-0">
+              <div className="font-medium text-ink-900">
+                {LEDGER_LABEL[l.kind] ?? l.kind}
+                {l.reference ? <span className="tnum"> {l.reference}</span> : ""}
+              </div>
+              <div className="text-xs text-ink-500">{fmtDate(l.at)}</div>
+              {l.note && <div className="mt-0.5 text-xs text-ink-500">{l.note}</div>}
+            </div>
+            <div className="shrink-0 text-right">
+              <div className={cn("tnum", l.creditCents ? "text-leaf-700" : "text-ink-900")}>{l.creditCents ? `−${zar(l.creditCents)}` : zar(l.debitCents)}</div>
+              <div className="tnum text-xs text-ink-500">Balance {zar(l.balanceCents)}</div>
+            </div>
+          </li>
+        ))}
+        {st.lines.length === 0 && <li className="py-4 text-center text-ink-500">No entries this month.</li>}
+        <li className="flex justify-between gap-3 py-3 font-semibold text-ink-950">
+          <div>Closing balance</div>
+          <div className="tnum">{zar(st.closing)}</div>
+        </li>
+      </ul>
+
+      <div className="mt-6 hidden overflow-x-auto sm:block print:block print:overflow-visible">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-y border-ink-200 text-left text-xs text-ink-500">
@@ -102,7 +134,7 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
         </thead>
         <tbody>
           <tr className="border-b border-ink-100">
-            <td className="py-2 pr-3 text-ink-600">{fmtDate(st.from)}</td>
+            <td className="whitespace-nowrap py-2 pr-3 text-ink-600">{fmtDate(st.from)}</td>
             <td className="py-2 px-3 font-medium text-ink-900">Opening balance</td>
             <td className="py-2 px-3 text-right text-ink-500">—</td>
             <td className="py-2 px-3 text-right text-ink-500">—</td>
@@ -110,7 +142,7 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
           </tr>
           {st.lines.map((l, i) => (
             <tr key={i} className="border-b border-ink-100 align-top">
-              <td className="py-2 pr-3 text-ink-600">{fmtDate(l.at)}</td>
+              <td className="whitespace-nowrap py-2 pr-3 text-ink-600">{fmtDate(l.at)}</td>
               <td className="py-2 px-3">
                 <span className="font-medium text-ink-900">
                   {LEDGER_LABEL[l.kind] ?? l.kind}

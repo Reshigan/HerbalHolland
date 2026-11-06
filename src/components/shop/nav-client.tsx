@@ -68,7 +68,7 @@ export function NavLinks({ items, className }: { items: NavItem[]; className?: s
             key={i.href}
             href={i.href}
             aria-current={active ? "page" : undefined}
-            className={cn("relative rounded-full px-3.5 py-2 text-[0.9rem] font-medium transition-colors", active ? "text-white" : "text-ink-300 hover:text-white")}
+            className={cn("relative inline-flex min-h-11 items-center rounded-full px-3.5 text-[0.9rem] font-medium transition-colors", active ? "text-white" : "text-ink-300 hover:text-white")}
           >
             {i.label}
             {active && <span className="absolute inset-x-3.5 -bottom-[1px] h-0.5 rounded-full bg-brand-500" />}

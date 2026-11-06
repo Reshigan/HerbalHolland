@@ -11,14 +11,14 @@ export type StaffAction = (state: ActionState, fd: FormData) => Promise<ActionSt
 
 export function DecideForms({ approve, decline }: { approve: StaffAction; decline: StaffAction }) {
   return (
-    <div className="flex flex-col items-start gap-2">
-      <ConfirmAction action={approve} label="Approve" title="Approve this return?" confirmLabel="Approve" variant="primary" triggerVariant="primary" icon={<BadgeCheck className="h-4 w-4" aria-hidden />}>
+    <div className="flex flex-wrap gap-2">
+      <ConfirmAction action={approve} label="Approve" size="md" title="Approve this return?" confirmLabel="Approve" variant="primary" triggerVariant="primary" icon={<BadgeCheck className="h-4 w-4" aria-hidden />}>
         <p>The member is told it&apos;s approved and that a courier collection is coming. Book it in the next step.</p>
         <Field label="A note for the member (optional)" htmlFor="approve-note">
           <Textarea id="approve-note" name="note" className="min-h-14" maxLength={500} placeholder="e.g. Please keep the original box for the courier." />
         </Field>
       </ConfirmAction>
-      <ConfirmAction action={decline} label="Decline" title="Decline this return?" confirmLabel="Decline" icon={<XCircle className="h-4 w-4" aria-hidden />}>
+      <ConfirmAction action={decline} label="Decline" size="md" title="Decline this return?" confirmLabel="Decline" icon={<XCircle className="h-4 w-4" aria-hidden />}>
         <p>The member reads the reason. Faulty goods within 6 months and change-of-mind returns within 7 days are rights under the CPA and ECTA: decline only when the request falls outside them.</p>
         <Field label="Reason (the member is told)" htmlFor="decline-note">
           <Textarea id="decline-note" name="note" className="min-h-16" maxLength={500} placeholder="e.g. The seal was broken, so it can't be returned for a change of mind." />

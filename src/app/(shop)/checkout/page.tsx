@@ -50,7 +50,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
 
   const header = (
     <div className="mb-8">
-      <Link href="/cart" className="inline-flex items-center gap-1 text-sm text-ink-400 hover:text-white">
+      <Link href="/cart" className="relative inline-flex items-center gap-1 after:absolute after:-inset-x-2 after:-inset-y-3 text-sm text-ink-400 hover:text-white">
         <ChevronLeft className="h-4 w-4" /> Back to bag
       </Link>
       <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Checkout</h1>

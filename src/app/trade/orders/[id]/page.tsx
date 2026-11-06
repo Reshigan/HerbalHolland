@@ -63,7 +63,7 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Link href="/trade/orders" className="text-sm text-ink-400 hover:text-white">
+          <Link href="/trade/orders" className="relative inline-flex items-center gap-1 after:absolute after:-inset-x-2 after:-inset-y-3 text-sm text-ink-400 hover:text-white">
             ← All orders
           </Link>
           <div className="eyebrow mt-3 text-brand-500">

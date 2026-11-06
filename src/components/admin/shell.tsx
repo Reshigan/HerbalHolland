@@ -64,13 +64,14 @@ export function AdminShell({
       <div className="flex-1">
         <SideNav groups={nav} />
       </div>
-      <div className="mt-6 flex items-center gap-3 rounded-2xl bg-ink-900 p-3">
+      {/* The two actions sit on a row of their own: beside the name they left it 84px and cut most names short. */}
+      <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-ink-900 p-3">
         <Avatar name={user.name} className="bg-brand-500 text-ink-950" />
-        <div className="min-w-0 flex-1">
+        <div className="w-[calc(100%-3.25rem)] min-w-0">
           <div className="truncate text-sm font-semibold text-white">{user.name}</div>
           <div className="truncate text-xs text-ink-400">{ROLE[user.role]}</div>
         </div>
-        <Link href="/account/password" className="grid h-8 w-8 place-items-center rounded-lg text-ink-400 hover:bg-ink-800 hover:text-white" aria-label="Change password" title="Change password">
+        <Link href="/account/password" className="ml-auto grid h-8 w-8 place-items-center rounded-lg text-ink-400 hover:bg-ink-800 hover:text-white" aria-label="Change password" title="Change password">
           <KeyRound className="h-4 w-4" />
         </Link>
         <form action="/logout" method="post">

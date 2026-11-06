@@ -47,7 +47,7 @@ export default async function TradeCheckoutPage() {
   return (
     <Container className="pt-10 sm:pt-14">
       <div className="mb-8">
-        <Link href="/trade/cart" className="inline-flex items-center gap-1 text-sm text-ink-400 hover:text-white">
+        <Link href="/trade/cart" className="relative inline-flex items-center gap-1 after:absolute after:-inset-x-2 after:-inset-y-3 text-sm text-ink-400 hover:text-white">
           <ChevronLeft className="h-4 w-4" aria-hidden /> Back to the cart
         </Link>
         <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Checkout</h1>

@@ -102,7 +102,7 @@ export function PriorityForm({ action, current, disabled }: { action: StaffActio
 
 export function ResolveForm({ action, number }: { action: StaffAction; number: string }) {
   return (
-    <ConfirmAction action={action} label="Mark as resolved" title={`Resolve ${number}?`} confirmLabel="Resolve" variant="primary" icon={<CheckCircle2 className="h-4 w-4" aria-hidden />}>
+    <ConfirmAction action={action} label="Mark as resolved" size="md" title={`Resolve ${number}?`} confirmLabel="Resolve" variant="primary" icon={<CheckCircle2 className="h-4 w-4" aria-hidden />}>
       <p>The member is told it&apos;s resolved and can reopen it by replying within 30 days.</p>
       <Field label="A closing note for the member (optional)" htmlFor="resolve-note">
         <Textarea id="resolve-note" name="note" className="min-h-16" maxLength={500} placeholder="e.g. The missing points are on your card." />

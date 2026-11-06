@@ -19,7 +19,7 @@ export function DeltaText({ value, upIsGood = true, className }: { value: number
 
 export function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-ink-900">
+    <Link href={href} className="relative mb-3 inline-flex items-center gap-1.5 text-sm font-medium after:absolute after:-inset-x-2 after:-inset-y-3 text-ink-500 hover:text-ink-900">
       <ArrowLeft className="h-4 w-4" aria-hidden />
       {children}
     </Link>
