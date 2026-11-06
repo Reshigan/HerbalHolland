@@ -85,7 +85,7 @@ export function MobileMenu({ items, footer }: { items: NavItem[]; footer?: React
   useEffect(() => ref.current?.close(), [path]);
   return (
     <>
-      <button onClick={() => ref.current?.showModal()} className="-ml-2 grid h-11 w-11 place-items-center rounded-full text-ink-200 hover:bg-ink-850 lg:hidden" aria-label="Open menu">
+      <button onClick={() => ref.current?.showModal()} className="-ml-2 grid h-11 w-11 place-items-center rounded-full text-ink-200 hover:bg-ink-850 xl:hidden" aria-label="Open menu">
         <Menu className="h-6 w-6" strokeWidth={1.9} />
       </button>
       <dialog
@@ -279,7 +279,7 @@ export function StorePicker({ current, variant = "pill", className }: { current:
             {variant === "bar" && <span className={cn("ml-2", current.open ? "text-leaf-100" : "text-ink-400")}>· {current.openLabel}</span>}
           </span>
         ) : (
-          <span className="font-medium">Choose your store</span>
+          <span className="whitespace-nowrap font-medium">Choose your store</span>
         )}
         <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-ink-400" />
       </button>

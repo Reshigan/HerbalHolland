@@ -129,10 +129,10 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
             <Link href="/" className="shrink-0 rounded-lg" aria-label="Herbal Holland home">
               <Logo markClassName="h-9 w-9 lg:h-10 lg:w-10" />
             </Link>
-            <NavLinks items={NAV} className="ml-4 hidden lg:flex" />
+            <NavLinks items={NAV} className="ml-4 hidden xl:flex" />
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
               {/* Product search from every page: a field on wide screens, an icon to the shop's search on smaller ones. */}
-              <form action="/shop" role="search" className="relative hidden xl:block">
+              <form action="/shop" role="search" className="relative hidden 2xl:block">
                 <label htmlFor="header-q" className="sr-only">
                   Search products
                 </label>
@@ -149,7 +149,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               </form>
               <Link
                 href="/shop?focus=1"
-                className="grid h-11 w-11 place-items-center rounded-full text-ink-200 transition hover:bg-ink-850 hover:text-white xl:hidden"
+                className="grid h-11 w-11 place-items-center rounded-full text-ink-200 transition hover:bg-ink-850 hover:text-white 2xl:hidden"
                 aria-label="Search products"
               >
                 <Search className="h-[22px] w-[22px]" strokeWidth={1.8} />
@@ -157,14 +157,14 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               <StorePicker current={current} className="hidden md:flex" />
               <Link
                 href="/club"
-                className="flex h-11 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3"
+                className="flex h-11 shrink-0 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3"
                 aria-label={customer ? `Rewards: ${customer.firstName}` : "Sign in to Herbal Holland Rewards"}
               >
                 <span className="relative">
                   <UserRound className="h-[22px] w-[22px]" strokeWidth={1.8} />
                   {tier && <span className={cn("absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-ink-950", TIER_DOT[tier.key] ?? "bg-brand-500")} />}
                 </span>
-                <span className="hidden sm:inline">{customer ? customer.firstName : "Sign in"}</span>
+                <span className="hidden max-w-[7rem] truncate sm:inline">{customer ? customer.firstName : "Sign in"}</span>
               </Link>
               {canBuyOnline(phase) && (
               <Link href="/cart" className="relative flex h-11 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3" aria-label={`Bag, ${count} item${count === 1 ? "" : "s"}`}>
