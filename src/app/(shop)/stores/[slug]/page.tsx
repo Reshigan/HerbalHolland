@@ -345,10 +345,12 @@ export default async function StorePage({
                 >
                   In stock at {s.name}
                 </h2>
-                <p className="mt-1 text-sm text-ink-400">
-                  {plural(total, "product")} · live stock · in-store prices
-                  {customer ? " (your member prices)" : ""}, set by this store
-                </p>
+                {total > 0 && (
+                  <p className="mt-1 text-sm text-ink-400">
+                    {plural(total, "product")} · live stock · in-store prices
+                    {customer ? " (your member prices)" : ""}, set by this store
+                  </p>
+                )}
               </div>
             </div>
             {asList(s.licences).length > 0 && (
@@ -416,8 +418,8 @@ export default async function StorePage({
               ))}
               {!memberMenu.length && (
                 <p className="text-ink-400">
-                  Stock information isn&apos;t available right now, so give the
-                  store a call.
+                  This store&apos;s shelf isn&apos;t listed yet. Ask the team in
+                  store what&apos;s in.
                 </p>
               )}
             </div>

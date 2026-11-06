@@ -330,7 +330,7 @@ export default async function Home() {
       )}
 
       {/* ── Categories ────────────────────────────────────────────── */}
-      <Suspense>
+      {publicCats.length > 0 && <Suspense>
       <Container className="pt-20">
         <SectionHead eyebrow="The range" title="Shop by category" action={<ButtonLink href="/shop" variant="ghost-dark" size="sm">Everything <ArrowRight className="h-4 w-4" /></ButtonLink>} />
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
@@ -359,7 +359,7 @@ export default async function Home() {
           </Link>
         </div>
       </Container>
-      </Suspense>
+      </Suspense>}
 
       {/* ── Featured ──────────────────────────────────────────────── */}
       {picks.length > 0 && (

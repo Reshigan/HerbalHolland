@@ -4,7 +4,7 @@ import Link from "next/link";
 import { categoryImage } from "@/lib/category-images";
 import Form from "next/form";
 import type { Metadata } from "next";
-import { ArrowRight, BookOpen, Search, ShieldCheck, SlidersHorizontal, Store, X } from "lucide-react";
+import { ArrowRight, BookOpen, Leaf, Search, ShieldCheck, SlidersHorizontal, Store, X } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { listCatalogue, PAGE_SIZE, SORTS, type SortKey } from "@/server/shop/catalogue";
 import { getPreferredStore, getStoreFootprint } from "@/server/shop/context";
@@ -95,6 +95,8 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     (query.min != null || query.max != null) && { label: `R${query.min ?? 0} – ${query.max != null ? `R${query.max}` : "any"}`, clear: href({ min: undefined, max: undefined }) },
     q && { label: `“${q}”`, clear: href({ q: undefined }) },
   ].filter(Boolean) as { label: string; clear: string }[];
+  // No products are live at all, as before HQ loads the range: there is nothing to filter, so nothing to clear.
+  const emptyRange = !res.total && !active.length;
 
   // The editorial block for a category: its line, what its classes are (in plain words), the range, and the guide to read.
   const catClasses = cat && !licensedCategory && !q && !query.mood && query.page === 1 ? [...new Set(res.items.map((i) => i.regClass as RegClass))] : [];
@@ -168,7 +170,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
         </div>
 
         {/* Mood, price, sort */}
-        <details className="group mt-4 rounded-2xl border border-ink-850 bg-ink-900/40 open:bg-ink-900/60 sm:open:bg-transparent lg:hidden" open={!!(query.mood || query.min || query.max)}>
+        {!emptyRange && <details className="group mt-4 rounded-2xl border border-ink-850 bg-ink-900/40 open:bg-ink-900/60 sm:open:bg-transparent lg:hidden" open={!!(query.mood || query.min || query.max)}>
           <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-ink-100 [&::-webkit-details-marker]:hidden">
             <SlidersHorizontal className="h-4 w-4 text-brand-500" /> Mood, price &amp; sort
             <span className="ml-auto text-xs font-medium text-ink-400 group-open:hidden">Show</span>
@@ -176,10 +178,10 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           <div className="border-t border-ink-850 p-4">
             <Filters />
           </div>
-        </details>
-        <div className="mt-4 hidden lg:block">
+        </details>}
+        {!emptyRange && <div className="mt-4 hidden lg:block">
           <Filters />
-        </div>
+        </div>}
 
         {active.length > 0 && (
           <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
@@ -284,6 +286,16 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                 </Link>
               </Callout>
             )}
+            {emptyRange ? (
+            <div className="mt-6 rounded-3xl border border-dashed border-ink-800 px-6 py-20 text-center">
+              <Leaf className="mx-auto h-8 w-8 text-ink-600" />
+              <h2 className="mt-4 font-display text-xl font-semibold text-white">The range lands soon</h2>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">{customer ? "We're stocking the shelves. We'll tell you the day it opens." : "We're stocking the shelves. Join Rewards and we'll tell you the day it opens."}</p>
+              <Link href={customer ? "/stores" : "/club"} className={buttonClass("outline-dark", "md", "mt-6")}>
+                {customer ? "Find a store" : "Join free"}
+              </Link>
+            </div>
+            ) : (
             <div className="rounded-3xl border border-dashed border-ink-800 px-6 py-20 text-center">
               <Search className="mx-auto h-8 w-8 text-ink-600" />
               <h2 className="mt-4 font-display text-xl font-semibold text-white">{q ? `Nothing matches “${q}”` : "Nothing matches those filters"}</h2>
@@ -292,6 +304,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                 Clear filters
               </Link>
             </div>
+            )}
             </>
           )}
         </div>
