@@ -21,9 +21,9 @@ import { displayPhone } from "@/lib/sa";
 import { fmtDate } from "@/lib/format";
 import { contactEmailOf, legalNameOf } from "@/lib/contact";
 
-export const metadata = { title: "Settings" };
+export const metadata = { title: "Profile" };
 
-const SOURCE: Record<string, string> = { SIGNUP_WEB: "when you joined online", WEB: "when you joined online", REFERRAL: "when you joined", POS: "in store", CLUB_APP: "in Rewards settings", STOP_REPLY: "by replying STOP", ADMIN: "by our team" };
+const SOURCE: Record<string, string> = { SIGNUP_WEB: "when you joined online", WEB: "when you joined online", REFERRAL: "when you joined", POS: "in store", CLUB_APP: "in your profile", STOP_REPLY: "by replying STOP", ADMIN: "by our team" };
 const AGE: Record<string, string> = { ID_NUMBER: "SA ID number checked", ID_SIGHTED: "ID sighted in store", VERIFIED: "Verified with Home Affairs", NONE: "Not verified" };
 
 export default async function ClubSettings() {
@@ -46,7 +46,7 @@ export default async function ClubSettings() {
 
   return (
     <Container className="pt-8">
-      <h1 className="font-display text-3xl font-semibold tracking-tight text-white">Settings</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-tight text-white">Profile</h1>
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
           <Panel className="p-5 sm:p-6">
@@ -84,7 +84,7 @@ export default async function ClubSettings() {
             <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
               <BadgePercent className="h-5 w-5 text-brand-500" /> My Deals
             </h2>
-            <p className="mb-2 mt-1 text-sm leading-relaxed text-ink-400">My Deals are personal offers loaded to your card each week, on something you buy often. They apply automatically at the till and online.</p>
+            <p className="mb-2 mt-1 text-sm leading-relaxed text-ink-400">My Deals are personal offers loaded to your card each week, on something you buy often. They apply automatically at the till and in the app.</p>
             <PrefSwitch
               label="Personalised deals"
               on={customer.personalisedOffers}
@@ -110,7 +110,7 @@ export default async function ClubSettings() {
               </p>
             ) : (
               <>
-                <p className="mt-2 text-sm text-ink-400">Needed to order age-restricted items online. Or show your ID or passport at any store.</p>
+                <p className="mt-2 text-sm text-ink-400">Needed to order age-restricted items in the app. Or show your ID or passport at any store.</p>
                 <VerifyAge className="mt-4" />
               </>
             )}
@@ -164,6 +164,9 @@ export default async function ClubSettings() {
               Staff sign-in
             </Link>
           )}
+          <Link href="/trade/login" className="block py-2 text-center text-sm font-semibold text-ink-400 hover:text-white">
+            Trade sign-in
+          </Link>
         </aside>
       </div>
     </Container>

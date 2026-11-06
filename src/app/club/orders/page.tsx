@@ -28,7 +28,7 @@ export default async function ClubOrders({ searchParams }: { searchParams: Promi
   return (
     <Container className="pt-8">
       <h1 className="font-display text-3xl font-semibold tracking-tight text-white">Your orders</h1>
-      <p className="mt-1 text-sm text-ink-400">Online orders for collection and delivery. In-store purchases appear under Invoices.</p>
+      <p className="mt-1 text-sm text-ink-400">App orders for collection and delivery. In-store purchases appear under Purchases.</p>
       {rows.length ? (
         <>
           <ul className="mt-6 space-y-3">
@@ -47,7 +47,7 @@ export default async function ClubOrders({ searchParams }: { searchParams: Promi
                         <span className="font-semibold text-white">Order {o.code}</span>
                         <Tag tone={tone}>{label}</Tag>
                       </div>
-                      <p className="mt-1 truncate text-sm text-ink-400">
+                      <p className="mt-1 line-clamp-2 text-sm text-ink-400">
                         {o.lines.map((l) => l.variant.product.name).join(", ")}
                         {o._count.lines > o.lines.length ? ` +${o._count.lines - o.lines.length} more` : ""}
                       </p>
@@ -71,8 +71,8 @@ export default async function ClubOrders({ searchParams }: { searchParams: Promi
       ) : (
         <div className="mt-6 rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center">
           <Package className="mx-auto h-9 w-9 text-ink-600" />
-          <h2 className="mt-4 font-display text-xl font-semibold text-white">No online orders yet</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">Order online and collect in store, or have it delivered. Your orders will show up here.</p>
+          <h2 className="mt-4 font-display text-xl font-semibold text-white">No app orders yet</h2>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">Order in the app and collect in store, or have it delivered. Your orders will show up here.</p>
           <ButtonLink href="/shop" className="mt-6">
             Shop the range
           </ButtonLink>

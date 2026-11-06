@@ -3,8 +3,13 @@
 //
 // Dates are set by hand (YYYY-MM-DD): `published` when the guide first went live, `updated` whenever its copy changes.
 // They are shown on the page and go into the Article schema, so keep them honest: the build refuses an `updated`
-// earlier than `published` or a date in the future (assertArticleDates below).
+// earlier than `published` or later than today (assertArticleDates below).
+//
+// The weekly queue (./weekly.tsx) carries future `published` dates. Nothing shows an article before its date, so one
+// goes live each Monday with no deploy: read the list through liveArticles(), never ARTICLES, on anything a member sees.
+import { dayKey } from "@/lib/format";
 import { assertArticleDates } from "@/lib/seo";
+import { WEEKLY } from "./weekly";
 
 export type ArticleMeta = {
   /** The canonical URL is /learn/<slug>; anything in `aliases` redirects there permanently. */
@@ -19,7 +24,7 @@ export type ArticleMeta = {
   art: { slug: string; regClass: string; strain?: string };
 };
 
-export const ARTICLES: ArticleMeta[] = [
+const GUIDES: ArticleMeta[] = [
   {
     slug: "heritage-landraces",
     aliases: ["heritage-landraces-story"],
@@ -112,22 +117,29 @@ export const ARTICLES: ArticleMeta[] = [
     aliases: ["herbal-holland-kzn"],
     kicker: "Our stores",
     title: "Herbal Holland in KwaZulu-Natal",
-    dek: "Pietermaritzburg and the Bluff today; Hillcrest and Hilton from 1 December. Where we are, what's on the shelves, and how members shop in store or online.",
+    dek: "Pietermaritzburg and the Bluff today; Hillcrest and Hilton from 1 December. Where we are, what's on the shelves, and how members shop in store or in the app.",
     minutes: 3,
     published: "2026-10-27",
-    updated: "2026-10-27",
+    updated: "2026-11-06",
     art: { slug: "kwazulu-natal-stores", regClass: "APPAREL" },
   },
 ];
 
+/** Every article, live or still queued. */
+export const ARTICLES: ArticleMeta[] = [...GUIDES, ...WEEKLY];
+
 assertArticleDates(ARTICLES);
+
+/** What a member can read today: the newest weekly article first, then the standing guides. */
+export const liveArticles = (today = dayKey(new Date())) => [...WEEKLY.filter((a) => a.published <= today).reverse(), ...GUIDES];
 
 export const articleBySlug = (slug: string) => ARTICLES.find((a) => a.slug === slug);
 
 /** The article for a URL slug, and whether that slug is an alias (the page then redirects to the canonical URL). */
-export function resolveArticle(slug: string): { article: ArticleMeta; alias: boolean } | null {
-  const exact = articleBySlug(slug);
+export function resolveArticle(slug: string, today = dayKey(new Date())): { article: ArticleMeta; alias: boolean } | null {
+  const live = liveArticles(today);
+  const exact = live.find((a) => a.slug === slug);
   if (exact) return { article: exact, alias: false };
-  const aliased = ARTICLES.find((a) => a.aliases?.includes(slug));
+  const aliased = live.find((a) => a.aliases?.includes(slug));
   return aliased ? { article: aliased, alias: true } : null;
 }

@@ -23,12 +23,20 @@ export type PickerStore = {
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`));
 
+/** The path a tab bar should show: the tab just tapped, ahead of the route, so the marker moves with the finger and not when the server answers. */
+export function useTappedPath() {
+  const path = usePathname();
+  const [tap, setTap] = useState<string | null>(null);
+  useEffect(() => setTap(null), [path]);
+  return [tap ?? path, setTap] as const;
+}
+
 /**
  * The installed app's tab bar (display-mode standalone only; a browser tab keeps the website footer). `bag` is the
  * item count while online shopping is open, or null, when Learn takes its place.
  */
 export function AppTabBar({ bag }: { bag: number | null }) {
-  const path = usePathname();
+  const [path, setTap] = useTappedPath();
   const tabs = [
     { href: "/", label: "Home", icon: House },
     { href: "/shop", label: "Shop", icon: Store },
@@ -43,9 +51,9 @@ export function AppTabBar({ bag }: { bag: number | null }) {
           const on = isActive(path, t.href);
           return (
             <li key={t.href}>
-              <Link href={t.href} aria-current={on ? "page" : undefined} className={cn("relative flex h-16 select-none flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold transition-colors", on ? "text-brand-400" : "text-ink-400 active:text-ink-200")}>
+              <Link href={t.href} onClick={() => setTap(t.href)} aria-current={on ? "page" : undefined} className={cn("group relative flex h-16 select-none flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold transition-colors", on ? "text-brand-400" : "text-ink-400 active:text-ink-200")}>
                 {on && <span aria-hidden className="absolute top-0 h-0.5 w-8 rounded-full bg-brand-500" />}
-                <t.icon className="h-5 w-5" strokeWidth={on ? 2.4 : 1.9} />
+                <t.icon className="h-5 w-5 transition-transform motion-safe:group-active:scale-90" strokeWidth={on ? 2.4 : 1.9} />
                 {t.label}
                 {t.href === "/cart" && !!bag && <span className="tnum absolute left-1/2 top-2 ml-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-500 px-1 text-[0.6rem] font-semibold text-ink-950">{bag}</span>}
               </Link>

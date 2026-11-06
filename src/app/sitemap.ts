@@ -2,7 +2,8 @@ import { SHOWN_RANGE } from "@/lib/range";
 import type { MetadataRoute } from "next";
 import { db } from "@/server/db";
 import { getClasses } from "@/server/shop/access";
-import { ARTICLES } from "@/components/shop/learn/articles";
+import { liveArticles } from "@/components/shop/learn/articles";
+import { appOnly } from "@/lib/install";
 import { LEGAL_DOCS } from "@/lib/policies";
 import { siteUrl } from "@/lib/seo";
 
@@ -18,6 +19,16 @@ const MAX_STORES = 5_000;
 // have none, and a made-up "now" would only teach crawlers to ignore the field.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const b = siteUrl();
+  const open: MetadataRoute.Sitemap = [
+    { url: `${b}/club/join`, changeFrequency: "monthly", priority: 0.5 },
+    ...Object.keys(LEGAL_DOCS).map((s) => ({ url: `${b}/legal/${s}`, changeFrequency: "yearly" as const, priority: 0.2 })),
+    // The trade portal's public pages (everything else behind /trade is noindex).
+    { url: `${b}/trade`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${b}/trade/apply`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${b}/trade/terms`, changeFrequency: "yearly", priority: 0.2 },
+  ];
+  // App only: the shop's pages turn a browser away, so they aren't offered to search.
+  if (appOnly()) return open;
   const classes = await getClasses();
   const now = new Date();
   const publicProduct = { status: "ACTIVE" as const, regClass: { in: classes.public }, ...SHOWN_RANGE };
@@ -30,7 +41,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
   const categories = categoryStamps.length ? await db.category.findMany({ where: { id: { in: categoryStamps.map((c) => c.categoryId) } }, select: { id: true, slug: true }, orderBy: { sortOrder: "asc" } }) : [];
   const stamp = new Map(categoryStamps.map((c) => [c.categoryId, c._max.updatedAt ?? undefined]));
-  const learnUpdated = ARTICLES.map((a) => a.updated).sort().at(-1);
+  const articles = liveArticles();
+  const learnUpdated = articles.map((a) => a.updated).sort().at(-1);
   return [
     { url: `${b}/`, changeFrequency: "daily", priority: 1 },
     { url: `${b}/shop`, changeFrequency: "daily", priority: 0.9 },
@@ -43,13 +55,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...drops.map((d) => ({ url: `${b}/drops/${d.slug}`, changeFrequency: "daily" as const, priority: 0.6 })),
     ...events.map((e) => ({ url: `${b}/events/${e.slug}`, changeFrequency: "daily" as const, priority: 0.5 })),
     { url: `${b}/learn`, lastModified: learnUpdated, changeFrequency: "monthly", priority: 0.6 },
-    ...ARTICLES.map((a) => ({ url: `${b}/learn/${a.slug}`, lastModified: a.updated, changeFrequency: "monthly" as const, priority: 0.5 })),
-    { url: `${b}/club/join`, changeFrequency: "monthly", priority: 0.5 },
+    ...articles.map((a) => ({ url: `${b}/learn/${a.slug}`, lastModified: a.updated, changeFrequency: "monthly" as const, priority: 0.5 })),
     { url: `${b}/gift`, changeFrequency: "monthly", priority: 0.6 },
-    ...Object.keys(LEGAL_DOCS).map((s) => ({ url: `${b}/legal/${s}`, changeFrequency: "yearly" as const, priority: 0.2 })),
-    // The trade portal's public pages (everything else behind /trade is noindex).
-    { url: `${b}/trade`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${b}/trade/apply`, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${b}/trade/terms`, changeFrequency: "yearly", priority: 0.2 },
+    ...open,
   ];
 }

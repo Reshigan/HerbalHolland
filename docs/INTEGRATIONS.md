@@ -309,7 +309,7 @@ words, download the card).
 
 - **Day T falls on the pack's weekday.** Each playbook names its weekday and why: a Tuesday for the brand launch, the
   shop launch, a store opening and a product launch; a Friday for hiring (applications close at the end of a working
-  week); a Sunday for the Founding Members list (it closes at midnight); a Thursday for a merch drop; a Monday for a
+  week); a Thursday for the Founding Members list (it closes at midnight on New Year's Eve); a Thursday for a merch drop; a Monday for a
   Google month. Any other day is refused, with the reason. The month packs and the gift email are written for their
   own dates and can't be laid out once those have passed. A post whose day has already gone is left out.
 - **Pinned posts never move.** A post whose words name its day ("today", "tonight", "tomorrow", "7 days to go", "last

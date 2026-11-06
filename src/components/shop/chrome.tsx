@@ -46,7 +46,7 @@ export function ShopSurface() {
   );
 }
 
-export async function ShopChrome({ children }: { children: React.ReactNode }) {
+export async function ShopChrome({ children, compact = false }: { children: React.ReactNode; compact?: boolean }) {
   const age = await getAgeState();
   if (age === "declined")
     return (
@@ -81,7 +81,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
       ]
     : phase === "BRAND"
       ? [
-          { text: "Online shopping opens soon. Join Rewards to hear first", href: customer ? "/club" : "/club/join" },
+          { text: "Shopping in the app opens soon. Join Rewards to hear first", href: customer ? "/club" : "/club/join" },
           { text: "Browse the range: CBD wellness, accessories, grow and apparel", href: "/shop" },
           { text: "Stores opening soon", href: "/stores" },
         ]
@@ -99,8 +99,10 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       <div className="flex min-h-dvh flex-col bg-ink-950 text-ink-100">
+        {/* iOS draws the status bar over the page in the installed app: this strip keeps its white text on black, and content from sliding under it. */}
+        <div aria-hidden className="fixed inset-x-0 top-0 z-50 hidden h-[env(safe-area-inset-top)] bg-ink-950 app:block" />
         <nav aria-label="Offers" className="bg-brand-500 pt-[env(safe-area-inset-top)] text-ink-950">
-          <Container className="flex h-9 items-center justify-center gap-6 text-[0.78rem] font-semibold">
+          <Container className={cn("flex h-9 items-center justify-center gap-6 text-[0.78rem] font-semibold", compact && "app:hidden")}>
             {messages.map((m, i) => (
               <Link key={m.text} href={m.href} className={cn("truncate hover:underline", i > 0 && "hidden md:inline", i > 1 && "md:hidden lg:inline")}>
                 {m.text}
@@ -113,17 +115,12 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
           </Container>
         </nav>
 
-        <header className="sticky top-0 z-40 border-b border-ink-850 bg-ink-950/85 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-950/70">
+        <header className="sticky top-[env(safe-area-inset-top)] z-40 border-b border-ink-850 bg-ink-950/85 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-950/70">
           <Container className="flex h-16 items-center gap-2 lg:h-[4.5rem] lg:gap-4">
             <MobileMenu
               items={NAV}
               footer={
-                <div className="space-y-3 text-sm text-ink-400">
-                  <Link href={customer ? "/club" : "/club/join"} className={buttonClass("primary", "lg", "w-full")}>
-                    {customer ? `${customer.firstName}'s Rewards` : "Sign in or join Rewards"}
-                  </Link>
-                  <p className="text-center text-xs">Adults 18+ only · Free to join</p>
-                </div>
+                <p className="text-center text-xs text-ink-400">Adults 18+ only · Free to join</p>
               }
             />
             <Link href="/" className="shrink-0 rounded-lg" aria-label="Herbal Holland home">
@@ -156,9 +153,9 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               </Link>
               <StorePicker current={current} className="hidden md:flex" />
               <Link
-                href="/club"
+                href={customer ? "/club/settings" : "/club"}
                 className="flex h-11 shrink-0 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3"
-                aria-label={customer ? `Rewards: ${customer.firstName}` : "Sign in to Herbal Holland Rewards"}
+                aria-label={customer ? `Your profile: ${customer.firstName}` : "Sign in to Herbal Holland Rewards"}
               >
                 <span className="relative">
                   <UserRound className="h-[22px] w-[22px]" strokeWidth={1.8} />
@@ -177,7 +174,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               )}
             </div>
           </Container>
-          <div className="border-t border-ink-850 md:hidden">
+          <div className={cn("border-t border-ink-850 md:hidden", compact && "app:hidden")}>
             <Container>
               <StorePicker current={current} variant="bar" />
             </Container>
@@ -210,7 +207,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
               <FooterCol title="Shop" links={[["CBD wellness", "/shop?category=wellness"], ["Accessories", "/shop?category=accessories"], ["Grow", "/shop?category=grow"], ["Apparel", "/shop?category=apparel"], ["Gift vouchers", "/gift"], ["Dispensary (patients)", "/dispensary"]]} />
               <FooterCol title="Help" links={[["Store finder", "/stores"], ["Track an order", "/club/orders"], ["Learn", "/learn"], ["Contact us", `mailto:${contactEmailOf(company)}`]]} />
-              <FooterCol title="Rewards" links={[...(customer ? [["Your card", "/club"], ["Settings", "/club/settings"]] as [string, string][] : [["Join free", "/club/join"], ["Sign in", "/club"]] as [string, string][]), ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"], ["Wishlist", "/club/wishlist"], ["Reorder reminders", "/club/reminders"]]} />
+              <FooterCol title="Rewards" links={[...(customer ? [["Your card", "/club"], ["Profile", "/club/settings"]] as [string, string][] : [["Join free", "/club/join"], ["Sign in", "/club"]] as [string, string][]), ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"], ["Wishlist", "/club/wishlist"], ["Reorder reminders", "/club/reminders"]]} />
               <FooterCol title="Legal" links={[["Membership terms", "/legal/terms"], ["Privacy notice (POPIA)", "/legal/privacy"], ["Returns & refunds", "/legal/returns"], ["Delivery", "/legal/delivery"], ["Referral rules", "/legal/referrals"], ["PAIA manual", `${SITE}/paia`], ["Responsible use", "/learn/responsible-use"]]} />
               {/* The corporate site (sites/herbalholland.com, on Cloudflare) */}
               <FooterCol title="About Herbal Holland" links={[["About us", `${SITE}/about`], ["Own a store", `${SITE}/franchise`], ["Press", `${SITE}/press`], ["Careers", `${SITE}/careers`]]} />

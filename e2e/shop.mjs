@@ -309,7 +309,7 @@ try {
 
   step("Rewards: settings (details, marketing consent, personalised deals)");
   await page.goto(`${BASE}/club/settings`);
-  await page.getByRole("heading", { level: 1, name: "Settings" }).waitFor();
+  await page.getByRole("heading", { level: 1, name: "Profile" }).waitFor();
   undo.push(async () => {
     await q(`update "Customer" set "firstName" = $2, "lastName" = $3, email = $4, "homeStoreId" = $5, "consentSms" = $6, "consentAt" = $7, "personalisedOffers" = $8 where id = $1`, [
       member.id, member.firstName, member.lastName, member.email, member.homeStoreId, member.consentSms, member.consentAt, member.personalisedOffers,

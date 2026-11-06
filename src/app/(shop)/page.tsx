@@ -27,7 +27,7 @@ import { StoreCard } from "@/components/shop/store-card";
 import { Container, Panel, SectionHead } from "@/components/shop/ui";
 import { Countdown } from "@/components/shop/countdown";
 import { DropCardView, EventCardView, fmtWhen } from "@/components/shop/launch-cards";
-import { ARTICLES } from "@/components/shop/learn/articles";
+import { liveArticles } from "@/components/shop/learn/articles";
 import { LANDRACES, MOODS as MOOD_COPY } from "@/components/shop/home-copy";
 import { TIERS, fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
 import { fmtDay, num, weekdaySA } from "@/lib/format";
@@ -505,7 +505,7 @@ export default async function Home() {
       <Container className="pt-24">
         <SectionHead eyebrow="Learn" title="Know what you're buying" action={<ButtonLink href="/learn" variant="ghost-dark" size="sm">All guides <ArrowRight className="h-4 w-4" /></ButtonLink>} />
         <Reveal stagger className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {ARTICLES.slice(0, 3).map((a) => (
+          {liveArticles().slice(0, 3).map((a) => (
             <Link key={a.slug} href={`/learn/${a.slug}`} className="hh-lift hh-press group overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 hover:border-brand-500/60">
               <ProductArt slug={a.art.slug} strain={a.art.strain} regClass={a.art.regClass} label="" className="aspect-[16/9] w-full" />
               <div className="p-5">

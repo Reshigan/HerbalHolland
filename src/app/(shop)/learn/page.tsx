@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { Container } from "@/components/shop/ui";
-import { ARTICLES } from "@/components/shop/learn/articles";
+import { liveArticles } from "@/components/shop/learn/articles";
 import { Tag } from "@/components/shop/ui";
 import { publicQuest } from "@/lib/quests";
 
@@ -22,8 +22,11 @@ export const metadata: Metadata = {
   },
 };
 
+// A new article goes live each Monday, so the list is read per request.
+export const dynamic = "force-dynamic";
+
 export default function LearnIndex() {
-  const [lead, ...rest] = ARTICLES;
+  const [lead, ...rest] = liveArticles();
   return (
     <Container className="pt-10 sm:pt-14">
       <div className="max-w-2xl">
@@ -39,7 +42,7 @@ export default function LearnIndex() {
 
       <Link
         href={`/learn/${lead.slug}`}
-        className="group mt-12 grid grid-cols-1 overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900/60 transition hover:border-brand-500/60 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]"
+        className="hh-press group mt-12 grid grid-cols-1 overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900/60 transition hover:border-brand-500/60 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]"
       >
         <ProductArt
           slug={lead.art.slug}

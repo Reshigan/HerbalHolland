@@ -24,15 +24,15 @@ export default async function ClubPoints({ searchParams }: { searchParams: Promi
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight text-white">Points activity</h1>
-          <p className="mt-1 text-sm text-ink-400">Everything you&apos;ve earned and spent, in store and online.</p>
+          <p className="mt-1 text-sm text-ink-400">Everything you&apos;ve earned and spent, in store and in the app.</p>
           {rows.length ? (
             <Panel className="mt-6">
               <ul className="divide-y divide-ink-800">
                 {rows.map((e) => (
                   <li key={e.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
                     <div className="min-w-0">
-                      <div className="truncate font-medium text-ink-100">{ledgerTitle(e)}</div>
-                      <div className="truncate text-xs text-ink-450">
+                      <div className="line-clamp-2 font-medium text-ink-100">{ledgerTitle(e)}</div>
+                      <div className="text-xs text-ink-450">
                         {LEDGER_LABEL[e.kind] ?? e.kind} · {fmtDateTime(e.createdAt)}
                       </div>
                     </div>

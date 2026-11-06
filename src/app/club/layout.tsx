@@ -6,12 +6,13 @@ import { ShopChrome } from "@/components/shop/chrome";
 import { ClubNav } from "@/components/shop/club-client";
 import { Container } from "@/components/shop/ui";
 import { AnalyticsBeacon } from "@/components/shop/analytics-beacon";
-import { appOnly, AppOnlyWall } from "@/components/shop/app-only";
+import { AppOnlyWall } from "@/components/shop/app-only";
+import { appOnly } from "@/lib/install";
 import { splashStartupImages } from "@/lib/pwa-splash";
 
 export const metadata: Metadata = {
   title: { default: "Rewards", template: "%s · Herbal Holland Rewards" },
-  description: "Herbal Holland Rewards: your digital card, points balance, tier, orders and invoices, in store and online.",
+  description: "Herbal Holland Rewards: your digital card, points balance, tier, orders and invoices, in store and in the app.",
   robots: { index: false, follow: true },
   // The installed app opens here: iOS shows one of these while it loads (the Mark on warm black, per device size).
   appleWebApp: { startupImage: splashStartupImages() },
@@ -25,9 +26,9 @@ export default async function ClubLayout({ children }: { children: React.ReactNo
   const [staff, linked] = await Promise.all([getStaff(), customer ? db.user.findUnique({ where: { memberId: customer.id }, select: { role: true, active: true } }) : null]);
   const owner = [staff, linked?.active ? linked : null].some((u) => u && INSIGHT_ROLES.includes(u.role));
   return (
-    <ShopChrome>
+    <ShopChrome compact>
       {customer && (
-        <Container className="pt-6">
+        <Container className="pt-2 sm:pt-6">
           <ClubNav owner={owner} />
         </Container>
       )}

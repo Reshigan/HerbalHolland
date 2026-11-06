@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
-import { ChartColumn, Check, Copy, CreditCard, History, Image as ImageIcon, LifeBuoy, MessageCircle, Package, Receipt, Settings, Share2, Users } from "lucide-react";
+import { ChartColumn, Check, Copy, CreditCard, History, Image as ImageIcon, LifeBuoy, MessageCircle, Package, Receipt, Share2, Users } from "lucide-react";
+import { useTappedPath } from "./nav-client";
 import { copyText, whatsappUrl } from "./share";
 import { cn } from "@/lib/cn";
 
@@ -12,7 +12,6 @@ const TABS = [
   { href: "/club/points", label: "Points", icon: History },
   { href: "/club/invoices", label: "Purchases", icon: Receipt },
   { href: "/club/support", label: "Help", icon: LifeBuoy },
-  { href: "/club/settings", label: "Settings", icon: Settings },
 ];
 // Links only: /insights asks for a staff sign-in of its own.
 const OWNER_TABS = [
@@ -21,37 +20,45 @@ const OWNER_TABS = [
 ];
 
 /**
- * Rewards section nav: tabs on larger screens, an app-style bottom bar on phones. Eight tabs don't fit below lg, and
+ * Rewards section nav: tabs on larger screens, an app-style bottom bar on phones. Seven tabs don't fit below lg, and
  * the owner's two would sit past the scroll edge, so there they get a row of their own. On larger screens one underline
  * slides between the tabs (a 1px bar, moved and stretched with a transform only); until it has been measured, and
  * without html.motion, each tab underlines itself.
  */
 export function ClubNav({ owner = false }: { owner?: boolean }) {
-  const path = usePathname();
+  const [path, setTap] = useTappedPath();
   const bar = useRef<HTMLElement>(null);
   const [slide, setSlide] = useState<string | null>(null);
   const hidden = path.startsWith("/club/join");
   useLayoutEffect(() => {
     const nav = bar.current;
-    if (hidden || !nav || !document.documentElement.classList.contains("motion")) return;
-    const on = nav.querySelector<HTMLElement>("a[aria-current]");
-    if (!on) return setSlide(null);
-    setSlide(`translateX(${on.offsetLeft}px) scaleX(${on.offsetWidth})`);
+    if (hidden || !nav) return;
+    const motion = document.documentElement.classList.contains("motion");
+    // Tabs share the row on phones, so a rotation moves them: the underline follows, and a narrow phone scrolls the tab into view.
+    const place = () => {
+      const on = nav.querySelector<HTMLElement>("a[aria-current]");
+      if (on) nav.scrollLeft = on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2;
+      if (motion) setSlide(on ? `translateX(${on.offsetLeft}px) scaleX(${on.offsetWidth})` : null);
+    };
+    place();
+    const watch = new ResizeObserver(place);
+    watch.observe(nav);
+    return () => watch.disconnect();
   }, [path, hidden]);
   if (hidden) return null;
   const active = (href: string) => (href === "/club" ? path === "/club" : path.startsWith(href));
   return (
     <>
-      <nav ref={bar} aria-label="Rewards" data-slide={slide ? "" : undefined} className="scrollbar-none group/nav relative -mx-4 hidden gap-1 overflow-x-auto border-b border-ink-850 px-4 app:flex sm:mx-0 sm:flex sm:px-0">
+      <nav ref={bar} aria-label="Rewards" data-slide={slide ? "" : undefined} className="scrollbar-none group/nav relative -mx-4 hidden gap-0 overflow-x-auto border-b border-ink-850 px-4 app:flex sm:mx-0 sm:flex sm:gap-1 sm:px-0">
         {(owner ? [...TABS, ...OWNER_TABS] : TABS).map((t) => (
-          <Link key={t.href} href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors", OWNER_TABS.includes(t) && "max-lg:hidden", active(t.href) ? "border-brand-500 text-white group-data-[slide]/nav:border-transparent" : "border-transparent text-ink-400 hover:text-white")}>
-            <t.icon className="h-4 w-4" /> {t.label}
+          <Link key={t.href} href={t.href} onClick={() => setTap(t.href)} aria-current={active(t.href) ? "page" : undefined} className={cn("relative -mb-px flex flex-1 select-none items-center justify-center gap-2 border-b-2 px-1 py-3 text-[0.8rem] font-medium transition-colors active:text-white sm:flex-none sm:justify-start sm:px-4 sm:text-sm", OWNER_TABS.includes(t) && "max-lg:hidden", active(t.href) ? "border-brand-500 text-white group-data-[slide]/nav:border-transparent" : "border-transparent text-ink-400 hover:text-white")}>
+            <t.icon className="hidden h-4 w-4 sm:block" /> {t.label}
           </Link>
         ))}
         {slide && <span aria-hidden className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-px origin-left bg-brand-500 transition-transform duration-[var(--dur)] ease-[var(--ease-out-expo)] motion-reduce:transition-none" style={{ transform: slide }} />}
       </nav>
       <nav aria-label="Rewards" className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-800 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur app:hidden sm:hidden">
-        <ul className="grid grid-cols-6">
+        <ul className="grid grid-cols-5">
           {TABS.map((t) => (
             <li key={t.href}>
               <Link href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("flex h-16 flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold", active(t.href) ? "text-brand-400" : "text-ink-400")}>

@@ -1,7 +1,7 @@
 // The launch, in its order: the brand, then the online shop, then the stores' doors; with them the Founding Members
 // list, hiring and merch drops. Each says only what's true by its day (see ./index.ts for the house rules).
 // Laid out for 2026 (brand Tue 13 Oct, applications close Fri 30 Oct, shop Tue 27 Oct, doors Tue 1 Dec with Hillcrest
-// first and Hilton a week behind, the list closes Sun 6 Dec, the Founding Members' Drop opens Thu 10 Dec), their feed
+// first and Hilton a week behind, a merch drop on Thu 10 Dec, the list closes on New Year's Eve, Thu 31 Dec), their feed
 // posts take turns: one a day across all six (opening day's pinned pair aside) and five a week at most, the WhatsApp
 // Channel one a week (tests/studio-calendar.test.ts).
 import type { Playbook } from "../studio";
@@ -384,7 +384,7 @@ export const LAUNCH: Playbook[] = [
           "Our doors open in {towns} on {date} at 09:00. Here's what to expect.",
           "Your first visit. Bring your ID: we check it at the door and at the till, every time, because we're for adults 18+. A member advisor will welcome you, show you around and answer your questions in plain English. Give your mobile number at the till and your savings and points work in store just as they do online. Not a member yet? You can join free at the till.",
           "Opening week. The Members' Evening is that Thursday, 18:00–20:30: good coffee and rooibos and a first look around with the team, for members who RSVP in the Rewards app. Open Day is that Saturday, 09:00–14:00, for everyone 18+: a coffee cart, local makers' tables, Learn sessions with the team on the hour, a photo wall in our orange frame, and the merch.",
-          "Founding Members. The list closes at midnight on the Sunday after opening week. Your place is in the Rewards app, and every friend who joins with your link moves you up 250 places.",
+          "Founding Members. The list closes at midnight on Thursday 31 December. Your place is in the Rewards app, and every friend who joins with your link moves you up 250 places.",
           "Addresses and opening hours are at shop.herbalholland.com/stores.",
           "See you there,\nThe Herbal Holland team",
         ),
@@ -473,7 +473,7 @@ export const LAUNCH: Playbook[] = [
           "Addresses and opening hours are at shop.herbalholland.com/stores.",
           "Your first visit: bring your ID, because we check it at the door and at the till, every time. A member advisor will show you around, and your savings and points work in store just as they do online: give your mobile number at the till.",
           "This week: the Members' Evening on Thursday, 18:00–20:30, for members who have RSVP'd in the Rewards app, and Open Day on Saturday, 09:00–14:00, for everyone 18+, with a coffee cart, local makers' tables, Learn sessions on the hour and the merch.",
-          "The Founding Members list closes on Sunday at midnight: your place is in the Rewards app.",
+          "The Founding Members list closes at midnight on Thursday 31 December: your place is in the Rewards app.",
           "See you soon,\nThe Herbal Holland team",
         ),
       },
@@ -544,14 +544,13 @@ export const LAUNCH: Playbook[] = [
     blurb: "The last four weeks of the Founding Members list: how it works, moving up with your link, what Founding Members get, bringing a friend, the last call and the numbers, with no live counts (members see their own place in the Rewards app).",
     store: false,
     anchor: "The list closes at midnight",
-    weekday: 0,
-    why: "the list closes at midnight on the Sunday after the stores' opening week, and its last call goes out by push on the Saturday",
-    // No feed post on the Saturday before the close (Open Day in the stores), nor in the stores' last week before their
-    // doors open; their opening-week posts and email carry the close, with the pushes. One email, the numbers: The
-    // Windmill covers the rest.
+    weekday: 4,
+    why: "the list closes at midnight on New Year's Eve, a Thursday, and its last call goes out the day before, because New Year's Eve itself belongs to the ride-home post",
+    // The numbers wait for Monday 4 January: New Year's Day is a holiday, and the festive campaign holds the Saturday.
+    // No email of its own: The Windmill, No. 3 goes out the next day and carries the numbers.
     items: [
       {
-        key: "how-it-works", day: -27, time: "07:00", channel: "SOCIAL",
+        key: "how-it-works", day: -24, time: "07:00", channel: "SOCIAL",
         text: paras(
           "How the Founding Members list works.",
           "Join Herbal Holland Rewards free and you have a place on the list, in the order you joined. When it closes at midnight on {date}, the first 2,026 places become Founding Members: a numbered Founding Member card in the Rewards app, and at least Sprout tier for 14 months. Your place is in the app, and your link moves you up.",
@@ -562,7 +561,7 @@ export const LAUNCH: Playbook[] = [
         brief: "Carousel, 5 slides: 1 'How the Founding Members list works'; 2 join free and you have a place, in the order you joined; 3 when the list closes, the first 2,026 places become Founding Members; 4 a numbered card and at least Sprout tier for 14 months; 5 your place and your link are in the Rewards app.",
       },
       {
-        key: "move-up", day: -23, time: "19:00", channel: "SOCIAL",
+        key: "move-up", day: -3, time: "19:00", channel: "SOCIAL",
         text: paras(
           "Move up the Founding Members list with your link.",
           "Every friend who joins Herbal Holland Rewards with your link moves you up 250 places, and you both get 50 points on their first purchase. Your link and your place are in the Rewards app. The list closes at midnight on {date}.",
@@ -573,7 +572,7 @@ export const LAUNCH: Playbook[] = [
         brief: "Reel, about 20 seconds, a phone screen recording: the Founding place in the Rewards app, sharing the link, and the place moving up 250 when a friend joins (demo details). Hands only, an adult over 25 with a signed release.",
       },
       {
-        key: "what-you-get", day: -19, time: "07:00", channel: "SOCIAL",
+        key: "what-you-get", day: -16, time: "07:00", channel: "SOCIAL",
         text: paras(
           "What Founding Members get.",
           "A numbered Founding Member card in the Rewards app. At least Sprout tier for 14 months, with Sprout-tier savings on eligible items. Early access to selected drops. And an invitation to a Founding Members' Evening every December.",
@@ -587,12 +586,12 @@ export const LAUNCH: Playbook[] = [
         },
       },
       {
-        key: "push-place", day: -17, time: "18:30", channel: "PUSH",
+        key: "push-place", day: -14, time: "18:30", channel: "PUSH",
         title: "Your Founding place",
         text: "See your place on the Founding Members list in the app. Every friend who joins with your link moves you up 250 places.",
       },
       {
-        key: "bring-a-friend", day: -14, time: "18:30", channel: "SOCIAL",
+        key: "bring-a-friend", day: -11, time: "18:30", channel: "SOCIAL",
         text: paras(
           "Know someone who'd like Herbal Holland?",
           "Send them your link from the Rewards app. When they join, free, you move up 250 places on the Founding Members list, and after their first purchase you both get 50 points. Joining is for adults 18+.",
@@ -608,17 +607,17 @@ export const LAUNCH: Playbook[] = [
         text: "The Founding Members list closes at midnight tomorrow. Share your link from the app to move up 250 places.",
       },
       {
-        key: "last-call", day: 0, time: "08:00", channel: "SOCIAL", pinned: true,
+        key: "last-call", day: -1, time: "07:00", channel: "SOCIAL", pinned: true,
         text: paras(
-          "Last call: the Founding Members list closes at midnight tonight.",
+          "Last call: the Founding Members list closes at midnight tomorrow, on New Year's Eve.",
           "Join Herbal Holland Rewards free before then and you'll have a place on it. The first 2,026 places get a numbered Founding Member card and at least Sprout tier for 14 months.",
           "Join free and claim your Founding place: link in bio. Adults 18+. #HerbalHolland",
         ),
-        short: "Last call: the Founding Members list closes at midnight tonight. The first 2,026 places get a numbered card and at least Sprout tier for 14 months. Join free and claim your Founding place: link in bio. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Founding Members", headline: "Last call.", sub: "The list closes at midnight tonight." },
+        short: "Last call: the Founding Members list closes at midnight tomorrow, on New Year's Eve. The first 2,026 places get a numbered card and at least Sprout tier for 14 months. Join free and claim your Founding place: link in bio. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "Founding Members", headline: "Last call.", sub: "The list closes at midnight tomorrow." },
       },
       {
-        key: "numbers", day: 1, time: "07:00", channel: "SOCIAL",
+        key: "numbers", day: 4, time: "07:00", channel: "SOCIAL",
         text: paras(
           "Founding Members, your numbers are in.",
           "Open the Rewards app to see your numbered Founding Member card. Siyabonga for being first. If your place came after the first 2,026, thank you for being here early: your Rewards work in every store and online, and you climb from Seed to Harvest as you go.",
@@ -628,18 +627,7 @@ export const LAUNCH: Playbook[] = [
         card: { template: "headline", eyebrow: "Founding Members", headline: "Your numbers are in.", sub: "Open the Rewards app to see your card. Siyabonga for being first." },
       },
       {
-        key: "email-numbers", day: 1, time: "16:00", channel: "EMAIL",
-        title: "The Founding Members numbers are in",
-        text: paras(
-          "Hi {{firstName}},",
-          "The Founding Members list closed at midnight on {date}, and the numbers are in.",
-          "If your place was in the first 2,026, your numbered Founding Member card is in the Rewards app now. You hold at least Sprout tier for the next 14 months, with Sprout-tier savings on eligible items and early access to selected drops, and you're invited to a Founding Members' Evening every December.",
-          "If your place came after that, thank you for being here early. Your Rewards work in every store and online: points on every rand, My Deals every Monday, and a climb from Seed to Harvest.",
-          "Siyabonga,\nThe Herbal Holland team",
-        ),
-      },
-      {
-        key: "push-numbers", day: 1, time: "18:30", channel: "PUSH",
+        key: "push-numbers", day: 4, time: "18:30", channel: "PUSH",
         title: "Your numbers are in",
         text: "Founding Members: open the app to see your numbered card. Siyabonga for being first.",
       },

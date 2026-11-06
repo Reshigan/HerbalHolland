@@ -17,7 +17,7 @@ export default async function OpenGraphImage() {
   const [launch, taken] = await Promise.all([launchState(), foundingTaken()]);
   const places = launch.preLaunch && launch.at ? foundingPlaces({ cap: launch.foundingCap, taken, firstYearMonths: launch.firstYearMonths, tierName: tierInfo(launch.foundingTier).name, closes: fmtDate(launch.at) }) : null;
   const headline = places ? (places.full ? "Become a First Year Member." : "Become a Founding Member.") : "Join Herbal Holland Rewards.";
-  const line = places ? places.strip : "Free · points in every store and online";
+  const line = places ? places.strip : "Free · points in every store and in the app";
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", background: "#0c0a09", padding: 28 }}>
