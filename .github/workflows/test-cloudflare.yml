@@ -85,11 +85,20 @@ jobs:
         id: deploy
         run: |
           set -e
-          npx wrangler deploy --config wrangler.staging.jsonc | tee deploy.log
+          # Without pipefail the pipe reports tee's status, not wrangler's. tee starts deploy.log afresh on each try.
+          for try in 1 2 3; do
+            (set -o pipefail; npx wrangler deploy --config wrangler.staging.jsonc | tee deploy.log) && break
+            test "$try" != 3 || { echo "deploy failed three times"; exit 1; }
+            echo "deploy: retrying ($try)"; sleep 10
+          done
           URL=$(grep -o 'https://[a-z0-9.-]*workers.dev' deploy.log | head -1)
           test -n "$URL"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
-          printf '{"SESSION_SECRET":"%s","CRON_SECRET":"%s","APP_URL":"%s"}' "$SESSION_SECRET" "$CRON_SECRET" "$URL" | npx wrangler secret bulk --config wrangler.staging.jsonc
+          for try in 1 2 3; do
+            printf '{"SESSION_SECRET":"%s","CRON_SECRET":"%s","APP_URL":"%s"}' "$SESSION_SECRET" "$CRON_SECRET" "$URL" | npx wrangler secret bulk --config wrangler.staging.jsonc && break
+            test "$try" != 3 || { echo "secret bulk failed three times"; exit 1; }
+            echo "secret bulk: retrying ($try)"; sleep 10
+          done
           # A request can fail in the seconds after a good one while the secrets' new version settles, so one good answer
           # proves little. Five in a row do, and any bad answer is printed with its status and body.
           good=0
