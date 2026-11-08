@@ -551,6 +551,37 @@ try {
   await timed("Event: cancel my place", () => page.getByRole("button", { name: "Yes, cancel my place" }).click(), () => page.getByRole("heading", { name: "Reserve your place" }).waitFor());
   assert(!(await one(`select 1 from "Rsvp" where "eventId" = $1 and "customerId" = $2`, [event.id, member.id])), "place given back (ticket removed)");
 
+  step("Owner's card: a member card linked to the HQ admin opens Sales and Members in the app");
+  await page.goto(`${BASE}/insights/sales`);
+  await page.waitForURL(/\/login/);
+  ok("an ordinary member card doesn't open Insights (sent to the staff sign-in)");
+  const admin = await one(`select id, "memberId" from "User" where email = 'hq@herbalholland.com'`);
+  const heldBy = await one(`select id from "User" where "memberId" = $1`, [member.id]);
+  await q(`update "User" set "memberId" = null where id = $1`, [heldBy?.id ?? ""]);
+  await q(`update "User" set "memberId" = $1 where id = $2`, [member.id, admin.id]);
+  undo.push(async () => {
+    await q(`update "User" set "memberId" = $1 where id = $2`, [admin.memberId, admin.id]);
+    if (heldBy) await q(`update "User" set "memberId" = $1 where id = $2`, [member.id, heldBy.id]);
+  });
+  await page.goto(`${BASE}/club`);
+  await page.getByRole("link", { name: "Sales" }).first().waitFor();
+  await timed("Owner card: Sales", () => page.getByRole("link", { name: "Sales" }).first().click(), () => page.getByText("Categories", { exact: true }).waitFor());
+  await page.getByText("Stores", { exact: true }).waitFor();
+  ok("Sales shows revenue by store, category and product");
+  await shot(page, "owner-sales");
+  await page.locator('main a[href*="category="]').first().click();
+  await page.waitForURL(/category=/);
+  const narrowed = await page.getByText(/^Top products in /).textContent();
+  ok(`a category narrows the product list (${narrowed})`);
+  await timed("Owner card: Members", () => page.goto(`${BASE}/insights/members`), () => page.getByRole("heading", { level: 1, name: "Members" }).waitFor());
+  await shot(page, "owner-members");
+  ok("Members opens on the owner's card");
+  await q(`update "User" set active = false where id = $1`, [admin.id]);
+  await page.goto(`${BASE}/insights/sales`);
+  const shut = /\/login/.test(page.url());
+  await q(`update "User" set active = true where id = $1`, [admin.id]);
+  assert(shut, "a deactivated admin account closes Insights on its card at once");
+
   step("Member signs out");
   await page.goto(`${BASE}/club/settings`);
   await timed("Sign out → home", () => page.getByRole("button", { name: "Sign out" }).click(), () => page.getByRole("link", { name: "Sign in to Herbal Holland Rewards" }).waitFor());

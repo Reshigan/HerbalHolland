@@ -11,6 +11,7 @@ import { waitingCash } from "./banking";
 import { visibleAlerts } from "./loss";
 import { getSettings } from "./settings";
 import type { Staff } from "./auth";
+import { variantMap } from "./reports/util";
 
 export async function kpis(storeIds: string[], r: DateRange) {
   const prev = previousRange(r);
@@ -252,4 +253,26 @@ export async function storeExceptions(user: Pick<Staff, "id">, stores: { id: str
       return row;
     })
     .sort((x, y) => y.score - x.score);
+}
+
+/** Net sales by category, with each category's variants, from the daily variant rollup. */
+export async function salesByCategory(storeIds: string[], r: DateRange) {
+  const rows = await db.dailyVariantStat.groupBy({
+    by: ["variantId"],
+    where: { storeId: { in: storeIds }, date: { gte: r.fromDate, lte: r.toDate } },
+    _sum: { units: true, netCents: true },
+  });
+  const info = await variantMap(rows.map((x) => x.variantId));
+  const cats = new Map<string, { slug: string; name: string; netCents: number; units: number; products: { variantId: string; name: string; netCents: number; units: number }[] }>();
+  for (const x of rows) {
+    const v = info.get(x.variantId);
+    if (!v) continue;
+    const c = cats.get(v.categorySlug) ?? { slug: v.categorySlug, name: v.category, netCents: 0, units: 0, products: [] };
+    const netCents = x._sum.netCents ?? 0, units = x._sum.units ?? 0;
+    c.netCents += netCents;
+    c.units += units;
+    c.products.push({ variantId: x.variantId, name: v.name, netCents, units });
+    cats.set(v.categorySlug, c);
+  }
+  return [...cats.values()].map((c) => ({ ...c, products: c.products.sort((a, b) => b.netCents - a.netCents) })).sort((a, b) => b.netCents - a.netCents);
 }

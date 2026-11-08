@@ -2,7 +2,7 @@
 import { notFound, redirect } from "next/navigation";
 import type { Role } from "@/generated/prisma/client";
 import { db, Prisma } from "./db";
-import { getStaffChangingPassword, requireStaff } from "./auth";
+import { getCustomer, getStaffChangingPassword, requireStaff } from "./auth";
 import { accessibleStores, scopeOf, scopedStoreIds } from "./scope";
 import { sastDay } from "./sql";
 import type { MemberScope } from "./hq/crm";
@@ -16,13 +16,24 @@ export function pickStore<T extends { code: string }>(stores: T[], code: string 
   return stores.find((s) => s.code === code) ?? null;
 }
 
+/** The staff account a member card is linked to, if it may open Insights (the owner's own card in the app). */
+export function cardHolderMayView(u: { active: boolean; mustChangePassword: boolean; role: Role } | null) {
+  return !!u && u.active && !u.mustChangePassword && INSIGHT_ROLES.includes(u.role);
+}
+
 /**
- * Every Insights page starts here. It always asks for a staff sign-in: a member session on its own, or a member card
- * linked to a staff account, never opens these numbers.
+ * Every Insights page starts here. A staff sign-in works as before. Without one, a member signed in to the app whose
+ * card is linked to an active owner or HQ account (Settings, "Use this card for Insights") sees what that account sees.
  */
 export async function insightsContext(sp: { store?: string }, path: string) {
-  if (!(await getStaffChangingPassword())) redirect(`/login?next=${encodeURIComponent(path)}`);
-  const user = await requireStaff(INSIGHT_ROLES);
+  let user;
+  if (await getStaffChangingPassword()) user = await requireStaff(INSIGHT_ROLES);
+  else {
+    const c = await getCustomer();
+    const linked = c && (await db.user.findUnique({ where: { memberId: c.id }, include: { company: true, store: true, region: true } }));
+    if (!linked || !cardHolderMayView(linked)) redirect(`/login?next=${encodeURIComponent(path)}`);
+    user = linked;
+  }
   const scope = scopeOf(user);
   const [allIds, stores] = await Promise.all([scopedStoreIds(scope), accessibleStores(user)]);
   const store = pickStore(stores, sp.store);
