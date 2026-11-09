@@ -1,9 +1,9 @@
 // Till shift: current shift with a live X-report (GET), open with a counted float, and
 // close with a denomination count → Z-report, printed at the till and emailed to the store.
 import { z } from "zod";
-import { json, readBody, withStaff } from "@/server/pos/http";
+import { json, PosError, readBody, withStaff } from "@/server/pos/http";
 import { currentShift } from "@/server/pos/bootstrap";
-import { blindReport, closeShift, openShift, zReport } from "@/server/pos/shift";
+import { blindReport, cashMovement, closeShift, openShift, zReport } from "@/server/pos/shift";
 import { isTillManager } from "@/lib/pos-refund";
 import { countCash, DENOMINATIONS } from "@/components/pos/lib/rules";
 
@@ -22,6 +22,14 @@ const Counts = z
 const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("open"), floatCents: z.number().int().min(0).max(5_000_000).optional(), counts: Counts.optional() }),
   z.object({ action: z.literal("close"), shiftId: z.string().min(1), counts: Counts, notes: z.string().trim().max(500).optional() }),
+  z.object({
+    action: z.literal("movement"),
+    shiftId: z.string().min(1),
+    kind: z.enum(["PAID_OUT", "DROP", "CASH_IN"]),
+    amountCents: z.number().int().min(1).max(5_000_000),
+    reason: z.string().trim().min(1).max(200),
+    category: z.enum(["RENT", "SALARIES", "UTILITIES", "SECURITY", "MARKETING", "SUPPLIES", "BANK_FEES", "OTHER"]).optional(),
+  }),
 ]);
 
 export const POST = withStaff(async (req, pos) => {
@@ -30,6 +38,13 @@ export const POST = withStaff(async (req, pos) => {
     const floatCents = b.counts ? countCash(b.counts) : (b.floatCents ?? 100_000);
     await openShift(pos, floatCents, b.counts);
     return json({ shift: await currentShift(pos.device) }, 201);
+  }
+  if (b.action === "movement") {
+    // Cash in or out of the drawer mid-shift is a manager's call (they sign for it), like a refund.
+    if (!isTillManager(pos.user.role)) throw new PosError("A manager has to sign in to move cash in or out of the drawer", 403, "MANAGER_REQUIRED");
+    await cashMovement(pos, b.shiftId, b.kind, b.amountCents, b.reason, b.category);
+    const report = await zReport(b.shiftId);
+    return json({ report }, 201);
   }
   return json({ report: await closeShift(pos, b.shiftId, b.counts, b.notes) });
 });

@@ -23,6 +23,8 @@ import { saveProduct } from "../actions";
 import { ProductForm, type ProductInput } from "../product-form";
 import { VariantEditor } from "../variant-editor";
 import { RangingTool } from "../ranging-tool";
+import { PhotoManager } from "../photo-manager";
+import { productImages } from "@/server/shop/images";
 import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Product" };
@@ -40,7 +42,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   });
   if (!product) notFound();
   const variantIds = product.variants.map((v) => v.id);
-  const [categories, claimRows, settings, regions, batches, stock, ranging] = await Promise.all([
+  const [categories, claimRows, settings, regions, batches, stock, ranging, photos] = await Promise.all([
     db.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
     db.$queryRaw<{ claim: string }[]>`SELECT DISTINCT j.value AS claim FROM "Product" p, json_each(p.claims) j ORDER BY 1 LIMIT 200`,
     getSettings(),
@@ -48,6 +50,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
     db.batch.groupBy({ by: ["variantId"], where: { variantId: { in: variantIds } }, _count: true }),
     db.stockLevel.groupBy({ by: ["variantId"], where: { variantId: { in: variantIds } }, _sum: { onHand: true } }),
     rangingSummary(variantIds, ids),
+    productImages(product.id),
   ]);
   const edit = can(user, "network");
   const input: ProductInput = {
@@ -86,6 +89,13 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       {!edit && <ViewOnly className="mb-6">View only: the catalogue is managed by the HQ merchandising team.</ViewOnly>}
 
       <ProductForm action={saveProduct.bind(null, product.id)} product={input} categories={categories} claimLibrary={claimRows.map((c) => c.claim)} noIncentiveClasses={incentiveExcluded(settings.compliance)} readOnly={!edit} announce={product.status === "DRAFT" && !product._count.launches} />
+
+      <Card className="mt-6">
+        <CardHeader title="Photos" description="The shop gallery. The first photo is the main picture on product cards and the product page." />
+        <CardBody className="border-t border-ink-100">
+          <PhotoManager productId={product.id} photos={photos} readOnly={!edit} />
+        </CardBody>
+      </Card>
 
       <Card className="mt-6">
         <CardHeader

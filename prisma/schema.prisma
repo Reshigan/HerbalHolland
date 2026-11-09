@@ -846,6 +846,7 @@ model Shift {
   deposit           CashDeposit? @relation(fields: [depositId], references: [id])
   depositId         String? // the bank deposit its cash went into
   sales             Sale[]
+  cashMovements     CashMovement[]
 
   @@index([storeId, closedAt])
   @@index([depositId, storeId]) // cash waiting to be banked (depositId null), and a deposit's cash-ups
@@ -1049,10 +1050,35 @@ model Expense {
   supplier    String?
   amountCents Int // VAT incl.
   vatCents    Int             @default(0)
+  paidFromCash Boolean        @default(false) // paid out of a till drawer (a cash movement): credits cash, not the bank
   createdById String?
   createdAt   DateTime        @default(now())
 
   @@index([storeId, date])
+}
+
+// Cash in or out of an open till drawer between sales. PAID_OUT: money taken out to pay for something (petty cash,
+// an emergency purchase), booked as an expense paid from cash and taken off what the drawer should hold. DROP: notes
+// moved from the drawer to the safe; at close they're added to the drawer count, so the shift's counted cash (and
+// what goes to the bank) still covers them. CASH_IN: a float top-up, added to the shift's opening float.
+enum CashMovementKind {
+  PAID_OUT
+  DROP
+  CASH_IN
+}
+
+model CashMovement {
+  id          String           @id @default(cuid())
+  shift       Shift            @relation(fields: [shiftId], references: [id])
+  shiftId     String
+  kind        CashMovementKind
+  amountCents Int
+  reason      String
+  byId        String
+  expenseId   String?          @unique
+  createdAt   DateTime         @default(now())
+
+  @@index([shiftId])
 }
 
 // ───────────────────────────── Pricing ─────────────────────────────

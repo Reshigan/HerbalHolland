@@ -6,7 +6,7 @@ import { fmtDateTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { EscPos, type Columns } from "./escpos";
 import { DENOMINATIONS, denomLabel } from "./rules";
-import type { ZReport } from "@/server/pos/types";
+import { CASH_MOVE_LABEL, type ZReport } from "@/server/pos/types";
 
 export function zReportBytes(z: ZReport, o: { cols: Columns; codePage?: number; at?: Date; cut?: boolean }): Uint8Array {
   const p = new EscPos(o.cols).init().codePage(o.codePage);
@@ -56,11 +56,13 @@ export function zReportBytes(z: ZReport, o: { cols: Columns; codePage?: number; 
   if (z.blind) p.row("  Expected", "after the count");
   else {
     p.row("  Cash sales less refunds", zar(z.cash.cashNetCents));
+    if (z.cash.paidOutCents) p.row("  Paid out", `-${zar(z.cash.paidOutCents)}`);
     p.bold(true).row("  Expected", zar(z.cash.expectedCents)).bold(false);
   }
-  if (z.cash.countedCents != null) p.row("  Counted", zar(z.cash.countedCents));
+  if (z.cash.countedCents != null) p.row(z.cash.droppedCents ? "  Counted (incl. drops)" : "  Counted", zar(z.cash.countedCents));
   if (z.cash.varianceCents != null) p.bold(true).row("  Variance", `${z.cash.varianceCents > 0 ? "+" : ""}${zar(z.cash.varianceCents)}`).bold(false);
   if (z.cash.counts) for (const d of DENOMINATIONS) if (z.cash.counts[String(d)]) p.row(`  ${denomLabel(d)} x ${z.cash.counts[String(d)]}`, zar(d * z.cash.counts[String(d)]));
+  for (const m of z.movements ?? []) p.para(`${CASH_MOVE_LABEL[m.kind]} ${zar(m.amountCents)} · ${m.by}: ${m.reason}`);
   if (z.notes) p.para(`Notes: ${z.notes}`);
   p.rule();
   p.feed(1).line("Cashier: ______________________");

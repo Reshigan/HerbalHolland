@@ -15,6 +15,7 @@ import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ButtonLink } from "@/components/ui/button";
 import { Donut } from "@/components/charts/donut";
 import { BackLink } from "@/components/store/ui";
+import { CASH_MOVE_LABEL } from "@/server/pos/types";
 
 export const metadata = { title: "Cash-up" };
 const PAGE_SIZE = 25;
@@ -27,6 +28,7 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
   const shift = await db.shift.findFirst({ where: { id: shiftId, storeId: store.id } });
   if (!shift) notFound();
   const page = pageParam(sp.page);
+  const movements = await db.cashMovement.findMany({ where: { shiftId: shift.id }, orderBy: { createdAt: "asc" } });
   const [cash, tenders, totals, sales, count, people, device] = await Promise.all([
     shiftCash(shift.id),
     db.payment.groupBy({ by: ["method"], where: { sale: { shiftId: shift.id } }, _sum: { amountCents: true }, _count: true }),
@@ -39,7 +41,7 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
       include: { staff: { select: { name: true } }, customer: { select: { firstName: true, lastName: true } }, payments: { select: { method: true, amountCents: true } }, lines: { select: { qty: true } } },
     }),
     db.sale.count({ where: { shiftId: shift.id } }),
-    db.user.findMany({ where: { id: { in: [shift.openedById, shift.closedById].filter((x): x is string => !!x) } }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { id: { in: [...new Set([shift.openedById, shift.closedById, ...movements.map((m) => m.byId)].filter((x): x is string => !!x))] } }, select: { id: true, name: true } }),
     shift.deviceId ? db.device.findUnique({ where: { id: shift.deviceId }, select: { name: true } }) : null,
   ]);
   const who = new Map(people.map((p) => [p.id, p.name]));
@@ -76,8 +78,8 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
       <div className="hh-tiles grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Opening float" value={zar(shift.openingFloatCents)} />
         <Stat label="Cash taken (net)" value={zar(cash.cashSalesCents)} sub="sales less cash refunds" />
-        <Stat label="Expected in drawer" value={zar(expected)} sub="float + cash taken" />
-        <Stat label="Counted at close" value={shift.countedCashCents != null ? zar(shift.countedCashCents) : "—"} sub={shift.closedAt ? "blind count at the till" : "not closed yet"} />
+        <Stat label="Expected in drawer" value={zar(expected)} sub={cash.paidOutCents ? "float + cash taken − paid out" : "float + cash taken"} />
+        <Stat label="Counted at close" value={shift.countedCashCents != null ? zar(shift.countedCashCents) : "—"} sub={shift.closedAt ? (cash.droppedCents ? "blind count + safe drops" : "blind count at the till") : "not closed yet"} />
         <Stat
           label="Variance"
           value={<span className={variance == null ? undefined : variance === 0 ? "text-leaf-700" : Math.abs(variance) <= 5_000 ? "text-amber-700" : "text-rose-600"}>{variance == null ? "—" : `${variance > 0 ? "+" : variance < 0 ? "−" : ""}${zar(Math.abs(variance))}`}</span>}
@@ -105,6 +107,34 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
             </div>
           </CardBody>
         </Card>
+
+        {movements.length > 0 && (
+          <Card className="min-w-0">
+            <CardHeader title="Cash in & out" description="Paid-outs, safe drops and float top-ups recorded at the till by a manager" />
+            <Table className="mt-3">
+              <thead>
+                <tr>
+                  <Th>Time</Th>
+                  <Th>Kind</Th>
+                  <Th>By</Th>
+                  <Th>Reason</Th>
+                  <Th align="right">Amount</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {movements.map((m) => (
+                  <Tr key={m.id}>
+                    <Td className="whitespace-nowrap text-ink-600">{fmtTime(m.createdAt)}</Td>
+                    <Td className="whitespace-nowrap"><Badge tone={m.kind === "PAID_OUT" ? "amber" : undefined}>{CASH_MOVE_LABEL[m.kind]}</Badge></Td>
+                    <Td className="whitespace-nowrap text-ink-700">{who.get(m.byId) ?? "—"}</Td>
+                    <Td className="text-ink-700">{m.reason}</Td>
+                    <Td align="right" className="font-medium text-ink-900">{m.kind === "PAID_OUT" ? "−" : ""}{zar(m.amountCents)}</Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card>
+        )}
 
         <Card className="min-w-0">
           <CardHeader title="Transactions" description={`${count} in this shift`} />

@@ -37,16 +37,16 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
     variance: { closedAt: { not: null }, NOT: { countedCashCents: null } },
   };
   // "Variance" = closed shifts whose count differs from expected; filtered in SQL-friendly two steps.
-  // The ids are paged here (newest first), so the list Prisma binds is one page long (D1 allows 100 parameters).
+  // The ids are paged in SQL (newest first), so the list Prisma binds is one page long (D1 allows 100 parameters).
   const varianceIds =
     view === "variance"
-      ? (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS NOT "expectedCashCents" ORDER BY "openedAt" DESC`).map((x) => x.id)
+      ? (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS NOT "expectedCashCents" ORDER BY "openedAt" DESC LIMIT ${PAGE_SIZE} OFFSET ${(page - 1) * PAGE_SIZE}`).map((x) => x.id)
       : null;
   const where: Prisma.ShiftWhereInput = { storeId: store.id, ...views[view] };
-  const pageWhere: Prisma.ShiftWhereInput = varianceIds ? { ...where, id: { in: varianceIds.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) } } : where;
+  const pageWhere: Prisma.ShiftWhereInput = varianceIds ? { ...where, id: { in: varianceIds } } : where;
 
   const [total, shifts, recent, counts] = await Promise.all([
-    varianceIds ? varianceIds.length : db.shift.count({ where }),
+    varianceIds ? 0 : db.shift.count({ where }),
     db.shift.findMany({ where: pageWhere, orderBy: { openedAt: "desc" }, ...(varianceIds ? {} : { skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }), include: { _count: { select: { sales: true } }, deposit: { select: { number: true } } } }),
     db.shift.findMany({ where: { storeId: store.id, closedAt: { gte: since } }, select: { expectedCashCents: true, countedCashCents: true } }),
     Promise.all([
@@ -171,7 +171,7 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
           </Table>
         )}
         <div className="border-t border-ink-100">
-          <Pagination page={page} pageSize={PAGE_SIZE} total={total} href={(p) => hrefWith(path, sp, { page: p })} />
+          <Pagination page={page} pageSize={PAGE_SIZE} total={varianceIds ? (counts[2][0]?.n ?? 0) : total} href={(p) => hrefWith(path, sp, { page: p })} />
         </div>
       </Card>
     </>

@@ -9,6 +9,7 @@ import { APP_URL, zReportEmail } from "@/server/email-templates";
 import { countCash, DENOMINATIONS, TENDER_LABEL, tradeSummary } from "@/components/pos/lib/rules";
 import { PosError, type PosStaff } from "./http";
 import type { ZReport } from "./types";
+import type { CashMovementKind, ExpenseCategory } from "@/generated/prisma/client";
 import { getSettings } from "@/server/settings";
 import { checkShifts, raiseAlerts } from "@/server/loss";
 import { queuePosting } from "@/server/ledger/core";
@@ -25,13 +26,57 @@ export async function openShift(pos: PosStaff, floatCents: number, counts?: Reco
   return shift;
 }
 
-export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<string, number>, notes?: string) {
+async function openShiftOnTill(pos: PosStaff, shiftId: string) {
   const shift = await db.shift.findUnique({ where: { id: shiftId } });
   if (!shift || shift.storeId !== pos.device.storeId || shift.deviceId !== pos.device.id) throw new PosError("That shift isn't open on this till", 404);
   if (shift.closedAt) throw new PosError("This shift is already closed", 409);
+  return shift;
+}
+
+const MOVEMENT_MAX_CENTS = 5_000_000;
+
+/**
+ * Cash in or out of an open drawer, by a till manager, with a reason on record:
+ * - PAID_OUT: petty cash or an emergency payment out of the drawer. It is booked as an expense paid from cash
+ *   (credits cash, not the bank) and lowers what the drawer should hold.
+ * - DROP: cash moved from the drawer to the safe mid-shift. It is still the shift's takings, so the close adds the
+ *   drops back to the drawer count and expected cash doesn't change.
+ * - CASH_IN: a float top-up (change from the safe). It raises the shift's opening float.
+ */
+export async function cashMovement(pos: PosStaff, shiftId: string, kind: CashMovementKind, amountCents: number, reason: string, category: ExpenseCategory = "OTHER") {
+  const shift = await openShiftOnTill(pos, shiftId);
+  if (!Number.isInteger(amountCents) || amountCents <= 0 || amountCents > MOVEMENT_MAX_CENTS) throw new PosError("Enter an amount between R0.01 and R50,000", 422);
+  const why = reason.trim();
+  if (!why) throw new PosError("Give a reason for the cash movement", 422);
+  if (kind !== "CASH_IN") {
+    const cash = await shiftCash(shift.id);
+    // What can physically leave the drawer: what it should hold, less what's already gone to the safe.
+    const inDrawer = cash.expectedCents - cash.droppedCents;
+    if (amountCents > inDrawer) throw new PosError("That's more cash than the drawer should hold", 422, "OVER_DRAWER");
+  }
+  const by = pos.user.id;
+  // One D1 batch, so the movement and its expense (or float top-up) land together or not at all.
+  const expenseId = kind === "PAID_OUT" ? crypto.randomUUID() : null;
+  const [move] = await db.$transaction([
+    db.cashMovement.create({ data: { shiftId: shift.id, kind, amountCents, reason: why, byId: by, expenseId } }),
+    ...(expenseId
+      ? [db.expense.create({ data: { id: expenseId, storeId: shift.storeId, date: new Date(), category, description: `Till paid-out: ${why}`, amountCents, vatCents: 0, paidFromCash: true, createdById: by } })]
+      : []),
+    ...(kind === "CASH_IN" ? [db.shift.update({ where: { id: shift.id }, data: { openingFloatCents: { increment: amountCents } } })] : []),
+  ]);
+  if (move.expenseId) await queuePosting(db, "expense", move.expenseId);
+  const action = { PAID_OUT: "cash.paid_out", DROP: "cash.drop", CASH_IN: "cash.cash_in" }[kind];
+  await audit(db, actor(pos), action, { storeId: shift.storeId, entity: "Shift", entityId: shift.id, data: { amountCents, reason: why, movementId: move.id, ...(move.expenseId && { expenseId: move.expenseId, category }) } });
+  return move;
+}
+
+export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<string, number>, notes?: string) {
+  const shift = await openShiftOnTill(pos, shiftId);
   const clean = Object.fromEntries(DENOMINATIONS.map((d) => [String(d), Math.max(0, Math.floor(counts[String(d)] ?? 0))]));
-  const counted = countCash(clean);
   const cash = await shiftCash(shift.id);
+  // The shift's cash is what's left in the drawer plus what went to the safe during it.
+  const drawer = countCash(clean);
+  const counted = drawer + cash.droppedCents;
   // A count out by more than the cash-short tolerance needs a reason on record (without saying by how much: it's blind).
   const tolerance = (await getSettings()).loss.cashShortCents;
   if (Math.abs(counted - cash.expectedCents) > tolerance && !notes?.trim())
@@ -46,7 +91,7 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
     storeId: shift.storeId,
     entity: "Shift",
     entityId: shift.id,
-    data: { expected: cash.expectedCents, counted, variance: counted - cash.expectedCents, counts: clean },
+    data: { expected: cash.expectedCents, counted, drawer, dropped: cash.droppedCents, variance: counted - cash.expectedCents, counts: clean },
   });
   background(`cash-short check ${shift.id}`, checkShifts({ id: shift.id }, (await getSettings()).loss).then(raiseAlerts));
   const report = await zReport(shift.id);
@@ -61,7 +106,7 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
 export async function zReport(shiftId: string): Promise<ZReport> {
   const shift = await db.shift.findUniqueOrThrow({ where: { id: shiftId }, include: { store: { include: { company: true } } } });
   const licensed = (await getSettings()).compliance.licensedOnly;
-  const [kinds, tenders, refundTenders, units, users, device, closeLog, cash, dispensed] = await Promise.all([
+  const [kinds, tenders, refundTenders, units, users, device, closeLog, cash, dispensed, moves] = await Promise.all([
     db.sale.groupBy({
       by: ["kind", "channel"],
       where: { shiftId },
@@ -80,7 +125,10 @@ export async function zReport(shiftId: string): Promise<ZReport> {
     licensed.length
       ? db.saleLine.findMany({ where: { sale: { shiftId, kind: "SALE" }, variant: { product: { regClass: { in: licensed } } } }, select: { saleId: true, qty: true, totalCents: true, variant: { select: { grams: true } } } })
       : [],
+    db.cashMovement.findMany({ where: { shiftId }, orderBy: { createdAt: "asc" } }),
   ]);
+  const moverIds = moves.map((m) => m.byId).filter((id) => !users.some((u) => u.id === id));
+  if (moverIds.length) users.push(...(await db.user.findMany({ where: { id: { in: [...new Set(moverIds)] } }, select: { id: true, name: true } })));
   const name = (id: string | null) => users.find((u) => u.id === id)?.name ?? null;
   const sum = (rows: typeof kinds, f: (r: (typeof kinds)[number]) => number) => rows.reduce((a, r) => a + f(r), 0);
   const sales = kinds.filter((k) => k.kind === "SALE");
@@ -127,7 +175,11 @@ export async function zReport(shiftId: string): Promise<ZReport> {
       countedCents: shift.countedCashCents,
       varianceCents: shift.countedCashCents != null ? shift.countedCashCents - (shift.expectedCashCents ?? cash.expectedCents) : null,
       counts,
+      paidOutCents: cash.paidOutCents,
+      droppedCents: cash.droppedCents,
+      cashInCents: cash.cashInCents,
     },
+    movements: moves.map((m) => ({ kind: m.kind, amountCents: m.amountCents, reason: m.reason, by: name(m.byId) ?? "—", at: m.createdAt.toISOString() })),
     takingsCents: sum(kinds, (r) => r._sum.totalCents ?? 0),
     dispensing: {
       count: new Set(dispensed.map((l) => l.saleId)).size,

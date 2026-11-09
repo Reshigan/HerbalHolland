@@ -2,7 +2,9 @@ import Link from "next/link";
 import { CircleCheck, ExternalLink, FlaskConical, ShieldAlert } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
+import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
+import { batchTotals } from "@/server/inventory";
 import { expiryState, hrefWith, sp1 } from "@/server/store/rules";
 import { zar, zarCompact } from "@/lib/money";
 import { addDays, fmtDate } from "@/lib/format";
@@ -17,7 +19,6 @@ import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips, SearchForm } from "@/components/store/ui";
 import { ConfirmAction, FieldError } from "@/components/ui/action-form";
-import type { Prisma } from "@/generated/prisma/client";
 import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Batches & recalls" };
@@ -48,7 +49,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
     : {};
   const where = { AND: [base, views[view], search] };
 
-  const [counts, total, lots, all, recalls] = await Promise.all([
+  const [counts, total, lots, totals, recalls] = await Promise.all([
     Promise.all(Object.entries(views).map(async ([k, w]) => [k, await db.stockLevel.count({ where: { AND: [base, w, search] } })] as const)),
     db.stockLevel.count({ where }),
     db.stockLevel.findMany({
@@ -58,7 +59,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
-    db.stockLevel.findMany({ where: base, select: { onHand: true, unitCostCents: true, batch: { select: { status: true, expiresAt: true } } } }),
+    batchTotals(store.id, now, soon),
     db.batch.findMany({
       where: { status: { in: ["RECALLED", "QUARANTINE"] } },
       include: { variant: { select: { sku: true, name: true, product: { select: { name: true } } } }, stock: { where: { storeId: store.id }, select: { onHand: true } } },
@@ -67,13 +68,8 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
     }),
   ]);
   const count = Object.fromEntries(counts);
-  const sum = (f: (l: (typeof all)[number]) => boolean) =>
-    all.filter(f).reduce((a, l) => ({ lots: a.lots + 1, units: a.units + l.onHand, value: a.value + l.onHand * l.unitCostCents }), { lots: 0, units: 0, value: 0 });
   const lotsLabel = (x: { lots: number; value: number }) => `${x.lots} lot${x.lots === 1 ? "" : "s"} · ${zar(x.value)} at cost`;
-  const blocked = sum((l) => l.batch.status !== "RELEASED" && l.onHand > 0);
-  const expiring = sum((l) => l.batch.status === "RELEASED" && !!l.batch.expiresAt && l.batch.expiresAt > now && l.batch.expiresAt <= soon && l.onHand > 0);
-  const expired = sum((l) => !!l.batch.expiresAt && l.batch.expiresAt <= now && l.onHand > 0);
-  const onHand = sum((l) => l.onHand > 0);
+  const { blocked, expiring, expired, onHand } = totals;
   const keep = { view: view === "all" ? undefined : view };
 
   return (

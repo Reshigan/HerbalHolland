@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
-import { audit } from "@/server/audit";
+import { audit, type Actor } from "@/server/audit";
 import { availability, availKey } from "@/server/inventory";
 import { actOnStockOrder, createStockOrder } from "@/server/stock-orders";
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
@@ -52,12 +52,16 @@ async function buyerOrder(storeId: string, id: string) {
 }
 
 /** Puts units from a cancelled or rejected network order back on the seller's listing. */
-async function restoreListing(o: StockOrder & { lines: { variantId: string; qty: number }[] }) {
+async function restoreListing(o: StockOrder & { lines: { variantId: string; qty: number }[] }, actor: Actor) {
   if (o.kind !== "NETWORK") return;
+  const restored: { listingId: string; qty: number }[] = [];
   for (const l of o.lines) {
     const listing = await db.listing.findFirst({ where: { storeId: o.sellerId, variantId: l.variantId, createdAt: { lte: o.createdAt } }, orderBy: { createdAt: "desc" } });
-    if (listing) await db.listing.update({ where: { id: listing.id }, data: { qty: { increment: l.qty }, active: true } });
+    if (!listing) continue;
+    await db.listing.update({ where: { id: listing.id }, data: { qty: { increment: l.qty }, active: true } });
+    restored.push({ listingId: listing.id, qty: l.qty });
   }
+  if (restored.length) await audit(db, actor, "listing.restore", { storeId: o.sellerId ?? undefined, entity: "StockOrder", entityId: o.id, data: { number: o.number, restored } });
 }
 
 export async function receiveOrder(code: string, id: string, _: ActionState, fd: FormData): Promise<ActionState> {
@@ -94,7 +98,7 @@ export async function cancelOrder(code: string, id: string, _: ActionState, fd: 
     const { store, actor } = await manage(code);
     const o = await buyerOrder(store.id, id);
     await actOnStockOrder(id, "cancel", actor);
-    await restoreListing(o);
+    await restoreListing(o, actor);
     revalidatePath(`/store/${store.code}/purchasing/${id}`);
     return done(`${o.number} cancelled.`);
   });
@@ -125,7 +129,7 @@ export async function sellerAct(code: string, id: string, action: "approve" | "r
       if (!shippable) return fail("You have none of these items available to ship. Reject the order instead.");
     }
     await actOnStockOrder(id, action, actor);
-    if (action === "reject") await restoreListing(o);
+    if (action === "reject") await restoreListing(o, actor);
     revalidatePath(`/store/${store.code}/network`);
     revalidatePath(`/store/${store.code}/purchasing/${id}`);
     const verb = { approve: "accepted", reject: "declined", ship: "shipped" }[action];

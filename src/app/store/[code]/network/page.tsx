@@ -72,8 +72,8 @@ export default async function NetworkPage({ params, searchParams }: { params: Pr
 type StoreCtx = Awaited<ReturnType<typeof storeForUser>>;
 
 async function Marketplace({ store, canManage, q, page, sp, path }: { store: StoreCtx; canManage: boolean; q: string; page: number; sp: SP; path: string }) {
-  const like = `%${q}%`;
-  const filter = q ? Prisma.sql`AND (p.name LIKE ${like} OR v.sku LIKE ${like} OR v.name LIKE ${like} OR s.name LIKE ${like})` : Prisma.empty;
+  const like = `%${q.replace(/[\\%_]/g, "\\$&")}%`; // a typed % or _ is matched literally
+  const filter = q ? Prisma.sql`AND (p.name LIKE ${like} ESCAPE '\\' OR v.sku LIKE ${like} ESCAPE '\\' OR v.name LIKE ${like} ESCAPE '\\' OR s.name LIKE ${like} ESCAPE '\\')` : Prisma.empty;
   const [ids, [{ n }]] = await Promise.all([
     db.$queryRaw<{ id: string }[]>`
       SELECT l.id FROM "Listing" l

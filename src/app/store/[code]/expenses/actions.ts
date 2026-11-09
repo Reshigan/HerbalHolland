@@ -50,6 +50,7 @@ export async function deleteExpense(code: string, id: string, _: ActionState, fd
     const { store, actor } = await manage(code);
     const e = await db.expense.findFirst({ where: { id, storeId: store.id } });
     if (!e) return fail("Expense not found");
+    if (e.paidFromCash) return fail("This was paid out of a till drawer and is part of that shift's cash-up, so it can't be removed. Change its category or VAT instead, or ask HQ to correct it.");
     await db.expense.delete({ where: { id } });
     await queuePosting(db, "expense", id); // reversed in the books
     await audit(db, actor, "expense.delete", { storeId: store.id, entity: "Expense", entityId: id, data: { category: e.category, amountCents: e.amountCents, description: e.description } });

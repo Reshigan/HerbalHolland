@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CloudOff, LogOut, Printer, RefreshCw, Tablet, Wallet } from "lucide-react";
 import { InstallPrompt } from "@/components/ui/install-prompt";
 import { cn } from "@/lib/cn";
-import { zar } from "@/lib/money";
+import { parseRand, zar } from "@/lib/money";
 import { fmtDateTime, fmtTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { DEFAULT_LOSS } from "@/lib/loss";
@@ -18,7 +18,7 @@ import { CommissionTile } from "./commission-tile";
 import { InviteTile } from "./invite-tile";
 import { DisplayCard, PrinterCard, TrainingCard } from "./hardware-panel";
 import { TrainingShiftCard } from "./training";
-import { Alert, Confirm, EmptyPanel, Field, PosButton, Spinner, TextArea } from "./ui";
+import { Alert, Confirm, EmptyPanel, Field, PosButton, Segmented, SelectInput, Spinner, TextArea, TextInput } from "./ui";
 import type { BootShift, ZReport } from "@/server/pos/types";
 
 const FLOATS = [50000, 100000, 150000, 200000];
@@ -64,6 +64,7 @@ export function ShiftPanel() {
         <div className="space-y-5">
           <CommissionTile />
           {!pos.training && <InviteTile />}
+          {shift && x && !closed && !pos.training && isTillManager(pos.me.role) && pos.online && <CashMovements shiftId={shift.id} x={x} onDone={setX} />}
           {shift && x && !closed && !pos.training && <XReportCard x={x} onRefresh={loadX} onPrint={() => pos.print({ kind: "z", report: x })} />}
           {!shift && !closed && !pos.training && <LastShift />}
           <DeviceCard />
@@ -165,7 +166,9 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
   // Blind cash-up: only a manager sees what the drawer should hold before the count is in (the server leaves it out).
   const manager = isTillManager(pos.me.role);
   const expected = manager && x && !x.blind ? x.cash.expectedCents : null;
-  const variance = expected != null ? counted - expected : null;
+  // Safe drops left the drawer but are still the shift's cash: the server adds them to the count, so do the same here.
+  const dropped = x?.cash.droppedCents ?? 0;
+  const variance = expected != null ? counted + dropped - expected : null;
   // Out by more than the cash-short tolerance: a note is needed (the server checks it against the HQ setting too).
   const needNote = (noteNeeded || (variance != null && Math.abs(variance) > DEFAULT_LOSS.cashShortCents)) && !notes.trim();
   const queued = pos.outbox.filter((o) => !o.deviceId || o.deviceId === pos.boot.device.id).length;
@@ -195,7 +198,7 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
         Cash up &amp; close shift
       </h1>
       <p className="text-sm text-ink-400">
-        Open since {fmtTime(shift.openedAt)} · {shift.openedBy} · float {zar(shift.openingFloatCents)}. Count every note and coin in the drawer.
+        Open since {fmtTime(shift.openedAt)} · {shift.openedBy} · float {zar(shift.openingFloatCents)}. Count every note and coin in the drawer. Safe drops are added for you.
       </p>
       {error && <Alert className="mt-4">{error}</Alert>}
       <div className="mt-5">
@@ -204,7 +207,7 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
       {manager ? (
         <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800 sm:grid-cols-3">
           <Figure label="Expected" value={expected != null ? zar(expected) : "…"} />
-          <Figure label="Counted" value={zar(counted)} />
+          <Figure label={dropped ? `Counted + ${zar(dropped)} dropped` : "Counted"} value={zar(counted + dropped)} />
           <Figure
             className="col-span-2 sm:col-span-1"
             label="Variance"
@@ -226,7 +229,7 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
         error={needNote && noteNeeded ? "The count doesn't match what the till expects. Count again, or explain the difference here." : undefined}
         hint={needNote ? "The count is out by more than the tolerance, so explain it. It goes on the Z-report." : variance ? "Explain any variance. It goes on the Z-report." : undefined}
       >
-        <TextArea id="shift-notes" value={notes} onChange={(e) => setNotes(e.target.value)} aria-invalid={needNote && noteNeeded ? true : undefined} placeholder="e.g. R50 paid out for milk, slip in drawer" />
+        <TextArea id="shift-notes" value={notes} onChange={(e) => setNotes(e.target.value)} aria-invalid={needNote && noteNeeded ? true : undefined} placeholder="e.g. R20 short, customer change error" />
       </Field>
       {blocked && <Alert tone="warn" className="mt-4">{blocked}</Alert>}
       <div className={STICKY_ACTION}>
@@ -317,6 +320,103 @@ function Figure({ label, value, tone = "ok", testId, className }: { label: strin
   );
 }
 
+const MOVE_KINDS = [
+  { value: "PAID_OUT", label: "Paid out" },
+  { value: "DROP", label: "Safe drop" },
+  { value: "CASH_IN", label: "Float top-up" },
+] as const;
+type MoveKind = (typeof MOVE_KINDS)[number]["value"];
+const PAID_OUT_CATEGORIES = [
+  ["SUPPLIES", "Supplies"],
+  ["UTILITIES", "Utilities"],
+  ["SECURITY", "Security"],
+  ["MARKETING", "Marketing"],
+  ["OTHER", "Other"],
+] as const;
+const MOVE_HINT: Record<MoveKind, string> = {
+  PAID_OUT: "Cash taken out to pay for something (petty cash, an emergency). It is booked as a store expense and lowers what the drawer should hold. Keep the slip.",
+  DROP: "Cash moved from the drawer to the safe. The cash-up adds it back to the count, so don't count it again.",
+  CASH_IN: "Extra change put into the drawer. It is added to the float.",
+};
+
+// Manager only: money in or out of the drawer mid-shift, each with a reason, on the Z-report and in the audit log.
+function CashMovements({ shiftId, x, onDone }: { shiftId: string; x: ZReport; onDone: (r: ZReport) => void }) {
+  const pos = usePos();
+  const [kind, setKind] = useState<MoveKind>("PAID_OUT");
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const [category, setCategory] = useState("SUPPLIES");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cents = parseRand(amount);
+  const ready = !!cents && cents > 0 && !!reason.trim() && !busy;
+  const label = MOVE_KINDS.find((k) => k.value === kind)!.label;
+
+  async function save() {
+    if (!ready) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api<{ report: ZReport }>("/api/pos/shift", {
+        body: { action: "movement", shiftId, kind, amountCents: cents, reason: reason.trim(), category: kind === "PAID_OUT" ? category : undefined },
+      });
+      onDone(r.report);
+      setAmount("");
+      setReason("");
+      pos.toast(`${label} of ${zar(cents!)} recorded`);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-3xl bg-ink-900 p-5 ring-1 ring-ink-800" aria-labelledby="cash-moves">
+      <h2 id="cash-moves" className="font-display text-lg font-semibold text-white">
+        Cash in &amp; out
+      </h2>
+      <Segmented className="mt-3" label="Kind of cash movement" fill value={kind} onChange={setKind} options={MOVE_KINDS.map((k) => ({ value: k.value, label: k.label }))} />
+      <p className="mt-2 text-[0.8rem] text-ink-400">{MOVE_HINT[kind]}</p>
+      {error && <Alert className="mt-3">{error}</Alert>}
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <Field label="Amount" htmlFor="move-amount">
+          <TextInput id="move-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="R0.00" data-testid="move-amount" />
+        </Field>
+        {kind === "PAID_OUT" && (
+          <Field label="Category" htmlFor="move-category">
+            <SelectInput id="move-category" value={category} onChange={(e) => setCategory(e.target.value)}>
+              {PAID_OUT_CATEGORIES.map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
+        )}
+      </div>
+      <Field label="Reason" htmlFor="move-reason" className="mt-3">
+        <TextInput id="move-reason" maxLength={200} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={kind === "PAID_OUT" ? "e.g. Milk and cleaning cloths, Spar slip" : kind === "DROP" ? "e.g. Midday drop, bag 0412" : "e.g. Coins from the safe"} data-testid="move-reason" />
+      </Field>
+      <PosButton variant="primary" size="lg" className="mt-3 w-full" disabled={!ready} onClick={save} data-testid="move-save">
+        {busy ? <Spinner /> : `Record ${label.toLowerCase()}`}
+      </PosButton>
+      {!!x.movements?.length && (
+        <ul className="mt-4 divide-y divide-ink-850 text-sm" aria-label="This shift's cash movements">
+          {x.movements.map((m, i) => (
+            <li key={i} className="flex justify-between gap-3 py-2">
+              <span className="min-w-0 text-ink-400">
+                <span className="font-semibold text-ink-200">{MOVE_KINDS.find((k) => k.value === m.kind)?.label}</span> · {fmtTime(m.at)} · {m.by} · {m.reason}
+              </span>
+              <span className="font-semibold text-white tnum">{m.kind === "CASH_IN" ? "" : "−"}{zar(m.amountCents)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function XReportCard({ x, onRefresh, onPrint }: { x: ZReport; onRefresh: () => void; onPrint: () => void }) {
   return (
     <section className="rounded-3xl bg-ink-900 p-5 ring-1 ring-ink-800" aria-label="Shift so far">
@@ -354,6 +454,9 @@ function ReportFigures({ r }: { r: ZReport }) {
       : []),
     ...r.tenders.map((t) => [t.label, zar(t.amountCents)] as [string, string]),
     ["Points issued / redeemed", `${fmtPoints(r.points.issued)} / ${fmtPoints(r.points.redeemed)}`],
+    ...(r.cash.paidOutCents ? ([["Paid out of the drawer", `−${zar(r.cash.paidOutCents)}`]] as [string, string][]) : []),
+    ...(r.cash.cashInCents ? ([["Float top-ups (in the float)", zar(r.cash.cashInCents)]] as [string, string][]) : []),
+    ...(r.cash.droppedCents ? ([["Safe drops (counted as cash)", zar(r.cash.droppedCents)]] as [string, string][]) : []),
     ["Cash expected in drawer", r.blind ? "After the count" : zar(r.cash.expectedCents)],
   ];
   return (
