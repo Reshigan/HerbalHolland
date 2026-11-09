@@ -9,6 +9,9 @@ import { announced, announceProducts } from "@/server/studio";
 import { str, opt, bool, list, parseNum, parseRand, parseInt10, splitList, slugify } from "@/server/hq/form";
 import { PRODUCT_STATUSES, REG_CLASSES } from "@/server/hq/catalogue";
 import { ALLERGENS, PRODUCT_FACTS, REG_CLASS_LABEL, CBD_CLASSES, complianceChange, screenCopy, validateProduct } from "@/lib/compliance";
+import { filesIn } from "@/server/uploads";
+import { orderProductImages, removeProductImage, uploadProductImages } from "@/server/shop/images";
+import { plural } from "@/lib/plural";
 import type { Prisma, ProductStatus, RegClass, StoreFormat, StrainType } from "@/generated/prisma/client";
 
 const STRAINS: StrainType[] = ["INDICA", "SATIVA", "HYBRID", "CBD"];
@@ -230,4 +233,49 @@ export async function rangeVariant(productId: string, _: ActionState, fd: FormDa
   revalidatePath(`/hq/catalogue/${productId}`);
   if (mode === "range") return done(n ? `${variant.sku} ranged at ${n} more store${n === 1 ? "" : "s"}.` : `${variant.sku} was already ranged at all ${storeIds.length} matching stores.`);
   return done(`${variant.sku} unranged at ${n} store${n === 1 ? "" : "s"}.${holding ? ` ${holding} still hold stock, which they can sell through or return.` : ""}`);
+}
+
+// Product photos (shop gallery; the first is the main picture on cards and the product page).
+async function photoProduct(productId: string) {
+  const g = await guard("network");
+  const product = g && (await db.product.findUnique({ where: { id: productId }, select: { id: true, slug: true, name: true } }));
+  return g && product ? { g, product } : null;
+}
+
+function photosChanged(p: { id: string; slug: string }) {
+  revalidatePath(`/hq/catalogue/${p.id}`);
+  revalidatePath(`/p/${p.slug}`);
+  revalidatePath("/shop");
+}
+
+export async function addProductPhotos(productId: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  const ctx = await photoProduct(productId);
+  if (!ctx) return DENIED;
+  const files = filesIn(fd, "photos");
+  if (!files.length) return fail("Choose at least one photo.", { photos: "JPG, PNG or WebP, 5 MB at most" });
+  const r = await uploadProductImages(productId, files, { uploadedById: ctx.g.user.id, alt: ctx.product.name });
+  if (r.added) await audit(db, ctx.g.actor, "product.photos.add", { entity: "Product", entityId: productId, data: { added: r.added, skipped: r.skipped } });
+  if (r.added || r.skipped) photosChanged(ctx.product);
+  const why = r.failed.map((f) => `${f.name}: ${f.reason}`).join(" · ");
+  if (!r.added && r.failed.length) return fail(`No photo added. ${why}`);
+  const parts = [r.added && `${plural(r.added, "photo")} added`, r.skipped && `${plural(r.skipped, "photo")} already on the product`].filter(Boolean).join(", ");
+  return r.failed.length ? fail(`${parts}. Not added: ${why}`) : done(`${parts}.`);
+}
+
+export async function removeProductPhoto(productId: string, uploadId: string, _: ActionState, _fd: FormData): Promise<ActionState> {
+  const ctx = await photoProduct(productId);
+  if (!ctx) return DENIED;
+  if (!(await removeProductImage(productId, uploadId))) return fail("That photo is no longer on the product.");
+  await audit(db, ctx.g.actor, "product.photos.remove", { entity: "Product", entityId: productId, data: { uploadId } });
+  photosChanged(ctx.product);
+  return done("Photo removed.");
+}
+
+export async function orderProductPhotos(productId: string, order: string[], _: ActionState, _fd: FormData): Promise<ActionState> {
+  const ctx = await photoProduct(productId);
+  if (!ctx) return DENIED;
+  await orderProductImages(productId, order);
+  await audit(db, ctx.g.actor, "product.photos.order", { entity: "Product", entityId: productId, data: { order } });
+  photosChanged(ctx.product);
+  return done("Photo order saved.");
 }

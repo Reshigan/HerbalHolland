@@ -101,12 +101,13 @@ export const depositLines = (a: { storeId: string; amountCents: number }): Line[
   netLines([{ key: "bank", cents: a.amountCents, storeId: a.storeId }, { key: "cash", cents: -a.amountCents, storeId: a.storeId }]);
 
 /** An expense paid from the bank: ex VAT plus input VAT, or the whole amount for a non-vendor (its VAT stays in the cost). */
-export function expenseLines(a: { storeId: string; category: string; amountCents: number; vatCents: number; vendor: boolean }): Line[] {
+export function expenseLines(a: { storeId: string; category: string; amountCents: number; vatCents: number; vendor: boolean; paidFromCash?: boolean }): Line[] {
   const vat = a.vendor ? a.vatCents : 0;
   return netLines([
     { key: expenseKey(a.category), cents: a.amountCents - vat, storeId: a.storeId },
     { key: "vat.input", cents: vat, storeId: a.storeId },
-    { key: "bank", cents: -a.amountCents, storeId: a.storeId },
+    // A till paid-out came out of the drawer's cash; everything else was paid from the bank.
+    { key: a.paidFromCash ? "cash" : "bank", cents: -a.amountCents, storeId: a.storeId },
   ]);
 }
 

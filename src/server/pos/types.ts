@@ -385,6 +385,9 @@ export type SaleRow = {
 
 // ── Shifts ──────────────────────────────────────────────────────────────────
 
+/** How each mid-shift cash movement reads on a report. */
+export const CASH_MOVE_LABEL = { PAID_OUT: "Paid out", DROP: "Safe drop", CASH_IN: "Float top-up" } as const;
+
 export type ZReport = {
   shiftId: string;
   closed: boolean;
@@ -408,7 +411,13 @@ export type ZReport = {
     countedCents: number | null;
     varianceCents: number | null;
     counts: Record<string, number> | null;
+    /** Cash movements in the shift: paid-outs (lower expected), safe drops (counted = drawer + drops) and float top-ups
+     *  (already in floatCents). Reports cached before them have none. */
+    paidOutCents?: number;
+    droppedCents?: number;
+    cashInCents?: number;
   };
+  movements?: { kind: "PAID_OUT" | "DROP" | "CASH_IN"; amountCents: number; reason: string; by: string; at: string }[];
   takingsCents: number;
   /** A blind X-report (a shift still open, seen by someone other than a manager): what the drawer should hold (expected
    *  cash, cash takings and the cash tender) is left out until the count is in. */

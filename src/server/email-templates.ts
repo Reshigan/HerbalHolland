@@ -8,7 +8,7 @@ import { zar } from "@/lib/money";
 import { fmtDate, fmtDateTime, fmtMonth } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { DENOMINATIONS, denomLabel } from "@/components/pos/lib/rules";
-import type { ZReport } from "./pos/types";
+import { CASH_MOVE_LABEL, type ZReport } from "./pos/types";
 import type { StatementLine } from "@/lib/statement";
 import { EMAIL_LOGO_CID } from "./email-logo";
 
@@ -495,8 +495,9 @@ export function zReportEmail(r: ZReport, opts: { url?: string | null } = {}): Re
     { label: "Cash drawer", value: "", heading: true },
     { label: "Opening float", value: zar(r.cash.floatCents) },
     { label: "Cash sales less cash refunds", value: zar(r.cash.cashNetCents) },
+    ...(r.movements ?? []).map((m) => ({ label: `${CASH_MOVE_LABEL[m.kind]} · ${m.by} · ${m.reason}`, value: `${m.kind === "PAID_OUT" ? "−" : ""}${zar(m.amountCents)}`, indent: true })),
     { label: "Expected in drawer", value: zar(r.cash.expectedCents), strong: true },
-    { label: "Counted", value: r.cash.countedCents != null ? zar(r.cash.countedCents) : "—" },
+    { label: r.cash.droppedCents ? "Counted (incl. safe drops)" : "Counted", value: r.cash.countedCents != null ? zar(r.cash.countedCents) : "—" },
     { label: "Variance", value: r.cash.varianceCents != null ? signed(variance) : "—", strong: true },
     ...(r.dispensing && r.dispensing.count
       ? [

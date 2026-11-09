@@ -83,7 +83,7 @@ const expense: SourceHandler = async (id, t) => {
   const store = await storeRef(t, e.storeId);
   return posting(
     store, dayKey(e.date), `${e.description}${e.supplier ? ` (${e.supplier})` : ""} at ${store.label}`,
-    expenseLines({ storeId: e.storeId, category: e.category, amountCents: e.amountCents, vatCents: e.vatCents, vendor: store.vendor }),
+    expenseLines({ storeId: e.storeId, category: e.category, amountCents: e.amountCents, vatCents: e.vatCents, vendor: store.vendor, paidFromCash: e.paidFromCash }),
   );
 };
 

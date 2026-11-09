@@ -6,7 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { lookup } from "node:dns/promises";
 import { cache } from "react";
 import { db } from "@/server/db";
-import { putObject } from "@/server/storage";
+import { deleteObject, putObject } from "@/server/storage";
 import { extFor, sniffType, type UploadType } from "@/lib/files";
 import { IMPORT_MAX_IMAGES } from "@/lib/catalogue-import";
 import { isPublicIp } from "@/lib/net";
@@ -74,35 +74,87 @@ async function fetchImage(url: string) {
   return bytes;
 }
 
+type Gallery = { known: Set<string>; next: number; count: number };
+
+/** What the product already holds: its photos' fingerprints, the next free position and how many there are. */
+async function galleryOf(productId: string): Promise<Gallery> {
+  const existing = await db.productImage.findMany({ where: { productId }, select: { uploadId: true, sortOrder: true } });
+  const known = new Set(existing.length ? (await db.upload.findMany({ where: { id: { in: existing.map((e) => e.uploadId) } }, select: { sha256: true } })).map((u) => u.sha256) : []);
+  return { known, next: existing.reduce((m, e) => Math.max(m, e.sortOrder + 1), 0), count: existing.length };
+}
+
+/** Keeps one photo for a product. False when the product already has these exact bytes; throws when it isn't a photo. */
+async function keepImage(productId: string, bytes: Uint8Array<ArrayBuffer>, fileName: string, g: Gallery, opts: { uploadedById?: string | null; alt: string }) {
+  if (bytes.length > PRODUCT_IMAGE_MAX_BYTES) throw new Error("over 5 MB");
+  const type = sniffType(bytes);
+  if (!type || !PRODUCT_IMAGE_TYPES.includes(type)) throw new Error("not a JPG, PNG or WebP image");
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  if (g.known.has(sha256)) return false;
+  const key = `products/${productId}/${randomUUID()}.${extFor(type)}`;
+  await putObject(key, bytes, type);
+  const upload = await db.upload.create({ data: { key, fileName: fileName.slice(0, 120) || `photo.${extFor(type)}`, contentType: type, sizeBytes: bytes.length, sha256, uploadedById: opts.uploadedById ?? null } });
+  await db.productImage.create({ data: { productId, uploadId: upload.id, alt: opts.alt.slice(0, 160), sortOrder: g.next++ } });
+  g.known.add(sha256);
+  g.count++;
+  return true;
+}
+
 /** Fetches and keeps up to six photos for a product, after the import committed. Never throws: failures are listed. */
 export async function importProductImages(productId: string, urls: string[], opts: { uploadedById?: string | null; alt: string }): Promise<ImageImportResult> {
   const result: ImageImportResult = { fetched: 0, skipped: 0, failed: [] };
-  const existing = await db.productImage.findMany({ where: { productId }, select: { uploadId: true, sortOrder: true } });
-  const known = new Set(existing.length ? (await db.upload.findMany({ where: { id: { in: existing.map((e) => e.uploadId) } }, select: { sha256: true } })).map((u) => u.sha256) : []);
-  let sortOrder = existing.reduce((m, e) => Math.max(m, e.sortOrder + 1), 0);
+  const g = await galleryOf(productId);
   for (const url of urls.slice(0, IMPORT_MAX_IMAGES)) {
     try {
       const bytes = await fetchImage(url);
-      const type = sniffType(bytes);
-      if (!type || !PRODUCT_IMAGE_TYPES.includes(type)) throw new Error("not a JPG, PNG or WebP image");
-      const sha256 = createHash("sha256").update(bytes).digest("hex");
-      if (known.has(sha256)) {
-        result.skipped++;
-        continue;
-      }
-      const key = `products/${productId}/${randomUUID()}.${extFor(type)}`;
-      let fileName = `photo.${extFor(type)}`;
+      let fileName = "";
       try {
-        fileName = decodeURIComponent(url.split("/").pop()?.split("?")[0] ?? "").slice(0, 120) || fileName;
+        fileName = decodeURIComponent(url.split("/").pop()?.split("?")[0] ?? "");
       } catch {}
-      await putObject(key, bytes, type);
-      const upload = await db.upload.create({ data: { key, fileName, contentType: type, sizeBytes: bytes.length, sha256, uploadedById: opts.uploadedById ?? null } });
-      await db.productImage.create({ data: { productId, uploadId: upload.id, alt: opts.alt.slice(0, 160), sortOrder: sortOrder++ } });
-      known.add(sha256);
-      result.fetched++;
+      if (await keepImage(productId, bytes, fileName, g, opts)) result.fetched++;
+      else result.skipped++;
     } catch (e) {
       result.failed.push({ url, reason: (e as Error).message });
     }
   }
   return result;
+}
+
+export type PhotoUploadResult = { added: number; skipped: number; failed: { name: string; reason: string }[] };
+
+/** Photos chosen on the HQ product page. A product holds six at most; the same file twice is kept once. */
+export async function uploadProductImages(productId: string, files: File[], opts: { uploadedById?: string | null; alt: string }): Promise<PhotoUploadResult> {
+  const result: PhotoUploadResult = { added: 0, skipped: 0, failed: [] };
+  const g = await galleryOf(productId);
+  for (const f of files) {
+    if (g.count >= IMPORT_MAX_IMAGES) {
+      result.failed.push({ name: f.name, reason: `a product holds ${IMPORT_MAX_IMAGES} photos at most` });
+      continue;
+    }
+    try {
+      if (f.size > PRODUCT_IMAGE_MAX_BYTES) throw new Error("over 5 MB");
+      if (await keepImage(productId, new Uint8Array(await f.arrayBuffer()), f.name, g, opts)) result.added++;
+      else result.skipped++;
+    } catch (e) {
+      result.failed.push({ name: f.name, reason: (e as Error).message });
+    }
+  }
+  return result;
+}
+
+/** Takes a photo off a product and deletes the stored file. False when the product has no such photo. */
+export async function removeProductImage(productId: string, uploadId: string) {
+  const row = await db.productImage.findUnique({ where: { productId_uploadId: { productId, uploadId } }, select: { id: true } });
+  if (!row) return false;
+  const upload = await db.upload.findUnique({ where: { id: uploadId }, select: { key: true } });
+  await db.$transaction([db.productImage.delete({ where: { id: row.id } }), ...(upload ? [db.upload.delete({ where: { id: uploadId } })] : [])]);
+  if (upload) await deleteObject(upload.key).catch((e) => console.error("[images] delete failed", upload.key, e));
+  return true;
+}
+
+/** Puts a product's photos in the given order (the first is the main picture). Ids not on the product are ignored. */
+export async function orderProductImages(productId: string, uploadIds: string[]) {
+  const rows = await db.productImage.findMany({ where: { productId }, orderBy: { sortOrder: "asc" }, select: { id: true, uploadId: true } });
+  const rank = (u: string) => (uploadIds.includes(u) ? uploadIds.indexOf(u) : uploadIds.length);
+  const ordered = [...rows].sort((a, b) => rank(a.uploadId) - rank(b.uploadId));
+  await db.$transaction(ordered.map((r, i) => db.productImage.update({ where: { id: r.id }, data: { sortOrder: i } })));
 }

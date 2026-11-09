@@ -16,7 +16,7 @@ import { actOnStockOrder, createStockOrder, receivedValue } from "@/server/stock
 import { recordDeposit } from "@/server/banking";
 import { captureSupplierInvoice, invoiceAccounts, paySupplierInvoice, querySupplierInvoice, reopenSupplierInvoice, supplierInvoiceList } from "@/server/supplier-invoices";
 import { franchiseStatement, shiftCash } from "@/server/finance";
-import { closeShift } from "@/server/pos/shift";
+import { cashMovement, closeShift, zReport } from "@/server/pos/shift";
 import type { PosStaff } from "@/server/pos/http";
 import { countCash, DENOMINATIONS } from "@/components/pos/lib/rules";
 import { supplierParty } from "@/lib/ledger";
@@ -235,6 +235,37 @@ describe("cash, expenses and outside suppliers", () => {
     await drain();
     expect(await shown("expense", e.id)).toEqual({ [w.owner.id]: {} });
     expect(await db.journal.count({ where: { source: "expense", sourceId: e.id } })).toBe(2);
+  });
+
+  it("books a till paid-out as an expense paid from cash, adds safe drops to the count and top-ups to the float", async () => {
+    const shift = await db.shift.create({ data: { storeId: w.store.id, deviceId: w.device.id, openedById: w.manager.id, openingFloatCents: 50_000 } });
+    const pos = { user: await db.user.findUniqueOrThrow({ where: { id: w.manager.id } }), device: await db.device.findUniqueOrThrow({ where: { id: w.device.id }, include: { store: true } }) } as unknown as PosStaff;
+    await expect(cashMovement(pos, shift.id, "PAID_OUT", 50_001, "Too much")).rejects.toMatchObject({ code: "OVER_DRAWER" });
+    await expect(cashMovement(pos, shift.id, "DROP", 1_000, "  ")).rejects.toThrow("Give a reason");
+
+    const out = await cashMovement(pos, shift.id, "PAID_OUT", 4_500, "Milk for the staff room", "SUPPLIES");
+    await cashMovement(pos, shift.id, "CASH_IN", 20_000, "Change from the safe");
+    await cashMovement(pos, shift.id, "DROP", 30_000, "Mid-shift drop");
+    const cash = await shiftCash(shift.id);
+    expect(cash).toMatchObject({ expectedCents: 50_000 + 20_000 - 4_500, paidOutCents: 4_500, droppedCents: 30_000 });
+    // The drawer should hold 65,500, of which 30,000 went to the safe: only 35,500 can leave it.
+    await expect(cashMovement(pos, shift.id, "DROP", 35_501, "Too much")).rejects.toMatchObject({ code: "OVER_DRAWER" });
+
+    const e = await db.expense.findUniqueOrThrow({ where: { id: out.expenseId! } });
+    expect(e).toMatchObject({ paidFromCash: true, category: "SUPPLIES", amountCents: 4_500, vatCents: 0 });
+    await drain();
+    expect((await shown("expense", e.id))[w.owner.id]).toEqual({ [`exp.SUPPLIES#${w.store.id}`]: 4_500, [`cash#${w.store.id}`]: -4_500 });
+
+    // Count exactly what's left in the drawer: the close adds the drop back and balances.
+    const counts: Record<string, number> = {};
+    let left = 50_000 + 20_000 - 4_500 - 30_000;
+    for (const d of DENOMINATIONS) (counts[String(d)] = Math.floor(left / d)), (left %= d);
+    const z = await closeShift(pos, shift.id, counts);
+    expect(await db.shift.findUniqueOrThrow({ where: { id: shift.id } })).toMatchObject({ countedCashCents: 65_500, expectedCashCents: 65_500 });
+    expect(z.movements?.map((m) => m.kind)).toEqual(["PAID_OUT", "CASH_IN", "DROP"]);
+    expect((await zReport(shift.id)).cash).toMatchObject({ paidOutCents: 4_500, droppedCents: 30_000, cashInCents: 20_000 });
+    await expect(cashMovement(pos, shift.id, "DROP", 100, "After close")).rejects.toThrow("already closed");
+    await drain();
   });
 
   it("charges an outside supplier's invoice to the account chosen, owes the supplier, and pays it from the bank", async () => {

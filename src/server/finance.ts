@@ -209,7 +209,22 @@ export async function franchiseStatement(storeId: string, month: string) {
 /** Expected cash for a shift: float + cash tendered on sales and refunds in the shift. */
 export async function shiftCash(shiftId: string) {
   const shift = await db.shift.findUniqueOrThrow({ where: { id: shiftId } });
-  const cash = await db.payment.aggregate({ where: { method: "CASH", sale: { shiftId } }, _sum: { amountCents: true } });
-  const expected = shift.openingFloatCents + (cash._sum.amountCents ?? 0);
-  return { shift, cashSalesCents: cash._sum.amountCents ?? 0, expectedCents: expected, varianceCents: shift.countedCashCents != null ? shift.countedCashCents - expected : null };
+  const [cash, moves] = await Promise.all([
+    db.payment.aggregate({ where: { method: "CASH", sale: { shiftId } }, _sum: { amountCents: true } }),
+    db.cashMovement.groupBy({ by: ["kind"], where: { shiftId }, _sum: { amountCents: true } }),
+  ]);
+  const moved = (kind: string) => moves.find((m) => m.kind === kind)?._sum.amountCents ?? 0;
+  // Paid-outs left the drawer. Safe drops did too, but the close adds them back into the count (counted = drawer +
+  // drops), and a float top-up is already in openingFloatCents, so neither changes what's expected.
+  const paidOutCents = moved("PAID_OUT");
+  const expected = shift.openingFloatCents + (cash._sum.amountCents ?? 0) - paidOutCents;
+  return {
+    shift,
+    cashSalesCents: cash._sum.amountCents ?? 0,
+    paidOutCents,
+    droppedCents: moved("DROP"),
+    cashInCents: moved("CASH_IN"),
+    expectedCents: expected,
+    varianceCents: shift.countedCashCents != null ? shift.countedCashCents - expected : null,
+  };
 }

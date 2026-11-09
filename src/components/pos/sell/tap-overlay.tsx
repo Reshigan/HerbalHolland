@@ -117,6 +117,7 @@ export function TapOverlay({
         <>
           <p className="font-display text-3xl font-semibold text-white">{state.status === "DECLINED" ? "Declined" : "Couldn't reach the card network"}</p>
           <p className="mt-2 text-ink-300">{state.message}</p>
+          {state.status === "NETWORK_ERROR" && <p className="mt-1 text-sm text-ink-400">Check the device did not approve it, then try again or take it on the bank terminal or in cash.</p>}
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <PosButton
               variant="primary"

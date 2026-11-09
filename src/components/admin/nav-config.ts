@@ -65,7 +65,7 @@ export const storeNav = (code: string, slug: string, companyId: string): NavGrou
     items: [
       { label: "Reports", href: `/store/${code}/reports`, icon: "ChartColumn", keywords: "sales analytics export" },
       { label: "Owner analytics", href: "/insights/sales", icon: "ChartColumn", roles: ["OWNER"], keywords: "sales members drilldown phone" },
-      { label: "Loss prevention", href: `/store/${code}/loss-prevention`, icon: "ShieldAlert", keywords: "alerts theft" },
+      { label: "Loss prevention", href: `/store/${code}/loss-prevention`, icon: "ShieldAlert", roles: ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER", "OWNER", "MANAGER"], keywords: "alerts theft" },
     ],
   },
   {

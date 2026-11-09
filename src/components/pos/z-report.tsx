@@ -7,7 +7,7 @@ import { zar } from "@/lib/money";
 import { fmtDateTime, fmtTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { DENOMINATIONS, denomLabel } from "./lib/rules";
-import type { ZReport } from "@/server/pos/types";
+import { CASH_MOVE_LABEL, type ZReport } from "@/server/pos/types";
 
 const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${zar(Math.abs(n))}`;
 
@@ -184,8 +184,11 @@ export function ZReportDocument({ z, printedAt, address }: { z: ZReport; printed
           <h2>Cash drawer</h2>
           <Row label="Opening float" value={zar(z.cash.floatCents)} />
           <Row label="Cash sales less cash refunds" value={z.blind ? "After the count" : zar(z.cash.cashNetCents)} />
+          {(z.movements ?? []).map((m, i) => (
+            <Row key={i} indent label={`${CASH_MOVE_LABEL[m.kind]} · ${m.by} · ${m.reason}`} value={`${m.kind === "CASH_IN" ? "in float " : m.kind === "DROP" ? "safe " : "−"}${zar(m.amountCents)}`} />
+          ))}
           <Row label="Expected in drawer" value={z.blind ? "After the count" : zar(z.cash.expectedCents)} strong />
-          <Row label="Cash counted" value={z.cash.countedCents != null ? zar(z.cash.countedCents) : "—"} />
+          <Row label={z.cash.droppedCents ? "Cash counted (incl. safe drops)" : "Cash counted"} value={z.cash.countedCents != null ? zar(z.cash.countedCents) : "—"} />
           <Row label="Variance" value={variance != null ? signed(variance) : "—"} strong tone={variance == null || variance === 0 ? undefined : variance < 0 ? "neg" : "pos"} />
           {z.cash.counts && (
             <ul className="zr-denoms" aria-label="Denominations counted">

@@ -45,14 +45,16 @@ export async function startTake(code: string, _: ActionState, fd: FormData): Pro
 /** Saves counts from the count sheet (only changed lines are sent). null = not counted. */
 export async function saveCounts(code: string, id: string, counts: { lineId: string; qty: number | null }[]): Promise<ActionState> {
   return attempt(async () => {
-    const { store } = await manage(code);
-    await openTake(store.id, id);
+    const { store, actor } = await manage(code);
+    const take = await openTake(store.id, id);
     if (!Array.isArray(counts) || counts.length > 5_000) return fail("Nothing to save");
     for (const c of counts) {
       if (typeof c?.lineId !== "string") return fail("Invalid line");
       if (c.qty != null && (!Number.isInteger(c.qty) || c.qty < 0 || c.qty > 100_000)) return fail("Counts must be whole numbers of 0 or more");
     }
     await recordCounts(store.id, id, counts);
+    // One row per save: the trail of who keyed which count, and when (the latest save per line is the one that stands).
+    await audit(db, actor, "stocktake.count", { storeId: store.id, entity: "StockTake", entityId: id, data: { number: take.number, lines: counts.length, counts: counts.slice(0, 500) } });
     return done(`Saved ${counts.length} ${counts.length === 1 ? "count" : "counts"}`);
   });
 }
