@@ -232,3 +232,21 @@ export async function approveStockTake(t: Tx, stockTakeId: string, userId: strin
   }
   return varianceValue;
 }
+
+/** Lots, units and cost value a store holds on hand: all of it, blocked (recalled or quarantined), released and expiring
+ * within `soon`, and expired. Summed in the database, since a store can hold thousands of lots. */
+export async function batchTotals(storeId: string, now: Date, soon: Date) {
+  const buckets = {
+    onHand: Prisma.sql`1`,
+    blocked: Prisma.sql`b.status <> 'RELEASED'`,
+    expiring: Prisma.sql`b.status = 'RELEASED' AND b."expiresAt" > ${now} AND b."expiresAt" <= ${soon}`,
+    expired: Prisma.sql`b."expiresAt" <= ${now}`,
+  };
+  const cols = Object.entries(buckets).map(
+    ([k, c]) =>
+      Prisma.sql`cast(SUM(CASE WHEN ${c} THEN 1 ELSE 0 END) AS real) AS ${Prisma.raw(`"${k}Lots"`)}, cast(SUM(CASE WHEN ${c} THEN l."onHand" ELSE 0 END) AS real) AS ${Prisma.raw(`"${k}Units"`)}, cast(SUM(CASE WHEN ${c} THEN l."onHand" * l."unitCostCents" ELSE 0 END) AS real) AS ${Prisma.raw(`"${k}Value"`)}`,
+  );
+  const [row] = await db.$queryRaw<Record<string, number | null>[]>`SELECT ${Prisma.join(cols)} FROM "StockLevel" l JOIN "Batch" b ON b.id = l."batchId" WHERE l."storeId" = ${storeId} AND l."onHand" > 0`;
+  const get = (k: keyof typeof buckets) => ({ lots: row?.[`${k}Lots`] ?? 0, units: row?.[`${k}Units`] ?? 0, value: row?.[`${k}Value`] ?? 0 });
+  return { onHand: get("onHand"), blocked: get("blocked"), expiring: get("expiring"), expired: get("expired") };
+}
