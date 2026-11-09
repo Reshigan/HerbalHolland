@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { insightsContext } from "@/server/insights";
-import { hourlyHeat, kpis, topProducts } from "@/server/dashboard";
+import { hourlyHeat, kpis, salesByCategory } from "@/server/dashboard";
 import { salesByChannel, salesByDay, salesByStore } from "@/server/finance";
 import { resolveRange } from "@/lib/ranges";
 import { fmtDay } from "@/lib/format";
@@ -15,27 +15,29 @@ import { InsightsShell, insightHref, type InsightParams } from "@/components/ins
 
 const PATH = "/insights/sales";
 
-export default async function SalesInsights({ searchParams }: { searchParams: Promise<InsightParams> }) {
+export default async function SalesInsights({ searchParams }: { searchParams: Promise<InsightParams & { category?: string }> }) {
   const sp = await searchParams;
   const ctx = await insightsContext(sp, PATH);
   const r = resolveRange(sp, "30d");
   const ids = ctx.storeIds;
-  const [k, byStore, channels, days, products, heat] = await Promise.all([
+  const [k, byStore, channels, days, cats, heat] = await Promise.all([
     kpis(ids, r),
     salesByStore(ids, r),
     salesByChannel(ids, r),
     salesByDay(ids, r),
-    topProducts(ids, r, 8),
+    salesByCategory(ids, r),
     hourlyHeat(ids, { ...r, start: new Date(Math.max(r.start.getTime(), Date.now() - 28 * 86_400_000)) }),
   ]);
   const c = k.cur;
+  const cat = cats.find((x) => x.slug === sp.category);
+  const products = (cat ? cat.products : cats.flatMap((x) => x.products).sort((a, b) => b.netCents - a.netCents)).slice(0, 8);
   const list = (extra: Record<string, string>) => insightHref(`${PATH}/list`, sp, extra);
   const stores = ctx.stores.map((s) => ({ ...s, netCents: byStore.get(s.id)?.netCents ?? 0, sales: byStore.get(s.id)?.sales ?? 0 })).filter((s) => s.sales).sort((a, b) => b.netCents - a.netCents).slice(0, 10);
   const bestDays = days.filter((d) => d.netCents > 0).sort((a, b) => b.netCents - a.netCents).slice(0, 7);
   const active = heat.filter((x) => x.value > 0).map((x) => x.hour);
   const hours = active.length ? Array.from({ length: Math.max(...active) - Math.min(...active) + 1 }, (_, i) => Math.min(...active) + i) : [];
   return (
-    <InsightsShell tab="sales" path={PATH} ctx={ctx} sp={sp} r={r} title="Sales">
+    <InsightsShell tab="sales" path={PATH} ctx={ctx} sp={sp} r={r} keep={{ category: sp.category }} title="Sales">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Net sales (ex VAT)" value={zarCompact(c.netCents)} delta={k.deltas.net} />
         <Stat label="Transactions" value={c.sales.toLocaleString("en-ZA")} delta={k.deltas.tx} />
@@ -60,7 +62,17 @@ export default async function SalesInsights({ searchParams }: { searchParams: Pr
           </Card>
         )}
         <Card>
-          <CardHeader title="Top products" description="Tap a product for its trend and stores." />
+          <CardHeader title="Categories" description="Tap a category to see its top products." />
+          <CardBody>
+            {cats.length ? <BarList rows={cats.slice(0, 10).map((x) => ({ label: x.name, value: x.netCents, sub: `${x.units.toLocaleString("en-ZA")} sold`, href: insightHref(PATH, sp, { category: x.slug === sp.category ? undefined : x.slug }) }))} compact /> : <Empty />}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader
+            title={cat ? `Top products in ${cat.name}` : "Top products"}
+            description="Tap a product for its trend and stores."
+            action={cat && <Link href={insightHref(PATH, sp)} className="text-sm font-semibold text-brand-700">All categories</Link>}
+          />
           <CardBody>
             {products.length ? <BarList rows={products.map((p) => ({ label: p.name, value: p.netCents, sub: `${p.units.toLocaleString("en-ZA")} sold`, href: insightHref(`${PATH}/product/${p.variantId}`, sp) }))} compact /> : <Empty />}
           </CardBody>

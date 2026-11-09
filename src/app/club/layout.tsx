@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { getCustomer, getStaff } from "@/server/auth";
 import { db } from "@/server/db";
-import { INSIGHT_ROLES } from "@/server/insights";
+import { INSIGHT_ROLES, cardHolderMayView } from "@/server/insights";
 import { ShopChrome } from "@/components/shop/chrome";
 import { ClubNav } from "@/components/shop/club-client";
 import { Container } from "@/components/shop/ui";
@@ -23,8 +23,8 @@ export const viewport: Viewport = { viewportFit: "cover" };
 
 export default async function ClubLayout({ children }: { children: React.ReactNode }) {
   const customer = await getCustomer();
-  const [staff, linked] = await Promise.all([getStaff(), customer ? db.user.findUnique({ where: { memberId: customer.id }, select: { role: true, active: true } }) : null]);
-  const owner = [staff, linked?.active ? linked : null].some((u) => u && INSIGHT_ROLES.includes(u.role));
+  const [staff, linked] = await Promise.all([getStaff(), customer ? db.user.findUnique({ where: { memberId: customer.id }, select: { role: true, active: true, mustChangePassword: true } }) : null]);
+  const owner = (!!staff && INSIGHT_ROLES.includes(staff.role)) || cardHolderMayView(linked);
   return (
     <ShopChrome compact>
       {customer && (
