@@ -33,6 +33,7 @@ export function PhoneAuth({
   shareOffers,
   title = "Sign in or join",
   intro = "Use your mobile number (no passwords). New here? It takes one short step.",
+  installStep,
 }: {
   next?: string;
   stores: StoreOpt[];
@@ -47,6 +48,8 @@ export function PhoneAuth({
   shareOffers?: ShareOffer[];
   title?: string;
   intro?: string;
+  /** Show installing the app as the last step of joining (the shop is app only). */
+  installStep?: boolean;
 }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(authFlow, { step: "phone" });
   const [byEmail, setByEmail] = useState(false);
@@ -74,7 +77,7 @@ export function PhoneAuth({
 
   return (
     <div>
-      <Steps step={state.step} />
+      <Steps at={state.step === "phone" ? 0 : state.step === "code" ? 1 : 2} app={installStep} />
       {state.error && (
         <p className="mb-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100" role="alert">
           {state.error}
@@ -126,17 +129,19 @@ export function PhoneAuth({
   );
 }
 
-function Steps({ step }: { step: AuthState["step"] }) {
-  const i = step === "phone" ? 0 : step === "code" ? 1 : 2;
+/** Joining's progress. With the shop app only, installing the app is the last step (src/app/app/install). */
+export function Steps({ at, app }: { at: number; app?: boolean }) {
+  const i = at;
+  const labels = app ? ["Number", "Code", "Details", "App"] : ["Number", "Code", "Details"];
   return (
-    <ol className="mb-6 flex items-center gap-2 text-xs font-semibold" aria-label="Progress">
-      {["Number", "Code", "Details"].map((l, n) => (
+    <ol className="mb-6 flex flex-wrap items-center gap-2 text-xs font-semibold" aria-label="Progress">
+      {labels.map((l, n) => (
         <li key={l} className="flex items-center gap-2">
           <span className={cn("grid h-6 w-6 place-items-center rounded-full text-[0.68rem]", n < i ? "bg-leaf-500 text-ink-950" : n === i ? "bg-brand-500 text-ink-950" : "bg-ink-800 text-ink-400")} aria-current={n === i ? "step" : undefined}>
             {n + 1}
           </span>
           <span className={n === i ? "text-white" : "text-ink-450"}>{l}</span>
-          {n < 2 && <span className="mx-1 h-px w-6 bg-ink-700" />}
+          {n < labels.length - 1 && <span className="mx-1 h-px w-4 bg-ink-700 sm:w-6" />}
         </li>
       ))}
     </ol>

@@ -20,6 +20,7 @@ import { checkSaId } from "@/lib/sa";
 import type { MsgChannel } from "@/generated/prisma/client";
 import type { PickerStore } from "@/components/shop/nav-client";
 import { safePath } from "@/lib/safe-path";
+import { appOnly, installStep } from "@/lib/install";
 import { clientIpFrom } from "@/lib/client-ip";
 import { isEmail } from "@/lib/email";
 import { arrivalWording, partnerArrival, recordLink, shareWording } from "@/server/partners";
@@ -236,13 +237,17 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
     if (arrival) await recordLink(joined, arrival.partner, "IN", { wording: arrivalWording(arrival.partner.name), externalId: arrival.member?.phone === phone ? arrival.member.externalId : undefined });
     const shares = await db.partnerBrand.findMany({ where: { id: { in: form.getAll("share").map(String) }, active: true, joinUrl: { not: null } } });
     for (const p of shares) await recordLink(joined, p, "OUT", { wording: shareWording(p.name) });
-    if (shares.length) redirect("/club/partners");
-    // New members land with a welcome message wherever they were heading.
-    if (next) {
+    // New members land with a welcome message wherever they were heading. In a browser, when the shop is app only,
+    // installing the app is the last step of joining: the page they were heading to is closed to a browser.
+    let dest: string | null = null;
+    if (shares.length) dest = "/club/partners";
+    else if (next) {
       const u = new URL(next, "http://local");
       u.searchParams.set("welcome", "1");
-      redirect(`${u.pathname}${u.search}${u.hash}`);
+      dest = `${u.pathname}${u.search}${u.hash}`;
     }
+    if (appOnly() && !jar.has("hh_app")) dest = installStep(dest ?? "/club");
+    if (dest) redirect(dest);
     return { step: "done" };
   }
 

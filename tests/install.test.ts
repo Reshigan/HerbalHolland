@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { browserHandoff, DAY_MS, detectPlatform, dismissedUntil, installKey, installState, parseDismissal } from "@/lib/install";
+import { appOnlyOpen, browserHandoff, DAY_MS, detectPlatform, dismissedUntil, installKey, installState, installStep, parseDismissal } from "@/lib/install";
+import { safePath } from "@/lib/safe-path";
 
 const UA = {
   iphoneSafari: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
@@ -100,5 +101,14 @@ describe("browserHandoff", () => {
   });
   it("stays out of the way where the app installs, and on desktop", () => {
     for (const ua of [UA.iphoneSafari, UA.androidChrome, UA.androidSamsung, UA.desktopChrome]) expect(browserHandoff(ua, url)).toBeNull();
+  });
+});
+
+describe("installStep", () => {
+  it("is open to a browser and carries next through safely", () => {
+    const to = installStep("/club?welcome=1");
+    const u = new URL(to, "http://local");
+    expect(appOnlyOpen(u.pathname)).toBe(true);
+    expect(safePath(u.searchParams.get("next") ?? undefined)).toBe("/club?welcome=1");
   });
 });
