@@ -1,10 +1,26 @@
 /* Herbal Holland Rewards — service worker (registered from Rewards settings with scope "/").
  *
- * Push notifications only: drop alerts and member news the member turned on. There is deliberately no fetch
- * handler, so this worker never touches page loads or caching (the till keeps its own /sw.js, scope /pos).
+ * Push notifications: drop alerts and member news the member turned on. Offline screen: when a shop or Rewards page
+ * can't load, it shows /offline.html instead of the browser's error. Only that one static page is cached, never a
+ * member's pages, so nothing personal stays on a shared phone. The till keeps its own /sw.js, scope /pos.
  */
-self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+const OFFLINE = "/offline.html";
+const CACHE = "hh-offline-v1";
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE).then((c) => c.add(new Request(OFFLINE, { cache: "reload" }))).catch(() => {}));
+  self.skipWaiting();
+});
+self.addEventListener("activate", (event) =>
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("hh-offline-") && k !== CACHE).map((k) => caches.delete(k))))
+      // Navigation preload starts the page request while the worker boots, so page loads are no slower.
+      .then(() => self.registration.navigationPreload && self.registration.navigationPreload.enable())
+      .then(() => self.clients.claim()),
+  ),
+);
 
 // Only open pages on this site; anything else falls back to the Rewards card.
 const safeUrl = (raw) => {
@@ -54,6 +70,24 @@ self.addEventListener("pushsubscriptionchange", (event) => {
 
 // Tabs we may reuse: the storefront and Rewards app — never a till, back-office or menu-board screen.
 const STAFF = /^\/(pos|hq|store|menu|login|invoice|insights)(\/|$)/;
+
+// Page loads only: the network answers as normal. A customer page that fails to load gets the offline screen; staff
+// pages keep the browser's own error. Every page load uses the preload, so the browser never discards one.
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.mode !== "navigate" || req.method !== "GET") return;
+  const staff = STAFF.test(new URL(req.url).pathname);
+  event.respondWith(
+    (async () => {
+      try {
+        return (await event.preloadResponse) || (await fetch(req));
+      } catch (err) {
+        if (staff) throw err;
+        return (await caches.match(OFFLINE)) || Response.error();
+      }
+    })(),
+  );
+});
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
