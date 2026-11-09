@@ -451,7 +451,7 @@ async function Landing() {
                 <div className={cn("mx-auto h-2 w-8 rounded-full", ["bg-ink-300", "bg-leaf-500", "bg-series-4", "bg-brand-500"][i])} />
                 <div className="mt-2 font-display font-semibold text-white">{t.name}</div>
                 <div className="text-xs font-semibold text-brand-300">{settings.loyalty.tierSavingsPct[t.key]}% off</div>
-                <div className="text-[0.7rem] text-ink-450">{t.minCents ? `${zarWhole(t.minCents)}+ a year` : "When you join"}</div>
+                <div className="text-[0.7rem] leading-snug text-ink-450">{t.minCents ? <><span className="whitespace-nowrap">{zarWhole(t.minCents)}+</span><br />a year</> : <>When<br />you join</>}</div>
               </li>
             ))}
           </ol>
