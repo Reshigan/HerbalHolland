@@ -27,7 +27,9 @@ export function MarkGlyph({ detail = true, heavy = false, spin = false }: { deta
       <path d="M 33 91 L 50 44.5 L 67 91" strokeWidth={line} />
       {detail && !heavy && <path d="M 42.5 91 L 50 69 L 57.5 91" strokeWidth={3.2} />}
       {/* Windmill flower */}
-      <g transform="translate(50 40)" className={spin ? (spin === "fast" ? "animate-spin-fast" : "animate-spin-slow") : undefined} style={spin ? { transformOrigin: "50px 40px", transformBox: "view-box" } : undefined}>
+      {/* The spin sits on its own group: a CSS transform replaces the SVG transform attribute, so it can't share the translate. */}
+      <g className={spin ? (spin === "fast" ? "animate-spin-fast" : "animate-spin-slow") : undefined} style={spin ? { transformOrigin: "50px 40px", transformBox: "view-box" } : undefined}>
+      <g transform="translate(50 40)">
         {[45, 135, 225, 315].map((r) => (
           <path key={r} d={PETAL} transform={`rotate(${r - 90})`} strokeWidth={heavy ? 5.2 : 3.6} />
         ))}
@@ -39,6 +41,7 @@ export function MarkGlyph({ detail = true, heavy = false, spin = false }: { deta
             <circle r={0.9} fill="currentColor" stroke="none" />
           </>
         )}
+      </g>
       </g>
     </g>
   );
