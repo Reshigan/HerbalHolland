@@ -8,6 +8,7 @@ import { CheckRow, FieldRow, SelectInput, TextInput } from "./ui";
 import { displayPhone } from "@/lib/sa";
 import { clampDay, daysInMonth, dobValue } from "@/lib/dob";
 import { cn } from "@/lib/cn";
+import { Turnstile } from "@/components/ui/turnstile";
 import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
 import { INTERESTS, type InterestKey } from "@/lib/rfm";
 
@@ -34,6 +35,7 @@ export function PhoneAuth({
   title = "Sign in or join",
   intro = "Use your mobile number (no passwords). New here? It takes one short step.",
   installStep,
+  turnstileSiteKey,
 }: {
   next?: string;
   stores: StoreOpt[];
@@ -50,10 +52,14 @@ export function PhoneAuth({
   intro?: string;
   /** Show installing the app as the last step of joining (the shop is app only). */
   installStep?: boolean;
+  /** Cloudflare Turnstile on the code-send forms; null when the check is off. */
+  turnstileSiteKey?: string | null;
 }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(authFlow, { step: "phone" });
   const [byEmail, setByEmail] = useState(false);
   const viaEmail = byEmail || state.values?.by === "email";
+  const [botOk, setBotOk] = useState(!turnstileSiteKey);
+  const bot = turnstileSiteKey && <Turnstile siteKey={turnstileSiteKey} action="member_code" reset={state} onReady={setBotOk} />;
   const hidden = (
     <>
       {next && <input type="hidden" name="next" value={next} />}
@@ -111,7 +117,8 @@ export function PhoneAuth({
               <Mail className="h-4 w-4" /> Get my code by email instead
             </button>
           )}
-          <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
+          {bot}
+          <button disabled={pending || !botOk} className={buttonClass("primary", "xl", "w-full")}>
             {pending ? "Sending…" : "Send my code"} <ArrowRight className="h-5 w-5" />
           </button>
           <p className="text-center text-xs text-ink-450">
@@ -120,7 +127,7 @@ export function PhoneAuth({
         </form>
       )}
 
-      {state.step === "code" && <CodeStep state={state} action={action} pending={pending} hidden={hidden} />}
+      {state.step === "code" && <CodeStep state={state} action={action} pending={pending} hidden={hidden} bot={bot} botOk={botOk} />}
 
       {state.step === "register" && (
         <RegisterStep state={state} action={action} pending={pending} hidden={hidden} stores={stores} defaultStoreId={defaultStoreId} referral={referral} consentWording={consentWording} partner={partner} shareOffers={shareOffers} />
@@ -150,7 +157,7 @@ export function Steps({ at, app }: { at: number; app?: boolean }) {
 
 type StepProps = { state: AuthState; action: (f: FormData) => void; pending: boolean; hidden: React.ReactNode };
 
-function CodeStep({ state, action, pending, hidden }: StepProps) {
+function CodeStep({ state, action, pending, hidden, bot, botOk }: StepProps & { bot: React.ReactNode; botOk: boolean }) {
   const [code, setCode] = useState("");
   return (
     <div className="space-y-4">
@@ -206,7 +213,8 @@ function CodeStep({ state, action, pending, hidden }: StepProps) {
           <input type="hidden" name="intent" value="send" />
           {state.email && <input type="hidden" name="by" value="email" />}
           {state.email && <input type="hidden" name="email" value={state.email} />}
-          <button className="font-semibold text-brand-400 hover:underline">Send a new code</button>
+          {bot}
+          <button disabled={!botOk} className="font-semibold text-brand-400 hover:underline disabled:opacity-50">Send a new code</button>
         </form>
       </div>
     </div>

@@ -34,6 +34,7 @@ import { zar } from "@/lib/money";
 import { opensFor } from "@/lib/drops";
 import { fmtPoints, type TierKey } from "@/lib/loyalty-rules";
 import type { SellChannel } from "@/lib/compliance";
+import { turnstileSiteKey } from "@/server/turnstile";
 
 export const metadata: Metadata = { title: "Checkout", robots: { index: false } };
 
@@ -63,7 +64,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         {header}
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
           <Panel className="p-6 sm:p-8">
-            <PhoneAuth
+            <PhoneAuth turnstileSiteKey={turnstileSiteKey()}
               next="/checkout"
               stores={homeStoreOptions(stores)}
               defaultStoreId={store?.id}

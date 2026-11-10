@@ -9,6 +9,8 @@ const real = {
   MS_CLIENT_SECRET: "secret",
   ALERT_EMAIL: "ops@example.co.za",
   MESSAGING_PROVIDER: "smsportal",
+  TURNSTILE_SITE_KEY: "site",
+  TURNSTILE_SECRET: "secret",
 };
 
 describe("envProblems", () => {
@@ -22,8 +24,9 @@ describe("envProblems", () => {
     expect(envProblems({ ...real, CRON_SECRET: "short" }).fatal).toHaveLength(1);
   });
 
-  it("warns about missing email, alerts and messaging", () => {
-    expect(envProblems({ APP_URL: real.APP_URL, CRON_SECRET: real.CRON_SECRET }).warn).toHaveLength(3);
+  it("warns about missing email, alerts, messaging and the bot check", () => {
+    expect(envProblems({ APP_URL: real.APP_URL, CRON_SECRET: real.CRON_SECRET }).warn).toHaveLength(4);
+    expect(envProblems({ ...real, TURNSTILE_SITE_KEY: undefined }).warn).toEqual([expect.stringContaining("TURNSTILE_SITE_KEY")]);
     expect(envProblems({ ...real, MS_CLIENT_SECRET: "" }).warn).toEqual([expect.stringContaining("MS_CLIENT_SECRET")]);
   });
 

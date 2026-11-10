@@ -7,10 +7,13 @@ import { buttonClass } from "@/components/ui/button";
 import { FieldRow, TextInput } from "@/components/shop/ui";
 import { LOGIN } from "./copy";
 import { cn } from "@/lib/cn";
+import { Turnstile } from "@/components/ui/turnstile";
 
-export function TradeLogin({ next, email: initialEmail }: { next?: string | null; email?: string | null }) {
+export function TradeLogin({ next, email: initialEmail, turnstileSiteKey }: { next?: string | null; email?: string | null; turnstileSiteKey?: string | null }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(loginFlow, { step: "email" });
   const [code, setCode] = useState("");
+  const [botOk, setBotOk] = useState(!turnstileSiteKey);
+  const bot = turnstileSiteKey && <Turnstile siteKey={turnstileSiteKey} action="trade_code" reset={state} onReady={setBotOk} />;
   const hidden = (
     <>
       {next && <input type="hidden" name="next" value={next} />}
@@ -54,7 +57,8 @@ export function TradeLogin({ next, email: initialEmail }: { next?: string | null
               <TextInput id="trade-email" name="email" type="email" inputMode="email" autoComplete="email" required defaultValue={initialEmail ?? undefined} placeholder="buyer@yourbusiness.co.za" className="pl-11 text-lg" aria-invalid={!!state.fields?.email} autoFocus={!!state.fields?.email} />
             </div>
           </FieldRow>
-          <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
+          {bot}
+          <button disabled={pending || !botOk} className={buttonClass("primary", "xl", "w-full")}>
             {pending ? "Sending…" : "Send my code"} <ArrowRight className="h-5 w-5" aria-hidden />
           </button>
         </form>
@@ -112,7 +116,8 @@ export function TradeLogin({ next, email: initialEmail }: { next?: string | null
             <form action={action}>
               {hidden}
               <input type="hidden" name="intent" value="send" />
-              <button className="font-semibold text-brand-400 hover:underline">Send a new code</button>
+              {bot}
+              <button disabled={!botOk} className="font-semibold text-brand-400 hover:underline disabled:opacity-50">Send a new code</button>
             </form>
           </div>
         </div>

@@ -22,6 +22,7 @@ import type { PickerStore } from "@/components/shop/nav-client";
 import { safePath } from "@/lib/safe-path";
 import { appOnly, installStep } from "@/lib/install";
 import { clientIpFrom } from "@/lib/client-ip";
+import { passesTurnstile, TURNSTILE_FIELD, TURNSTILE_REFUSED } from "@/server/turnstile";
 import { isEmail } from "@/lib/email";
 import { arrivalWording, partnerArrival, recordLink, shareWording } from "@/server/partners";
 
@@ -126,8 +127,11 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
     const raw = String(form.get("phone") ?? "");
     const byEmail = form.get("by") === "email";
     const email = byEmail ? String(form.get("email") ?? "") : prev.email ?? "";
+    const ip = clientIpFrom(await headers());
+    if (!(await passesTurnstile(form.get(TURNSTILE_FIELD), ip, "member_code")))
+      return prev.step === "code" ? { ...prev, error: TURNSTILE_REFUSED, fields: undefined } : { step: "phone", error: TURNSTILE_REFUSED, values: { phone: raw, email, by: byEmail ? "email" : "" } };
     try {
-      const r = await requestOtp(raw, { ip: clientIpFrom(await headers()), email: email || null });
+      const r = await requestOtp(raw, { ip, email: email || null });
       return { step: "code", phone: r.phone, email: r.email, demoCode: r.demoCode };
     } catch (e) {
       // Resending from the code step keeps the member where they are; a first send shows the error on the number (or the email).

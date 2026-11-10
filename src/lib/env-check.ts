@@ -18,6 +18,8 @@ export function envProblems(env: Env): { fatal: string[]; warn: string[] } {
   if ((env.CRON_SECRET ?? "").length < 32) fatal.push("CRON_SECRET must be 32 or more random characters (openssl rand -hex 32): the Cron Triggers sign in with it");
   if (!env.MS_TENANT_ID || !env.MS_CLIENT_ID || !env.MS_CLIENT_SECRET) warn.push("MS_TENANT_ID, MS_CLIENT_ID and MS_CLIENT_SECRET (Microsoft 365) aren't all set, so tax invoices and other emails are only logged");
   if (!env.ALERT_EMAIL) warn.push("ALERT_EMAIL isn't set, so errors reach the log only");
+  if (!env.TURNSTILE_SECRET) warn.push("TURNSTILE_SECRET isn't set, so a script can send sign-in codes without the bot check");
+  else if (!env.TURNSTILE_SITE_KEY) warn.push("TURNSTILE_SECRET is set without TURNSTILE_SITE_KEY, so the bot check shows no widget and every sign-in code is refused");
   if ((env.MESSAGING_PROVIDER ?? "log") === "log") warn.push("MESSAGING_PROVIDER is log, so members get no sign-in codes or messages");
   return { fatal, warn };
 }

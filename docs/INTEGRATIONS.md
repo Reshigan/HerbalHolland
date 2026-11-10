@@ -478,6 +478,7 @@ the seed and scripts.
 | `ORG_SAME_AS` | Comma-separated official profile URLs for the `Organization.sameAs` schema on the home page; empty until the profiles exist |
 | `MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `EMAIL_FROM` | Email through Microsoft Graph (the only transport); unset = emails only logged |
 | `MESSAGING_PROVIDER`, `SMSPORTAL_CLIENT_ID`, `SMSPORTAL_API_SECRET`, `SMS_SENDER_ID`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |
+| `TURNSTILE_SITE_KEY` (var), `TURNSTILE_SECRET` (secret), `TURNSTILE_HOSTNAMES` (optional) | The Cloudflare Turnstile bot check on the sign-in code step (members and trade). Off unless both keys are set; when on, it fails closed. Hostnames default to `APP_URL`'s |
 | `OTP_SMS_HOURLY_MAX` | Sign-in codes by SMS across the network per hour (default 500); over it, codes pause and `otp.ceiling` is audited once an hour |
 | `NEXT_PUBLIC_TAP_PROVIDER` | The till's card tender: `SIMULATED` (the default in demos and development) \| `YOCO` (stand-alone Yoco machine) \| `HALO_APPLINK` \| `EXTERNAL` (the default in production). Runtime environment only (see Card present) |
 | `HALO_API_URL`, `HALO_API_KEY`, `HALO_MERCHANT_ID` | Halo Dot tap on glass (`HALO_APPLINK`); `HALO_MERCHANT_ID_<STORECODE>` gives one store its own merchant id |

@@ -24,6 +24,7 @@ const common = [
   "connect-src 'self'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
+  "frame-src https://challenges.cloudflare.com", // the Turnstile widget (src/components/ui/turnstile.tsx)
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -6,13 +6,5 @@
       "package_name": "com.herbalholland.till",
       "sha256_cert_fingerprints": ["8D:06:E3:D6:4D:64:6E:DF:A0:7C:7B:DB:56:DB:AB:1B:9B:DB:1D:C8:C3:2F:B8:0C:EC:52:C7:FE:98:8D:C6:57"]
     }
-  },
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.herbalholland.app",
-      "sha256_cert_fingerprints": ["7F:12:7C:C4:F5:F4:4F:0B:65:CB:9D:EC:42:22:D6:61:8C:1F:4B:95:41:EB:A3:64:80:B4:E7:EA:52:B7:36:9A"]
-    }
   }
 ]
