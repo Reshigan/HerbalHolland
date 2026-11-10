@@ -63,13 +63,13 @@ export async function cancelReminderForm(form: FormData) {
 }
 
 // ── Gift vouchers at checkout ─────────────────────────────────────────────────
-export type VoucherState = { error?: string; ok?: boolean };
+export type VoucherState = { error?: string; ok?: boolean; code?: string };
 
 export async function applyVoucherCode(_: VoucherState, form: FormData): Promise<VoucherState> {
   const raw = String(form.get("code") ?? "").trim();
   if (!raw) return { error: "Enter your voucher code" };
   const r = await voucherForCheckout(raw);
-  if (!r.ok) return { error: r.error };
+  if (!r.ok) return { error: r.error, code: raw };
   await saveVoucherCode(r.voucher.code);
   refresh();
   return { ok: true };

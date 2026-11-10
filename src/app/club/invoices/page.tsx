@@ -3,6 +3,7 @@ import { FileText, Mail, Receipt } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { memberInvoices } from "@/server/shop/club";
 import { Container, Pager, Panel, Tag } from "@/components/shop/ui";
+import { ButtonLink } from "@/components/ui/button";
 import { fmtDate } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { zar } from "@/lib/money";
@@ -69,6 +70,9 @@ export default async function ClubInvoices({ searchParams }: { searchParams: Pro
         <div className="mt-6 rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center">
           <Receipt className="mx-auto h-9 w-9 text-ink-600" />
           <p className="mt-3 text-sm text-ink-400">No purchases yet. Scan your card at the till and what you buy will appear here, with its invoice.</p>
+          <ButtonLink href="/stores" variant="outline-dark" className="mt-6">
+            Find a store
+          </ButtonLink>
         </div>
       )}
     </Container>
