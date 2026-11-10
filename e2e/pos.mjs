@@ -27,6 +27,8 @@ await ctx.addInitScript(() => {
 const page = await ctx.newPage();
 // A member's Rewards QR on a keyboard-wedge scanner: a fast burst of keys with nothing focused. A typed number doesn't enable a sale.
 const scanCard = async (memberNo) => {
+  // A new sale focuses the search box a moment later; let that land first, or the wedge types into search.
+  await page.waitForTimeout(400);
   await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined));
   await page.keyboard.type(memberNo);
   await page.keyboard.press("Enter");
@@ -155,6 +157,37 @@ try {
   const flower = (await q(`select s.id, s."customerId", s."pointsEarned", p.method, p."cardLast4", p.provider, l.qty, v.grams from "Sale" s join "Payment" p on p."saleId" = s.id join "SaleLine" l on l."saleId" = s.id join "Variant" v on v.id = l."variantId" where s.number = $1`, [patientNo]))[0];
   assert(flower?.customerId === patient.id && flower.method === "CARD" && /^\d{4}$/.test(flower.cardLast4 ?? ""), `card sale ${patientNo} (•••• ${flower?.cardLast4}) linked to the patient`);
   assert(flower.pointsEarned === 0, "no points earned on a licensed medicine (s18A)");
+  await page.getByTestId("new-sale").click();
+
+  step("Emergency payment: the card is declined, so the cashier takes it on the bank's card machine");
+  await waitOnline();
+  await scanCard(patient.memberNo);
+  await page.getByTestId("customer-card").waitFor();
+  await page.getByRole("button", { name: /^Recover CBD Muscle Balm/ }).click();
+  await page.waitForTimeout(700);
+  await page.getByTestId("pay").click();
+  await page.getByTestId("remaining").waitFor();
+  await page.getByTestId("tender-card").click();
+  await page.getByTestId("tap-overlay").waitFor();
+  await page.getByRole("button", { name: "Simulate a decline" }).click();
+  await page.getByText("Declined by the card issuer. Try another card.").waitFor();
+  await shot("card-declined");
+  ok("simulated terminal declines the card and offers another way to pay");
+  await page.getByRole("button", { name: "Choose another way to pay" }).click();
+  await page.getByTestId("tender-external").click();
+  await page.getByTestId("external-panel").waitFor();
+  await page.locator("#ext-ref").fill("ab");
+  await page.locator("#ext-4").fill("4242");
+  await page.getByRole("button", { name: "Add card payment" }).click();
+  await page.getByText("Enter the approval code printed on the terminal slip").waitFor();
+  ok("a too-short approval code is refused");
+  await page.locator("#ext-ref").fill("abc123");
+  await shot("bank-terminal");
+  await page.getByRole("button", { name: "Add card payment" }).click();
+  await page.getByTestId("receipt").waitFor();
+  const bankNo = await receiptNo();
+  const bank = await q(`select p.method, p.provider, p.reference, p."cardLast4", s."customerId" from "Sale" s join "Payment" p on p."saleId" = s.id where s.number = $1`, [bankNo]);
+  assert(bank.length === 1 && bank[0].method === "CARD" && bank[0].provider === "EXTERNAL" && bank[0].reference === "ABC123" && bank[0].cardLast4 === "4242" && bank[0].customerId === patient.id, `sale ${bankNo} paid on the bank terminal (CARD, EXTERNAL, auth ABC123, •••• 4242)`);
   await page.getByTestId("new-sale").click();
 
   step("Event check-in: scan a members' evening ticket (HHRSVP:{code}) at the till");
@@ -558,6 +591,31 @@ try {
   const invite = page.getByTestId("my-invite"); // my own join QR and how many joined with me this month
   await invite.waitFor();
   assert(/Joined with you this month\d+/.test((await invite.textContent()) ?? "") && (await invite.getByRole("img", { name: "Your join QR code" }).locator("svg").count()) === 1, "join QR tile with a count");
+
+  step("Cash in & out (manager): a paid-out, a safe drop and a float top-up, each with a reason");
+  const moves = page.getByRole("tablist", { name: "Kind of cash movement" });
+  const recordMove = async (kind, amount, reason, category) => {
+    await moves.getByRole("tab", { name: kind }).click();
+    await page.getByTestId("move-amount").fill(amount);
+    if (category) await page.locator("#move-category").selectOption(category);
+    await page.locator("#move-reason").fill(reason);
+    await page.getByTestId("move-save").click();
+    await page.getByText(new RegExp(`^${esc(kind)} of R${esc(amount)}\\.00 recorded`)).waitFor();
+  };
+  await recordMove("Paid out", "50", "E2E milk and cleaning cloths", "SUPPLIES");
+  await recordMove("Safe drop", "200", "E2E drop to the safe");
+  await recordMove("Float top-up", "100", "E2E change from the bank");
+  const movesList = page.getByRole("list", { name: "This shift's cash movements" });
+  assert((await movesList.getByRole("listitem").count()) === 3, "the shift panel lists the three movements");
+  await shot("cash-movements");
+  const mv = await q(`select kind, "amountCents", reason, "expenseId", "byId" from "CashMovement" where "shiftId" = $1 order by "createdAt"`, [shift.id]);
+  assert(mv.map((m) => `${m.kind}:${m.amountCents}`).join(",") === "PAID_OUT:5000,DROP:20000,CASH_IN:10000" && mv.every((m) => m.byId && m.reason.startsWith("E2E")), "CashMovement rows: PAID_OUT R50, DROP R200, CASH_IN R100, each with who and why");
+  const ex = (await q(`select description, "amountCents", "paidFromCash", "vatCents" from "Expense" where id = $1`, [mv[0].expenseId]))[0];
+  assert(ex?.description === "Till paid-out: E2E milk and cleaning cloths" && ex.amountCents === 5000 && ex.paidFromCash && ex.vatCents === 0, "the paid-out is booked as a cash-paid expense");
+  const floatNow = (await q(`select "openingFloatCents" from "Shift" where id = $1`, [shift.id]))[0].openingFloatCents;
+  assert(floatNow === shift.openingFloatCents + 10000, `the float top-up raises the float to ${zarText(floatNow)}`);
+  const audits = await q(`select action from "AuditLog" where entity = 'Shift' and "entityId" = $1 and action like 'cash.%' order by at`, [shift.id]);
+  assert(audits.map((a) => a.action).join(",") === "cash.paid_out,cash.drop,cash.cash_in", "each movement is audited");
   await page.getByTestId("denom-20000").fill("7");
   // A count out by more than the R50 tolerance needs a note before the shift can close.
   await page.locator("#shift-notes").fill("E2E run: test count");
@@ -567,9 +625,10 @@ try {
   const zText = (await page.getByTestId("z-report").textContent()) ?? "";
   assert(/Trade sales \(ex VAT · VAT · incl\)2 ·/.test(zText.replace(/\s+/g, " ")) || /Trade sales/.test(zText), "Z-report shows the trade sales section");
   assert(/On account/.test(zText) && /Cash/.test(zText), "On account is its own tender line, apart from cash and card");
+  assert(["Paid out of the drawer", "Float top-ups (in the float)", "Safe drops (counted as cash)"].every((t) => zText.includes(t)), "Z-report lists the paid-out, float top-up and safe drop");
   await shot("z-report");
   const z = (await q(`select "expectedCashCents", "countedCashCents" from "Shift" where id = $1`, [shift.id]))[0];
-  assert(z.countedCashCents === 140000, `shift closed: expected ${z.expectedCashCents / 100}, counted ${z.countedCashCents / 100}`);
+  assert(z.countedCashCents === 160000, `shift closed (R1,400 counted + R200 dropped): expected ${z.expectedCashCents / 100}, counted ${z.countedCashCents / 100}`);
   // The report is emailed after the response (on the Worker, after it has been sent): the log row follows shortly.
   let mail;
   for (let i = 0; i < 60 && !mail; i++) {

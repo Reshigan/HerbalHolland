@@ -259,6 +259,8 @@ try {
   step("Close the shift and unpair");
   await waitOnline();
   await page.getByRole("button", { name: "Shift" }).first().click();
+  // Nothing counted, so the variance is over the tolerance: the till wants a note before it closes.
+  await page.locator("#shift-notes").fill("E2E run: drawer not counted");
   await page.getByTestId("close-shift").click();
   await page.getByRole("button", { name: "Close shift", exact: true }).click();
   await page.getByTestId("z-report").waitFor();

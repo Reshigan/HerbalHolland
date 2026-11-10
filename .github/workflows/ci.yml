@@ -81,6 +81,10 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:3000
           DATABASE_FILE: ${{ env.D1_FILE }}
+      - run: node e2e/till-hardware.mjs test-results/e2e-till-hardware
+        env:
+          BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
       - run: node e2e/backoffice.mjs test-results/e2e-backoffice
         env:
           BASE_URL: http://127.0.0.1:3000

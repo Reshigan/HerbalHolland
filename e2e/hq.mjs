@@ -14,6 +14,7 @@
 import { chromium } from "@playwright/test";
 import { createDb } from "./_db.mjs";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { deflateSync } from "node:zlib";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-hq";
@@ -386,6 +387,48 @@ try {
   await act("catalogue.rangeVariant (unrange)", () => rf.getByRole("button", { name: "Unrange" }).click(), () => notice(`${T.sku} unranged at ${matching} store`).waitFor());
   assert(!(await one(`select 1 from "StoreVariant" where "variantId" = $1`, [variant.id])), "unranged again");
   await shot("product");
+
+  step("Catalogue: product photos (upload two, make the second the main photo, remove both)");
+  // Two different 1×1 PNGs (identical files are skipped as already on the product). Reorder and remove unmount the
+  // clicked button's form, so those steps wait on the photo grid rather than a notice.
+  const png = (r, g, b) => {
+    const crc = (buf) => {
+      let c = ~0;
+      for (const x of buf) for (let k = 0, v = (c ^ x) & 0xff; k < 8; k++) (v = v & 1 ? 0xedb88320 ^ (v >>> 1) : v >>> 1), k === 7 && (c = (c >>> 8) ^ v);
+      return ~c >>> 0;
+    };
+    const chunk = (type, data) => {
+      const td = Buffer.concat([Buffer.from(type), data]);
+      const len = Buffer.alloc(4);
+      len.writeUInt32BE(data.length);
+      const c = Buffer.alloc(4);
+      c.writeUInt32BE(crc(td));
+      return Buffer.concat([len, td, c]);
+    };
+    const ihdr = Buffer.from([0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]);
+    return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk("IHDR", ihdr), chunk("IDAT", deflateSync(Buffer.from([0, r, g, b]))), chunk("IEND", Buffer.alloc(0))]);
+  };
+  const photosForm = formWith("#product-photos");
+  await photosForm.locator("#product-photos").setInputFiles([
+    { name: "e2e-front.png", mimeType: "image/png", buffer: png(200, 120, 40) },
+    { name: "e2e-back.png", mimeType: "image/png", buffer: png(40, 120, 200) },
+  ]);
+  await act("catalogue.addProductPhotos", () => photosForm.getByRole("button", { name: "Upload" }).click(), () => notice("2 photos added.").waitFor());
+  const photoRows = () => q(`select i."uploadId", i."sortOrder", u."fileName", u."contentType" from "ProductImage" i join "Upload" u on u.id = i."uploadId" where i."productId" = $1 order by i."sortOrder"`, [product.id]);
+  let photos = await photoRows();
+  assert(photos.length === 2 && photos.every((p) => p.contentType === "image/png") && photos[0].fileName === "e2e-front.png", `two photos stored (${photos.map((p) => p.fileName).join(", ")}), front first`);
+  const served = await page.request.get(`${BASE}/media/${photos[0].uploadId}`);
+  assert(served.ok() && (served.headers()["content-type"] ?? "").startsWith("image/png"), "the main photo is served from /media");
+  await shot("product-photos");
+  await act("catalogue.orderProductPhotos", () => page.getByRole("button", { name: "Make main" }).click(), () => page.locator(`li:first-child img[src="/media/${photos[1].uploadId}"]`).waitFor());
+  photos = await photoRows();
+  assert(photos[0].fileName === "e2e-back.png", "the back photo is now the main photo");
+  for (const left of [1, 0]) {
+    await page.getByRole("button", { name: "Remove", exact: true }).first().click();
+    await act("catalogue.removeProductPhoto", () => page.getByRole("group", { name: "Remove this photo?" }).getByRole("button", { name: "Remove photo" }).click(), () => page.locator(`img[src^="/media/"]`).nth(left).waitFor({ state: "detached" }));
+    assert((await photoRows()).length === left, `photo removed, ${left} left`);
+  }
+  assert(!(await one(`select 1 from "Upload" where id in ($1, $2)`, photos.map((p) => p.uploadId))), "the removed photos' upload rows are gone too");
 
   step("Catalogue: add a category (slug from the name, copy screened), edit it, move it up, delete it once empty");
   await open("/hq/catalogue/categories", formWith("#cat-name"));
@@ -1543,6 +1586,8 @@ async function cleanup() {
     await run("ranging", `delete from "StoreVariant" where "variantId" = $1`, [variant.id]);
     await run("variant stats", `delete from "DailyVariantStat" where "variantId" = $1`, [variant.id]);
   }
+  await run("photos", `delete from "ProductImage" where "productId" in (select id from "Product" where name = $1) or "productId" not in (select id from "Product")`, [T.productName]);
+  await run("photo files", `delete from "Upload" where "fileName" in ('e2e-front.png', 'e2e-back.png') and id not in (select "uploadId" from "ProductImage")`);
   await run("product", `delete from "Product" where name = $1`, [T.productName]); // variants and batches go with it
   const importVariants = `select v.id from "Variant" v join "Product" p on p.id = v."productId" where p.name = $1`;
   await run("import movements", `delete from "StockMovement" where "variantId" in (${importVariants})`, [T.importName]);
