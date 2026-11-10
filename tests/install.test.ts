@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appOnlyOpen, browserHandoff, DAY_MS, detectPlatform, dismissedUntil, installKey, installState, installStep, parseDismissal } from "@/lib/install";
+import { appOnlyOpen, browserHandoff, cardStep, DAY_MS, detectPlatform, dismissedUntil, installKey, installState, installStep, parseDismissal } from "@/lib/install";
 import { safePath } from "@/lib/safe-path";
 
 const UA = {
@@ -101,6 +101,31 @@ describe("browserHandoff", () => {
   });
   it("stays out of the way where the app installs, and on desktop", () => {
     for (const ua of [UA.iphoneSafari, UA.androidChrome, UA.androidSamsung, UA.desktopChrome]) expect(browserHandoff(ua, url)).toBeNull();
+  });
+});
+
+describe("cardStep (the required card: last step of joining, the app-only wall)", () => {
+  it("fires the browser's prompt where it arrived, and falls back to the browser menu where it didn't", () => {
+    expect(cardStep(state(UA.androidChrome), true, false)).toBe("prompt");
+    expect(cardStep(state(UA.androidChrome), false, false)).toBe("menu");
+    expect(cardStep(state(UA.desktopChrome), true, false)).toBe("prompt");
+  });
+  it("sends a computer whose browser never prompts (Firefox, Safari) to Chrome or Edge or the QR code", () => {
+    expect(cardStep(state(UA.desktopFirefoxLinux), false, false)).toBe("other-browser");
+  });
+  it("gives iPhone Safari the Share route whatever else is known", () => {
+    expect(cardStep(state(UA.iphoneSafari), false, false)).toBe("ios-steps");
+    expect(cardStep(state(UA.iphoneSafari), true, false)).toBe("ios-steps");
+  });
+  it("says installed once the browser said so, before anything else", () => {
+    expect(cardStep(state(UA.androidChrome), true, true)).toBe("installed");
+    expect(cardStep(state(UA.desktopFirefoxLinux), false, true)).toBe("installed");
+  });
+  it("still gives a route where nothing can install (an in-app browser on a computer)", () => {
+    const inAppDesktop = state("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 [FBAN/FBIOS]");
+    expect(inAppDesktop).toMatchObject({ platform: "desktop", mode: "none", show: false });
+    expect(browserHandoff(inAppDesktop.platform === "desktop" ? "Mozilla/5.0 (Windows NT 10.0) [FBAN/FBIOS]" : "", "https://shop.herbalholland.com/club")).toBeNull();
+    expect(cardStep(inAppDesktop, false, false)).toBe("other-browser");
   });
 });
 

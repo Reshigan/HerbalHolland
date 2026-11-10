@@ -11,9 +11,9 @@
 // over the shop from the visitor's second page, a few seconds in).
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Compass, Download, Share, SquarePlus, X } from "lucide-react";
+import { CheckCircle2, Compass, Download, Share, SquarePlus, X } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { browserHandoff, installKey, installState, parseDismissal, type DismissKind, type InstallApp, type InstallPlatform, type InstallState } from "@/lib/install";
+import { browserHandoff, cardStep, installKey, installState, parseDismissal, type DismissKind, type InstallApp, type InstallPlatform, type InstallState } from "@/lib/install";
 
 type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
 declare global {
@@ -93,6 +93,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
   const [state, setState] = useState<InstallState | null>(null);
   const [evt, setEvt] = useState<PromptEvent | null>(null);
   const [gone, setGone] = useState(false);
+  const [done, setDone] = useState(false); // the browser installed it (accepted prompt or `appinstalled`)
   const [open, setOpen] = useState(false); // menu/button: the iOS steps unfolded
   const [busy, setBusy] = useState(false);
   const [handoff, setHandoff] = useState<ReturnType<typeof browserHandoff>>(null);
@@ -113,7 +114,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
     setState(s);
     // Right after joining, a browser that can't install (WhatsApp, Instagram, Facebook…) still gets the way there.
     if ((priority || required) && !s.installed && s.mode === "none") setHandoff(browserHandoff(navigator.userAgent, location.href, navigator.maxTouchPoints));
-    if (!s.show) return;
+    if (!s.show && !required) return;
     const sync = () => setEvt(window.__hhInstall ?? null);
     sync();
     const onPrompt = (e: Event) => {
@@ -124,6 +125,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
     const onInstalled = () => {
       window.__hhInstall = null;
       setGone(true);
+      setDone(true);
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
@@ -158,7 +160,8 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const visible = armed && !!state && state.show && (required || (!gone && (state.mode === "ios-steps" || (state.mode === "prompt" && !!evt))));
+  // A required card stays even where nothing can install (an in-app browser on a computer): it then gives the menu route.
+  const visible = armed && !!state && (required || (state.show && !gone && (state.mode === "ios-steps" || (state.mode === "prompt" && !!evt))));
 
   // A once-only placement (the shop home) counts as shown the first time it actually appears.
   useEffect(() => {
@@ -183,8 +186,10 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
     try {
       await e.prompt();
       const { outcome } = await e.userChoice;
-      if (outcome === "accepted") setGone(true);
-      else dismiss(copy.dismiss);
+      if (outcome === "accepted") {
+        setGone(true);
+        setDone(true);
+      } else dismiss(copy.dismiss);
     } catch {
       dismiss("later");
     } finally {
@@ -326,7 +331,9 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
   // "card"
   const till = app === "till";
   const lead = priority || required;
-  const manual = required && !ios && !evt; // no install event to fire: the browser's own menu does it
+  const step = required ? cardStep(state, !!evt, done) : null;
+  const manual = step === "menu"; // no install event to fire: the browser's own menu does it
+  const promptable = step ? step === "prompt" : !ios; // the Install button: a nudge shows it whenever it isn't the iOS route
   const eyebrow = lead ? "One more step" : copy.eyebrow;
   return (
     <section className={cn("rounded-2xl border border-ink-800 bg-ink-900/70 p-4 text-ink-100 sm:p-5", lead && "border-brand-500/40 bg-brand-500/[0.06]", className)} aria-label={title} {...shared}>
@@ -349,10 +356,20 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
               <b className="font-semibold text-white">Add to Home screen</b>.
             </p>
           )}
+          {step === "other-browser" && (
+            <p className="mt-3 text-sm leading-relaxed text-ink-300">
+              This browser can&apos;t install it. Use <b className="font-semibold text-white">Chrome</b> or <b className="font-semibold text-white">Edge</b> on this computer, or open this page on your phone.
+            </p>
+          )}
+          {step === "installed" && (
+            <p className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-leaf-400">
+              <CheckCircle2 className="h-4 w-4" aria-hidden /> Installed
+            </p>
+          )}
           {required && <p className="mt-3 text-sm text-ink-400">Already have it? Open Herbal Holland from your home screen.</p>}
-          {(till || (!ios && !manual)) && (
+          {(till || promptable) && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {!ios && !manual && (
+              {promptable && (
                 <button type="button" onClick={install} disabled={busy} className="inline-flex h-11 items-center gap-2 rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 hover:bg-brand-400 disabled:opacity-60">
                   <Download className="h-4 w-4" aria-hidden /> Install
                 </button>
