@@ -20,8 +20,8 @@ export function GiftForm({ amounts, messageMax, defaultEmail }: { amounts: reado
           {amounts.map((a) => {
             const on = a === amount;
             return (
-              <button key={a} type="button" role="radio" aria-checked={on} onClick={() => setAmount(a)} className={cn("relative rounded-2xl border p-4 pt-8 text-left transition", on ? "border-brand-500 bg-brand-500/10" : "border-ink-800 bg-ink-900/60 hover:border-ink-600")}>
-                <span className="tnum block font-display text-2xl font-semibold text-white">{zarWhole(a)}</span>
+              <button key={a} type="button" role="radio" aria-checked={on} onClick={() => setAmount(a)} className={cn("relative rounded-2xl border p-3 pt-8 text-left transition sm:p-4 sm:pt-8", on ? "border-brand-500 bg-brand-500/10" : "border-ink-800 bg-ink-900/60 hover:border-ink-600")}>
+                <span className="tnum block font-display text-xl font-semibold text-white sm:text-2xl">{zarWhole(a)}</span>
                 <span className="mt-0.5 block text-xs text-ink-400">gift voucher</span>
                 {on && <Check className="absolute right-3 top-3 h-4 w-4 text-brand-400" strokeWidth={2.6} aria-hidden />}
               </button>

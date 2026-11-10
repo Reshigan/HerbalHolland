@@ -446,7 +446,7 @@ async function Landing() {
               </li>
             ))}
           </ul>
-          <ol className="mt-10 grid max-w-xl grid-cols-4 gap-2">
+          <ol className="mt-10 grid max-w-xl grid-cols-2 gap-2 sm:grid-cols-4">
             {TIERS.map((t, i) => (
               <li key={t.key} className="rounded-2xl border border-ink-800 p-3 text-center">
                 <div className={cn("mx-auto h-2 w-8 rounded-full", ["bg-ink-300", "bg-leaf-500", "bg-series-4", "bg-brand-500"][i])} />

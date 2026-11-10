@@ -91,7 +91,7 @@ export function RemindMe({ variantId, signedIn, next, existing, days, channels, 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="text-xs font-semibold text-ink-200">
           Every
-          <select name="everyDays" defaultValue={current?.everyDays ?? 30} className={cn(inputClass, "mt-1 h-11 cursor-pointer text-sm")}>
+          <select name="everyDays" defaultValue={current?.everyDays ?? 30} className={cn(inputClass, "mt-1 h-11 cursor-pointer")}>
             {days.map((d) => (
               <option key={d} value={d}>
                 {d} days
@@ -101,7 +101,7 @@ export function RemindMe({ variantId, signedIn, next, existing, days, channels, 
         </label>
         <label className="text-xs font-semibold text-ink-200">
           By
-          <select name="channel" defaultValue={current?.channel ?? channels.find((c) => !c.disabled)?.key ?? "SMS"} className={cn(inputClass, "mt-1 h-11 cursor-pointer text-sm")}>
+          <select name="channel" defaultValue={current?.channel ?? channels.find((c) => !c.disabled)?.key ?? "SMS"} className={cn(inputClass, "mt-1 h-11 cursor-pointer")}>
             {channels.map((c) => (
               <option key={c.key} value={c.key} disabled={!!c.disabled}>
                 {c.label}

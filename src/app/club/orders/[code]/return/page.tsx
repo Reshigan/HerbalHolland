@@ -78,7 +78,7 @@ export default async function ReturnPage({ params, searchParams }: { params: Pro
                   })}
                 </ul>
                 {x.status !== "DECLINED" && (
-                  <ol className="mt-4 grid grid-cols-5 gap-1 text-xs font-semibold">
+                  <ol className="mt-4 grid grid-cols-3 gap-1 text-xs font-semibold sm:grid-cols-5">
                     {STEPS.map((s, i) => (
                       <li key={s} className={i <= at ? "text-brand-300" : "text-ink-600"}>
                         <span className={`mb-1 block h-1 rounded-full ${i <= at ? "bg-brand-500" : "bg-ink-800"}`} aria-hidden />
