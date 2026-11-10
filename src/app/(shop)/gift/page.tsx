@@ -20,6 +20,7 @@ import { VOUCHER_AMOUNTS_CENTS, VOUCHER_MESSAGE_MAX, VOUCHER_VALID_YEARS } from 
 import { fmtDate } from "@/lib/format";
 import { zar, zarWhole } from "@/lib/money";
 import { cn } from "@/lib/cn";
+import { turnstileSiteKey } from "@/server/turnstile";
 
 const DESCRIPTION = "Herbal Holland gift vouchers: R200, R500 or R1,000, emailed with your message and redeemable online or in any store on anything in the range. Valid for three years. Adults 18+.";
 export const metadata: Metadata = {
@@ -60,7 +61,7 @@ export default async function GiftPage({ searchParams }: { searchParams: Promise
               </Panel>
             ) : (
               <Panel className="p-6 sm:p-8">
-                <PhoneAuth next="/gift" stores={homeStoreOptions(stores)} defaultStoreId={store?.id} consentWording={CONSENT_WORDING} title="Sign in to buy a voucher" intro="Vouchers are bought by members (joining is free and takes a minute) so the receipt and the code are always in your account." />
+                <PhoneAuth turnstileSiteKey={turnstileSiteKey()} next="/gift" stores={homeStoreOptions(stores)} defaultStoreId={store?.id} consentWording={CONSENT_WORDING} title="Sign in to buy a voucher" intro="Vouchers are bought by members (joining is free and takes a minute) so the receipt and the code are always in your account." />
               </Panel>
             )}
           </div>

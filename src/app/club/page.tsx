@@ -28,6 +28,7 @@ import { fmtPoints, tierBenefits, tierInfo, TIERS, type TierKey } from "@/lib/lo
 import { zar, zarWhole } from "@/lib/money";
 import { BOOST_DAYS, nextRung, windmillCrew } from "@/lib/referral-ladder";
 import { cn } from "@/lib/cn";
+import { turnstileSiteKey } from "@/server/turnstile";
 
 export const metadata = { title: { absolute: "Herbal Holland Rewards" } };
 
@@ -457,7 +458,7 @@ async function Landing() {
           </ol>
         </div>
         <Panel className="h-fit p-6 sm:p-8">
-          <PhoneAuth next="/club" stores={homeStoreOptions(stores)} defaultStoreId={store?.id} consentWording={CONSENT_WORDING} />
+          <PhoneAuth turnstileSiteKey={turnstileSiteKey()} next="/club" stores={homeStoreOptions(stores)} defaultStoreId={store?.id} consentWording={CONSENT_WORDING} />
         </Panel>
       </div>
     </Container>

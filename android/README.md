@@ -30,32 +30,5 @@ app full screen, without an address bar. Nothing of the till lives here; updatin
   `gradle assembleRelease -Phost=staging.example.com`.
 - **Card payments:** Halo Dot tap-on-glass opens the Halo app from the till page as it does in Chrome; nothing extra.
 
-## The shop and Rewards app (Google Play)
-
-`android/shop` packages the customer web app (`/club`, with the shop, drops, stores and orders) as `com.herbalholland.app`
-for Google Play, the same way: a Trusted Web Activity, so website deploys update it. Staff pages (`/pos`, `/store`, `/hq`)
-are not handled by it and open in the browser.
-
-- **Upload key:** `herbal-holland-shop-upload.jks` (alias `upload`), kept by HQ, never in the repository. On the HQ Mac it
-  is `~/Secure/herbal-holland/herbal-holland-shop-upload.jks`, with its password in the Keychain under service
-  `herbal-holland-shop-upload-key` (`security find-generic-password -a upload -s herbal-holland-shop-upload-key -w`).
-  Google Play re-signs the app with its own key (Play App Signing). If the upload key is lost, Play can reset it.
-- **Build:**
-
-  ```bash
-  cd android/shop
-  SHOP_KEYSTORE=~/Secure/herbal-holland/herbal-holland-shop-upload.jks \
-  SHOP_KEYSTORE_PASSWORD="$(security find-generic-password -a upload -s herbal-holland-shop-upload-key -w)" \
-  gradle bundleRelease -PversionCode=1 -PversionName=1.0.0
-  # → app/build/outputs/bundle/release/app-release.aab: upload this to Play Console
-  ```
-
-  Each upload needs a higher `versionCode`.
-- **No address bar:** after the first upload, copy the "App signing key certificate" SHA-256 from Play Console
-  (Test and release → App integrity) into the `com.herbalholland.app` entry of `public/.well-known/assetlinks.json`, next
-  to the upload-key fingerprint already there, and deploy. Until then the Play version shows a slim address bar.
-- **Play policy:** Google Play does not allow apps that sell or facilitate the sale of cannabis. The store listing and
-  the app must not offer cannabis products for sale.
-
-On iPhone the shop and Rewards app is in `ios/` (App Store). The till and the back office install from Safari
-(Share → Add to Home Screen) and open full screen with their own icons.
+The shop and Rewards app is the installed web app (PWA) only; neither app store allows cannabis sales. The till and
+the back office install from Safari (Share → Add to Home Screen) and open full screen with their own icons.

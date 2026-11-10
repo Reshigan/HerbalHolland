@@ -65,9 +65,12 @@ A fresh database starts in step 1 (the demo seed starts at step 3); the shop, it
 - [ ] Browser Rendering enabled on the account: a tax invoice PDF and a Studio card (`/hq/marketing/studio/card/<id>` returns a PNG) render on the live Worker
 - [ ] Cron Triggers visible under the Worker → Settings → Triggers (all four), each run once by hand and `/api/health/jobs` answering 200
 - [ ] The shop is only reached through Cloudflare (a custom domain on the Worker; no other origin): the per-IP
-      limits on sign-in and SMS codes trust `cf-connecting-ip`. Per-IP limits bucket IPv6 by /64. Still on the list: a
-      bot check (Cloudflare Turnstile) on the SMS code step for members and trade, so the hourly network-wide SMS
-      ceiling can't be spent by a script
+      limits on sign-in and SMS codes trust `cf-connecting-ip`. Per-IP limits bucket IPv6 by /64. A bot check
+      (Cloudflare Turnstile) guards the code step for members and trade, so a script can't spend the hourly network-wide
+      SMS ceiling: create a managed widget for `shop.herbalholland.com`, put its site key in `wrangler.jsonc` `vars` as
+      `TURNSTILE_SITE_KEY` and its secret with `wrangler secret put TURNSTILE_SECRET` (both, or the check stays off;
+      `TURNSTILE_HOSTNAMES` overrides the hostname taken from `APP_URL`). A sign-in code is then sent only after
+      Cloudflare's siteverify passes
 - [ ] Dependencies current: `npm audit --omit=dev` clean on the deployed commit (Next 16.3.8 fixed six advisories, among
       them cache poisoning and SSRF in image optimisation; keep it patched)
 - [ ] Backups: the nightly `wrangler d1 export` GitHub Action (`backup-d1.yml`) run once by hand, its object in `herbal-holland-backups` decrypted with `BACKUP_PASSPHRASE` ([RUNBOOK → Backups & recovery](RUNBOOK.md#backups--recovery)), and verified with a restore into a scratch database

@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requestTradeCode, signInWithTradeCode, TradeAuthError } from "@/server/trade/auth";
 import { clientIpFrom } from "@/lib/client-ip";
+import { passesTurnstile, TURNSTILE_FIELD, TURNSTILE_REFUSED } from "@/server/turnstile";
 import { safeTradeNext } from "../_lib/context";
 
 export type LoginState = {
@@ -23,8 +24,11 @@ export async function loginFlow(prev: LoginState, form: FormData): Promise<Login
 
   if (intent === "send") {
     const raw = String(form.get("email") ?? prev.email ?? "");
+    const ip = clientIpFrom(await headers());
+    if (!(await passesTurnstile(form.get(TURNSTILE_FIELD), ip, "trade_code")))
+      return prev.step === "code" ? { ...prev, error: TURNSTILE_REFUSED, fields: undefined } : { step: "email", fields: { email: TURNSTILE_REFUSED } };
     try {
-      const r = await requestTradeCode(raw, { ip: clientIpFrom(await headers()) });
+      const r = await requestTradeCode(raw, { ip });
       return { step: "code", email: r.email, demoCode: r.demoCode };
     } catch (e) {
       if (e instanceof TradeAuthError) return prev.step === "code" ? { ...prev, error: e.message, fields: undefined } : { step: "email", fields: { email: e.message } };

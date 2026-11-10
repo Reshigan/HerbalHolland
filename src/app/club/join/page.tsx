@@ -18,6 +18,7 @@ import { safePath } from "@/lib/safe-path";
 import { displayPhone } from "@/lib/sa";
 import { partnerArrival, partnerOffers } from "@/server/partners";
 import { appOnly } from "@/lib/install";
+import { turnstileSiteKey } from "@/server/turnstile";
 
 export const metadata: Metadata = {
   title: { absolute: "Join Herbal Holland Rewards" },
@@ -107,7 +108,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
           </p>
         </div>
         <Panel className="h-fit p-6 sm:p-8">
-          <PhoneAuth
+          <PhoneAuth turnstileSiteKey={turnstileSiteKey()}
             next={next}
             stores={homeStoreOptions(stores)}
             defaultStoreId={home?.id}
