@@ -1,5 +1,6 @@
 // The three web app manifests: the Rewards app (src/app/manifest.ts), the till and the back office. Icons are rendered
 // by routes rather than kept as files, so each icon src is checked against the route that serves it.
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import manifest from "@/app/manifest";
@@ -57,9 +58,38 @@ describe("till and back-office manifests", () => {
     expect(ids.size).toBe(2);
     expect(ids.has(manifest().id!)).toBe(false);
   });
-  it("service workers exist and the Rewards one handles fetch", () => {
-    for (const f of ["sw.js", "rewards-sw.js", "staff-sw.js"]) expect(existsSync(`public/${f}`), f).toBe(true);
-    expect(readFileSync("public/rewards-sw.js", "utf8")).toContain('addEventListener("fetch"');
-    expect(readFileSync("public/_headers", "utf8")).toMatch(/\/rewards-sw\.js\n\s+Cache-Control: no-cache/);
+  it("service workers exist and are served without a long cache", () => {
+    for (const f of ["sw.js", "rewards-sw.js", "staff-sw.js"]) {
+      expect(existsSync(`public/${f}`), f).toBe(true);
+      expect(readFileSync("public/_headers", "utf8")).toMatch(new RegExp(`/${f.replace(".", "\\.")}\\n\\s+Cache-Control: no-cache`));
+    }
+  });
+});
+
+describe("Rewards service worker", () => {
+  const SW = readFileSync("public/rewards-sw.js", "utf8");
+  const offline = /const OFFLINE = "([^"]+)"/.exec(SW)![1];
+  it("precaches only the offline page, which exists and is self-contained", () => {
+    expect(existsSync(`public${offline}`), offline).toBe(true);
+    const page = readFileSync(`public${offline}`, "utf8");
+    // Works with no network: no scripts, stylesheets, fonts or images fetched from anywhere.
+    expect(page).not.toMatch(/<script|<link|(src|href)="https?:|url\(|@import|<img/);
+    expect(page).toMatch(/<a href="">/); // retry reloads the page the member asked for
+    expect(page).toMatch(/name="robots" content="noindex"/);
+    // Nothing else is ever written to a cache: no member page or API answer stays on a shared phone.
+    expect(SW.match(/\.(add|addAll|put)\(/g)).toEqual([".add("]);
+    expect(SW).toContain("new Request(OFFLINE, { cache: \"reload\" })");
+  });
+  it("renames its cache whenever the offline page changes, so installed devices fetch the new one", () => {
+    const hash = createHash("sha1").update(readFileSync(`public${offline}`)).digest("hex").slice(0, 8);
+    expect(SW, `set CACHE = "hh-offline-${hash}" in public/rewards-sw.js`).toContain(`const CACHE = "hh-offline-${hash}"`);
+    expect(SW).toMatch(/k\.startsWith\("hh-offline-"\) && k !== CACHE/); // old versions deleted on activate
+  });
+  it("only answers page loads, network first, and uses served push icons", () => {
+    expect(SW).toContain('req.mode !== "navigate" || req.method !== "GET") return');
+    expect(SW).toMatch(/await event\.preloadResponse\) \|\| \(await fetch\(req\)\)/);
+    for (const src of SW.match(/"\/(?:pwa-icon|club)\/[\w-]+"/g)!.map((s) => s.slice(1, -1))) {
+      expect(iconServed(src) || existsSync(`src/app${src}/route.tsx`), src).toBe(true);
+    }
   });
 });
