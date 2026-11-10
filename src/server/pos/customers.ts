@@ -42,7 +42,13 @@ export async function searchCustomers(raw: string, storeId: string): Promise<Cus
         : q.includes("@")
           ? { email: q.toLowerCase() }
           : words.length > 1
-            ? { firstName: { startsWith: words[0] }, lastName: { startsWith: words.slice(1).join(" ") } }
+            ? // Names with spaces on either side ("Mary Anne Smith", "Pieter van der Merwe", or just "van der Merwe"): try every split.
+              {
+                OR: [
+                  { lastName: { startsWith: words.join(" ") } },
+                  ...words.slice(1).map((_, i) => ({ firstName: { startsWith: words.slice(0, i + 1).join(" ") }, lastName: { startsWith: words.slice(i + 1).join(" ") } })),
+                ],
+              }
             : { OR: [{ firstName: { startsWith: q } }, { lastName: { startsWith: q } }] };
   const find = (w: Prisma.CustomerWhereInput) =>
     db.customer.findMany({

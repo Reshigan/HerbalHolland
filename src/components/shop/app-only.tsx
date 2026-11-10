@@ -34,8 +34,8 @@ export function AppOnlyScreen() {
         New here?{" "}
         <Link href="/club/join" className="font-semibold text-brand-400 underline underline-offset-2">
           Join Rewards
-        </Link>
-        , then install the app.
+        </Link>{" "}
+        first: it takes a minute, and we&apos;ll walk you through adding the app at the end.
       </p>
     </main>
   );

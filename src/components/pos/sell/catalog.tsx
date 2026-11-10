@@ -5,6 +5,7 @@ import { forwardRef, useMemo, useState } from "react";
 import { Camera, Pill, Search, Sparkles, Tag, X, LayoutGrid } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { incentiveExcluded } from "@/lib/compliance";
+import { wedgeBurst } from "../lib/wedge";
 import { categoryIcon } from "@/components/product/category-icons";
 import { cn } from "@/lib/cn";
 import { zarWhole, zar } from "@/lib/money";
@@ -30,7 +31,8 @@ type Props = {
   setFilter: (f: Filter) => void;
   query: string;
   setQuery: (q: string) => void;
-  onSubmitSearch: () => void;
+  /** viaScanner: the text arrived as a keyboard-wedge burst (same timing rule as the till-wide listener). */
+  onSubmitSearch: (viaScanner: boolean) => void;
   onAdd: (variantId: string) => void;
   onScanCamera?: () => void;
   licensedClasses: string[];
@@ -41,6 +43,7 @@ type Props = {
 };
 
 export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ boot, filter, setFilter, query, setQuery, onSubmitSearch, onAdd, onScanCamera, licensedClasses, drops, notice, search }, searchRef) {
+  const [wedge] = useState(wedgeBurst);
   const [picking, setPicking] = useState<BootProduct | null>(null);
 
   const deals = useMemo(() => {
@@ -108,9 +111,10 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                const scanned = wedge(e);
+                if (scanned !== null) {
                   e.preventDefault();
-                  onSubmitSearch();
+                  onSubmitSearch(scanned);
                 }
               }}
               placeholder="Search or scan a barcode"

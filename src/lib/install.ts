@@ -119,3 +119,6 @@ const OPEN_IN_BROWSER = [
 const OPEN_TRADE = ["/trade", "/trade/apply", "/trade/terms", "/trade/login"];
 
 export const appOnlyOpen = (pathname: string) => OPEN_TRADE.includes(pathname) || OPEN_IN_BROWSER.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
+/** The last step of joining in a browser when the shop is app only: install the app, then carry on to `next`. */
+export const installStep = (next: string) => `/app/install?next=${encodeURIComponent(next)}`;

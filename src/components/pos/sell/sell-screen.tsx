@@ -260,12 +260,12 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   const lookupBatchRef = useRef(lookupBatch);
   lookupBatchRef.current = lookupBatch;
 
-  const submitSearch = () => {
+  const submitSearch = (viaScanner = false) => {
     const q = query.trim();
     if (!q) return;
     const exact = [...index.values()].find((e) => e.variant.barcode === q || e.variant.sku.toLowerCase() === q.toLowerCase());
     if (exact || memberNoFrom(q) || parseOrderQr(q) || rsvpTicketFrom(q) || voucherCodeFrom(q) || parseBatchScan(q)) {
-      scan(q);
+      scan(q, viaScanner);
       setQuery("");
       return;
     }
@@ -620,6 +620,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   }, [publishDisplay, boot.store.name, boot.store.code, cart, quote, index, licensedClasses, stage, payProgress, done, idleMessages, training]);
 
   /** Member card QR / member number → attach the member (prices re-quote at their tier). `scanned`: a real QR scan, not typed. */
+  const attachSeq = useRef(0);
   const attachMember = async (memberNo: string, scanned = false) => {
     if (cartRef.current.trade) {
       pos.toast("Leave trade mode to add a member. A sale is retail or trade, never both.", "warn");
@@ -629,14 +630,17 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       pickCustomer(offlineMember(memberNo), `${memberNo} added (checked when the till reconnects)`, "warn", scanned);
       return;
     }
+    const seq = ++attachSeq.current; // two cards scanned back to back: the last one wins, however the lookups land
     try {
       const r = await api<{ customers: CustomerHit[] }>(`/api/pos/customers?q=${encodeURIComponent(memberNo)}`);
+      if (seq !== attachSeq.current) return;
       if (r.customers.length !== 1) {
         setCustQuery(memberNo);
         setCustSheet("find");
         return;
       }
       const d = await api<{ customer: CustomerDetail }>(`/api/pos/customers/${r.customers[0].id}`);
+      if (seq !== attachSeq.current) return;
       pickCustomer(d.customer, undefined, "ok", scanned);
     } catch (e) {
       pos.toast(errorText(e), "error");
@@ -808,7 +812,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         mode={custSheet ?? "find"}
         onMode={setCustSheet}
         onClose={() => (setCustSheet(null), setCustQuery(undefined), (resumeCheckout.current = false))}
-        onPick={pickCustomer}
+        onPick={(c, scanned) => pickCustomer(c, undefined, "ok", scanned)}
         onCreated={(c) => pickCustomer(c, undefined, "ok", true)}
         online={online}
         joinUrl={boot.joinUrl}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CheckCircle2, Gift, MapPin, ShieldCheck, Smartphone } from "lucide-react";
+import { CheckCircle2, Download, Gift, MapPin, ShieldCheck, Smartphone } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -17,6 +17,7 @@ import { fmtDate, num } from "@/lib/format";
 import { safePath } from "@/lib/safe-path";
 import { displayPhone } from "@/lib/sa";
 import { partnerArrival, partnerOffers } from "@/server/partners";
+import { appOnly } from "@/lib/install";
 
 export const metadata: Metadata = {
   title: { absolute: "Join Herbal Holland Rewards" },
@@ -86,6 +87,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
               [<Smartphone key="s" className="h-5 w-5" />, "Confirm your mobile number with a one-time code"],
               [<ShieldCheck key="i" className="h-5 w-5" />, "Add your date of birth: we're adults-only by law"],
               [<Gift key="g" className="h-5 w-5" />, `Start earning: ${fmtPoints(settings.loyalty.signupBonus)} are yours the moment you join`],
+              ...(appOnly() ? [[<Download key="a" className="h-5 w-5" />, "Add the app to your home screen: we show you how, it takes seconds"]] : []),
             ].map(([icon, t], i) => (
               <li key={i} className="flex items-center gap-4 text-ink-200">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-500/10 text-brand-400">{icon}</span>
@@ -115,6 +117,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             partner={arrival ? { slug: arrival.partner.slug, name: arrival.partner.name, token: arrival.member ? sp.t : undefined } : null}
             defaultPhone={arrival?.member ? displayPhone(arrival.member.phone) : undefined}
             shareOffers={shareOffers}
+            installStep={appOnly()}
             title="Your mobile number"
             intro="Already a member? We'll sign you straight in."
           />
