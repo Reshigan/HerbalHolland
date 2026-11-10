@@ -46,7 +46,7 @@ const End = () => <p className="mt-10 text-sm text-ink-450">Adults 18+ only. Kee
 function InstallApp() {
   return (
     <>
-      <P>You install the Herbal Holland app straight from your phone&apos;s browser. Once it&apos;s on your home screen, your Rewards card, points and orders are one tap away.</P>
+      <P>You install the Herbal Holland app straight from your phone&apos;s browser. Once it&apos;s on your home screen (the icon is labelled HH Rewards), your Rewards card, points and orders are one tap away.</P>
       <H2>On Android</H2>
       <P>Open Herbal Holland in Chrome, Edge or Samsung Internet. You&apos;ll be offered the browser&apos;s install prompt. Accept it and the app is added to your phone. The same browsers offer it on a computer too.</P>
       <H2>On iPhone or iPad</H2>

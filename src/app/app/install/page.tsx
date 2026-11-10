@@ -42,7 +42,7 @@ export default async function InstallStepPage({ searchParams }: { searchParams: 
         {/* This page has no shop chrome, so it registers the worker itself: a visitor can land here straight from joining. */}
         <ServiceWorker src="/rewards-sw.js" scope="/" />
         <InstallPrompt app="rewards" variant="card" required />
-        <p className="text-sm text-ink-400">Then open Herbal Holland from your home screen. If it asks, sign in with the same mobile number.</p>
+        <p className="text-sm text-ink-400">Then open HH Rewards from your home screen (that is the app's icon label). If it asks, sign in with the same mobile number.</p>
         <div className="hidden items-center gap-4 rounded-2xl border border-ink-800 bg-ink-900/70 p-4 lg:flex">
           <QrCode value={`${APP_URL()}/app/install`} label="QR code to install Herbal Holland on your phone" className="h-28 w-28 shrink-0" />
           <p className="text-sm text-ink-300">On a computer? Scan this with your phone to install the app there.</p>

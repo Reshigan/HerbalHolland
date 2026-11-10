@@ -37,7 +37,7 @@ export function GiftForm({ amounts, messageMax, defaultEmail }: { amounts: reado
           <TextInput id="gift-email" name="recipientEmail" type="email" inputMode="email" autoComplete="off" maxLength={120} defaultValue={state.values?.recipientEmail} placeholder="name@example.co.za" />
         </FieldRow>
         <FieldRow label="Your message (optional)" htmlFor="gift-message" className="sm:col-span-2" hint={`${msg.length}/${messageMax}`}>
-          <textarea id="gift-message" name="message" rows={3} maxLength={messageMax} value={msg} onChange={(e) => setMsg(e.target.value)} className={cn(inputClass, "py-3")} placeholder="Happy birthday! Choose something you'll love." />
+          <textarea id="gift-message" name="message" rows={3} maxLength={messageMax} value={msg} onChange={(e) => setMsg(e.target.value)} className={cn(inputClass, "py-3")} placeholder="Happy birthday. Choose something you'll love." />
         </FieldRow>
       </div>
       {state.error && (

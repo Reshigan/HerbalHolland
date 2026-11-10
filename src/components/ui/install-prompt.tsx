@@ -366,7 +366,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
               <CheckCircle2 className="h-4 w-4" aria-hidden /> Installed
             </p>
           )}
-          {required && <p className="mt-3 text-sm text-ink-400">Already have it? Open Herbal Holland from your home screen.</p>}
+          {required && <p className="mt-3 text-sm text-ink-400">Already have it? Open HH Rewards from your home screen.</p>}
           {(till || promptable) && (
             <div className="mt-3 flex flex-wrap gap-2">
               {promptable && (
