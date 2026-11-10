@@ -98,7 +98,7 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
       <a href="#main" className="sr-only z-[70] rounded-full bg-brand-500 px-4 py-2 font-semibold text-ink-950 focus:not-sr-only focus:fixed focus:left-4 focus:top-3">
         Skip to content
       </a>
-      <div className="flex min-h-dvh flex-col bg-ink-950 text-ink-100">
+      <div className="flex min-h-dvh flex-col bg-ink-950 text-ink-100" inert={age === "unknown" || undefined}>
         {/* iOS draws the status bar over the page in the installed app: this strip keeps its white text on black, and content from sliding under it. */}
         <div aria-hidden className="fixed inset-x-0 top-0 z-50 hidden h-[env(safe-area-inset-top)] bg-ink-950 app:block" />
         <nav aria-label="Offers" className="bg-brand-500 pt-[env(safe-area-inset-top)] text-ink-950">
@@ -245,7 +245,9 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
         </footer>
         </Suspense>
       </div>
-      <AppTabBar bag={canBuyOnline(phase) ? count : null} />
+      <div inert={age === "unknown" || undefined}>
+        <AppTabBar bag={canBuyOnline(phase) ? count : null} />
+      </div>
       {age === "unknown" && <AgeGate />}
       {/* The Rewards worker (push only) registers once the page is idle, so the app is installable from any consumer page. */}
       <ServiceWorker src="/rewards-sw.js" scope="/" />
