@@ -6,6 +6,7 @@ import { Mark } from "@/components/brand/logo";
 import { Steps } from "@/components/shop/phone-auth";
 import { QrCode } from "@/components/shop/qr";
 import { InstallPrompt } from "@/components/ui/install-prompt";
+import { ServiceWorker } from "@/components/ui/service-worker";
 import { appOnly, appOnlyOpen } from "@/lib/install";
 import { safePath } from "@/lib/safe-path";
 import { getCustomer } from "@/server/auth";
@@ -38,6 +39,8 @@ export default async function InstallStepPage({ searchParams }: { searchParams: 
           <h1 className="font-display text-2xl font-semibold text-white">Last step: add the app</h1>
           <p className="mt-2 text-ink-300">Your card, points, the shop and drops all live in the Herbal Holland app. It&apos;s free, takes seconds and needs no app store.</p>
         </div>
+        {/* This page has no shop chrome, so it registers the worker itself: a visitor can land here straight from joining. */}
+        <ServiceWorker src="/rewards-sw.js" scope="/" />
         <InstallPrompt app="rewards" variant="card" required />
         <p className="text-sm text-ink-400">Then open Herbal Holland from your home screen. If it asks, sign in with the same mobile number.</p>
         <div className="hidden items-center gap-4 rounded-2xl border border-ink-800 bg-ink-900/70 p-4 lg:flex">
