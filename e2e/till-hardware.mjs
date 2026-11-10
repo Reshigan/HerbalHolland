@@ -222,7 +222,10 @@ try {
   await pin("1111");
   await page.getByTestId("training-banner").waitFor({ state: "detached" });
   ok("exited training with the manager PIN");
-  assert((await q(`select count(*)::int as c from "AuditLog" where entity = 'Device' and "entityId" = $1 and action = 'pos.training_end'`, [device.id]))[0].c === 1, "training end audited");
+  // The audit POST lands a moment after the banner goes, so poll for it.
+  let ends = 0;
+  for (let i = 0; i < 40 && ends === 0; i++, await page.waitForTimeout(250)) ends = (await q(`select count(*)::int as c from "AuditLog" where entity = 'Device' and "entityId" = $1 and action = 'pos.training_end'`, [device.id]))[0].c;
+  assert(ends === 1, "training end audited");
 
   step("Quiet hours: the calm dashboard appears after the idle timeout (shortened with ?idleMs=)");
   await page.goto(`${BASE}/pos?idleMs=3000`);

@@ -7,6 +7,7 @@ import { fmtDate } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { api, errorText, OfflineError } from "../lib/api";
 import { memberNoFrom, offlineMember } from "../lib/rules";
+import { wedgeBurst } from "../lib/wedge";
 import { DEALS_QUESTION, KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
 import { INTERESTS, type InterestKey } from "@/lib/rfm";
 import { Alert, CheckRow, Chip, Field, PosButton, Segmented, Sheet, Spinner, TextInput, TIER_CHIP, tierName } from "../ui";
@@ -31,7 +32,8 @@ export function CustomerSheet({
   mode: "find" | "new";
   onMode: (m: "find" | "new") => void;
   onClose: () => void;
-  onPick: (c: CustomerDetail) => void;
+  /** scanned: the member's card QR came in on the scanner (a members-only sale needs that), not typed. */
+  onPick: (c: CustomerDetail, scanned?: boolean) => void;
   /** A member signed up here: their ID was just checked, so they need no QR scan. */
   onCreated?: (c: CustomerDetail) => void;
   online: boolean;
@@ -69,13 +71,15 @@ export function CustomerSheet({
   );
 }
 
-function FindMember({ onPick, initialQuery, onSignUp }: { onPick: (c: CustomerDetail) => void; initialQuery?: string; onSignUp: (phone: string) => void }) {
+function FindMember({ onPick, initialQuery, onSignUp }: { onPick: (c: CustomerDetail, scanned?: boolean) => void; initialQuery?: string; onSignUp: (phone: string) => void }) {
   const [q, setQ] = useState(initialQuery ?? "");
   const [hits, setHits] = useState<CustomerHit[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [opening, setOpening] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const seq = useRef(0);
+  const [wedge] = useState(wedgeBurst);
+  const scanned = useRef(false); // the search text came in on the scanner (a card QR), so the member counts as scanned
 
   useEffect(() => {
     const term = q.trim();
@@ -107,7 +111,7 @@ function FindMember({ onPick, initialQuery, onSignUp }: { onPick: (c: CustomerDe
     setOpening(id);
     try {
       const r = await api<{ customer: CustomerDetail }>(`/api/pos/customers/${id}`);
-      onPick(r.customer);
+      onPick(r.customer, scanned.current);
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -124,6 +128,8 @@ function FindMember({ onPick, initialQuery, onSignUp }: { onPick: (c: CustomerDe
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => {
+            const s = wedge(e);
+            if (s !== null || e.key.length === 1) scanned.current = !!s;
             // Enter takes the first member found.
             if (e.key === "Enter" && hits?.length && !opening) {
               e.preventDefault();
@@ -333,20 +339,22 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
 }
 
 /** Offline: members can't be looked up, so take the number from their card or their mobile; it's checked when the till reconnects. */
-function OfflineMember({ onPick }: { onPick: (c: CustomerDetail) => void }) {
+function OfflineMember({ onPick }: { onPick: (c: CustomerDetail, scanned?: boolean) => void }) {
   const [no, setNo] = useState("");
+  const [wedge] = useState(wedgeBurst);
+  const scanned = useRef(false);
   const memberNo = memberNoFrom(no) ?? normalisePhone(no);
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (memberNo) onPick(offlineMember(memberNo));
+        if (memberNo) onPick(offlineMember(memberNo), scanned.current);
       }}
       className="space-y-3"
     >
       <Alert tone="warn">Offline: members can&apos;t be looked up or signed up. Scan their card QR, or type the member number from their card or their mobile number: it&apos;s checked when the till reconnects. New members sign up once you&apos;re back online.</Alert>
       <Field label="Member number or mobile" htmlFor="off-member" error={no.trim().length >= 9 && !memberNo ? "Member numbers look like HH0123456; mobile numbers have 10 digits, starting with 0" : undefined}>
-        <TextInput id="off-member" autoFocus autoComplete="off" value={no} onChange={(e) => setNo(e.target.value)} placeholder="HH0123456 or 082 123 4567" />
+        <TextInput id="off-member" autoFocus autoComplete="off" value={no} onChange={(e) => setNo(e.target.value)} onKeyDown={(e) => { const s = wedge(e); if (s !== null || e.key.length === 1) scanned.current = !!s; }} placeholder="HH0123456 or 082 123 4567" />
       </Field>
       <PosButton type="submit" variant="primary" size="lg" className="w-full" disabled={!memberNo}>
         Add to sale
