@@ -45,10 +45,10 @@ const earnedParam = (v: string | undefined) => {
 
 export default async function ClubPage({ searchParams }: { searchParams: Promise<{ welcome?: string; earned?: string }> }) {
   const sp = await searchParams;
-  const [customer, settings] = await Promise.all([getCustomer(), getSettings()]);
+  // The store is cached per request, so the guest Landing (which asks for it too) costs nothing extra.
+  const [customer, settings, store] = await Promise.all([getCustomer(), getSettings(), getPreferredStore()]);
   if (!customer) return <Landing />;
 
-  const store = await getPreferredStore();
   const [m, launch, deals, tickets, gifts] = await Promise.all([
     memberOverview(customer.id),
     launchState(),
