@@ -204,7 +204,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           <section aria-labelledby="why" className="hh-beads-foot relative mt-8 overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900/60">
             {categoryImage(cat.slug) && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={categoryImage(cat.slug)!} alt={`${cat.name} from Herbal Holland`} width={1440} height={900} decoding="async" className="aspect-[16/7] w-full object-cover" />
+              <img src={categoryImage(cat.slug)!} alt={`${cat.name} from Herbal Holland`} width={1440} height={900} fetchPriority="high" decoding="async" className="aspect-[16/7] w-full object-cover" />
             )}
             <div className="grid grid-cols-1 gap-6 p-6 pb-8 sm:p-8 sm:pb-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
               <div>
@@ -329,15 +329,15 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           {q && <input type="hidden" name="q" value={q} />}
           <label className="flex w-24 flex-col text-xs font-semibold text-ink-400">
             Min R
-            <input name="min" type="number" inputMode="numeric" min={0} step={10} defaultValue={sp.min} placeholder={String(res.priceBounds.min)} className={cn(inputClass, "mt-1 h-10 text-sm")} />
+            <input name="min" type="number" inputMode="numeric" min={0} step={10} defaultValue={sp.min} placeholder={String(res.priceBounds.min)} className={cn(inputClass, "mt-1 h-10")} />
           </label>
           <label className="flex w-24 flex-col text-xs font-semibold text-ink-400">
             Max R
-            <input name="max" type="number" inputMode="numeric" min={0} step={10} defaultValue={sp.max} placeholder={String(res.priceBounds.max)} className={cn(inputClass, "mt-1 h-10 text-sm")} />
+            <input name="max" type="number" inputMode="numeric" min={0} step={10} defaultValue={sp.max} placeholder={String(res.priceBounds.max)} className={cn(inputClass, "mt-1 h-10")} />
           </label>
           <label className="flex w-48 flex-col text-xs font-semibold text-ink-400">
             Sort
-            <AutoSubmitSelect name="sort" defaultValue={sort} className={cn(inputClass, "mt-1 h-10 cursor-pointer text-sm")}>
+            <AutoSubmitSelect name="sort" defaultValue={sort} className={cn(inputClass, "mt-1 h-10 cursor-pointer")}>
               {SORTS.filter((s) => q || s.key !== "relevance").map((s) => (
                 <option key={s.key} value={s.key}>
                   {s.label}

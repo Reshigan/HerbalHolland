@@ -5,7 +5,9 @@
  * member's pages, so nothing personal stays on a shared phone. The till keeps its own /sw.js, scope /pos.
  */
 const OFFLINE = "/offline.html";
-const CACHE = "hh-offline-v1";
+// The suffix is the first 8 hex of sha1(public/offline.html): the page is only re-fetched when this script changes,
+// so editing the page must change the name (tests/manifest.test.ts fails with the new value until it does).
+const CACHE = "hh-offline-6b6e1709";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.add(new Request(OFFLINE, { cache: "reload" }))).catch(() => {}));

@@ -86,6 +86,20 @@ export function installState({
   return { platform, installed: false, show: !hidden, mode };
 }
 
+/**
+ * What a required install card (the last step of joining, the app-only wall) shows, so it is never a dead end: the
+ * browser's prompt, the iOS Safari steps, the browser-menu route (Chrome and Edge keep "Install app" there after a
+ * declined prompt; Firefox on Android has "Add to Home screen"), "use Chrome or Edge" on a computer whose browser offers
+ * no install at all (Firefox, Safari), or "installed" once the browser said so.
+ */
+export type CardStep = "installed" | "prompt" | "ios-steps" | "menu" | "other-browser";
+export function cardStep(state: Pick<InstallState, "platform" | "mode">, hasEvent: boolean, installed: boolean): CardStep {
+  if (installed) return "installed";
+  if (state.mode === "ios-steps") return "ios-steps";
+  if (hasEvent) return "prompt";
+  return state.platform === "desktop" ? "other-browser" : "menu";
+}
+
 /** localStorage keys, per app: the dismissal, and the "shown once" marker. */
 export const installKey = (app: InstallApp, part: "dismissed" | "seen" = "dismissed") => `hh-install:${app}:${part}`;
 

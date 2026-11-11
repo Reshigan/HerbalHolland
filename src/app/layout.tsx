@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   description: "Dutch heritage, African soil. CBD wellness, accessories, apparel and Herbal Holland Rewards across South Africa. Free to join. Adults 18+.",
   applicationName: "Herbal Holland",
   // iPhone: Safari → Share → Add to Home Screen opens the shop and Rewards card full-screen (the till and the office
-  // set their own names in their layouts).
-  appleWebApp: { capable: true, title: "Herbal Holland", statusBarStyle: "black-translucent" },
+  // set their own names in their layouts). The title sits under the icon, where iOS cuts the full name short.
+  appleWebApp: { capable: true, title: "HH Rewards", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
 

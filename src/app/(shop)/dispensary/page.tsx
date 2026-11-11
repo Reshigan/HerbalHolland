@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { getDispensaryAccess } from "@/server/shop/access";
@@ -83,7 +84,12 @@ export default async function DispensaryPage({ searchParams }: { searchParams: P
             <Pager page={page} pageSize={PAGE_SIZE} total={res.total} href={(p) => href({ page: p })} noun="products" />
           </>
         ) : (
-          <p className="rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center text-ink-400">Nothing in this category right now.</p>
+          <div className="rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center text-ink-400">
+            <p>Nothing in this category right now.</p>
+            <Link href="/dispensary" className="mt-3 inline-block font-semibold text-white underline">
+              All dispensary products
+            </Link>
+          </div>
         )}
       </div>
     </Container>

@@ -34,7 +34,7 @@ export function VoucherCode({ code, applied, error }: { code: string | null; app
         <label htmlFor="voucher" className="sr-only">
           Gift voucher code
         </label>
-        <input id="voucher" name="code" defaultValue={code ?? ""} placeholder="Gift voucher code" autoCapitalize="characters" autoComplete="off" className={cn(inputClass, "h-11 uppercase placeholder:normal-case")} aria-invalid={!!(state.error || error)} />
+        <input id="voucher" name="code" defaultValue={state.code ?? code ?? ""} placeholder="Gift voucher code" autoCapitalize="characters" autoComplete="off" className={cn(inputClass, "h-11 uppercase placeholder:normal-case")} aria-invalid={!!(state.error || error)} />
         <button disabled={pending} className={buttonClass("outline-dark", "md", "h-11 shrink-0")}>
           {pending ? "Checking…" : "Redeem"}
         </button>

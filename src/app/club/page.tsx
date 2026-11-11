@@ -45,10 +45,10 @@ const earnedParam = (v: string | undefined) => {
 
 export default async function ClubPage({ searchParams }: { searchParams: Promise<{ welcome?: string; earned?: string }> }) {
   const sp = await searchParams;
-  const [customer, settings] = await Promise.all([getCustomer(), getSettings()]);
+  // The store is cached per request, so the guest Landing (which asks for it too) costs nothing extra.
+  const [customer, settings, store] = await Promise.all([getCustomer(), getSettings(), getPreferredStore()]);
   if (!customer) return <Landing />;
 
-  const store = await getPreferredStore();
   const [m, launch, deals, tickets, gifts] = await Promise.all([
     memberOverview(customer.id),
     launchState(),
@@ -446,7 +446,7 @@ async function Landing() {
               </li>
             ))}
           </ul>
-          <ol className="mt-10 grid max-w-xl grid-cols-4 gap-2">
+          <ol className="mt-10 grid max-w-xl grid-cols-2 gap-2 sm:grid-cols-4">
             {TIERS.map((t, i) => (
               <li key={t.key} className="rounded-2xl border border-ink-800 p-3 text-center">
                 <div className={cn("mx-auto h-2 w-8 rounded-full", ["bg-ink-300", "bg-leaf-500", "bg-series-4", "bg-brand-500"][i])} />

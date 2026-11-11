@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { Mark } from "@/components/brand/logo";
 import { InstallPrompt } from "@/components/ui/install-prompt";
+import { ServiceWorker } from "@/components/ui/service-worker";
 import { APP_URL } from "@/server/email-templates";
 import { AppOnlyGate } from "./app-only-gate";
 import { QrCode } from "./qr";
@@ -25,6 +26,8 @@ export function AppOnlyScreen() {
         <h1 className="font-display text-2xl font-semibold text-white">Herbal Holland lives in the app</h1>
         <p className="mt-2 text-ink-300">The shop, your Rewards card, drops and orders are all in the app. Install it to carry on. Adults 18+.</p>
       </div>
+      {/* /app renders without the shop chrome, so the worker (an install criterion in older Chrome) is registered here too. */}
+      <ServiceWorker src="/rewards-sw.js" scope="/" />
       <InstallPrompt app="rewards" variant="card" required />
       <div className="hidden items-center gap-4 rounded-2xl border border-ink-800 bg-ink-900/70 p-4 lg:flex">
         <QrCode value={`${APP_URL()}/club`} label="QR code to open Herbal Holland on your phone" className="h-28 w-28 shrink-0" />

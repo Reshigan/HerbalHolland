@@ -5,11 +5,17 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/club",
     name: "Herbal Holland",
-    short_name: "Herbal Holland",
+    // Under the home-screen icon: launchers show about 12 characters, so the full name would end in an ellipsis.
+    short_name: "HH Rewards",
     description: "Your Herbal Holland Rewards card, points, orders and invoices, plus the shop and store finder. Adults 18+.",
+    lang: "en-ZA",
+    dir: "ltr",
     start_url: "/club",
     scope: "/",
     display: "standalone",
+    display_override: ["standalone", "minimal-ui"],
+    // A tap on a link or notification brings the open app forward and navigates it, rather than opening a second window.
+    launch_handler: { client_mode: ["navigate-existing", "auto"] },
     orientation: "any",
     background_color: "#0c0a09",
     theme_color: "#0c0a09",

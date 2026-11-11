@@ -27,7 +27,7 @@ export function PromoCode({ code, error }: { code: string | null; error?: string
         <label htmlFor="promo" className="sr-only">
           Promo code
         </label>
-        <input id="promo" name="code" defaultValue={code ?? ""} placeholder="Promo code" autoCapitalize="characters" autoComplete="off" className={cn(inputClass, "h-11 uppercase placeholder:normal-case")} aria-invalid={!!(state.error || error)} />
+        <input id="promo" name="code" defaultValue={state.code ?? code ?? ""} placeholder="Promo code" autoCapitalize="characters" autoComplete="off" className={cn(inputClass, "h-11 uppercase placeholder:normal-case")} aria-invalid={!!(state.error || error)} />
         <button disabled={pending} className={buttonClass("outline-dark", "md", "h-11 shrink-0")}>
           {pending ? "Checking…" : "Apply"}
         </button>

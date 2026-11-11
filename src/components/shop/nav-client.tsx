@@ -98,6 +98,7 @@ export function MobileMenu({ items, footer }: { items: NavItem[]; footer?: React
       </button>
       <dialog
         ref={ref}
+        aria-label="Menu"
         className="m-0 h-dvh max-h-none w-[min(22rem,88vw)] max-w-none bg-ink-950 p-0 text-ink-100 backdrop:bg-ink-950/70 backdrop:backdrop-blur-sm open:animate-rise"
         onClick={(e) => e.target === ref.current && ref.current?.close()}
       >
@@ -113,6 +114,7 @@ export function MobileMenu({ items, footer }: { items: NavItem[]; footer?: React
               <Link
                 key={i.href}
                 href={i.href}
+                aria-current={isActive(path, i.href) ? "page" : undefined}
                 className={cn("border-b border-ink-850 py-4 font-display text-2xl font-medium", isActive(path, i.href) ? "text-brand-400" : "text-white")}
               >
                 {i.label}
@@ -320,7 +322,7 @@ export function StorePicker({ current, variant = "pill", className }: { current:
                   className="h-11 w-full rounded-full border border-ink-700 bg-ink-900 pl-10 pr-4 text-sm text-white placeholder:text-ink-450 focus:border-brand-500 focus:outline-none"
                 />
               </label>
-              <button onClick={locate} disabled={locating} className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-ink-700 px-4 text-sm font-medium text-ink-100 hover:border-brand-500 disabled:opacity-60">
+              <button onClick={locate} disabled={locating} aria-label={locating ? "Locating…" : "Near me"} className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-ink-700 px-4 text-sm font-medium text-ink-100 hover:border-brand-500 disabled:opacity-60">
                 <LocateFixed className="h-4 w-4 text-brand-500" />
                 <span className="hidden sm:inline">{locating ? "Locating…" : "Near me"}</span>
               </button>

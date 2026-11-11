@@ -102,9 +102,9 @@ function howToUse(p: { regClass: RegClass; cbdMgPerDay: number | null; netConten
 
 export default async function ProductPage({ params, searchParams }: { params: Promise<Params>; searchParams: Promise<SP> }) {
   const [{ slug }, sp] = await Promise.all([params, searchParams]);
-  const product = await getProductBySlug(slug);
+  // None of these depend on the product, so they go out in one round trip with it (D1 is a network hop per query).
+  const [product, classes, settings, customer, store, net] = await Promise.all([getProductBySlug(slug), getClasses(), getSettings(), getCustomer(), getPreferredStore(), getNetwork()]);
   if (!product || product.status !== "ACTIVE" || !product.variants.length || isHiddenCategory(product.category.slug)) notFound();
-  const [classes, settings, customer, store] = await Promise.all([getClasses(), getSettings(), getCustomer(), getPreferredStore()]);
   const licensed = classes.licensed.includes(product.regClass);
   const access = licensed ? await getDispensaryAccess() : null;
   if (access && !access.allowed) return <DispensaryGate access={access} next={`/p/${slug}`} />;
@@ -112,7 +112,6 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const variant = product.variants.find((v) => v.id === sp.v) ?? product.variants[0];
   const variantIds = product.variants.map((v) => v.id);
   const path = `/p/${product.slug}${sp.v ? `?v=${variant.id}` : ""}`;
-  const net = await getNetwork();
   const [quotes, batch, stores, reviews, networkAvail, pricing, alert, bought, reviewed, photos, wished, reminder, devices] = await Promise.all([
     Promise.all(product.variants.map((v) => quote({ channel: "ONLINE", items: [{ variantId: v.id, qty: 1 }], customerId: customer?.id }))),
     currentBatch(variant.id, store?.id),

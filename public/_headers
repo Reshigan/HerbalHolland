@@ -1,0 +1,8 @@
+# https://developers.cloudflare.com/workers/static-assets/headers
+# Service workers: the browser must see a new version on its next check, never a copy cached for a week.
+/sw.js
+  Cache-Control: no-cache
+/rewards-sw.js
+  Cache-Control: no-cache
+/staff-sw.js
+  Cache-Control: no-cache

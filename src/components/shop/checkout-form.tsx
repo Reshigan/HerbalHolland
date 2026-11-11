@@ -258,7 +258,7 @@ export function CheckoutForm(props: {
                 </label>
                 <label className="flex items-center gap-2 text-sm text-ink-200">
                   as
-                  <select name="addressLabel" value={label} onChange={(e) => setLabel(e.target.value)} className={cn(inputClass, "h-9 w-28 cursor-pointer text-sm")} aria-label="Address label">
+                  <select name="addressLabel" value={label} onChange={(e) => setLabel(e.target.value)} className={cn(inputClass, "h-9 w-28 cursor-pointer")} aria-label="Address label">
                     {["Home", "Work", "Other"].map((l) => (
                       <option key={l} value={l}>
                         {l}

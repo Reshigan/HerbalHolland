@@ -20,8 +20,8 @@ export function GiftForm({ amounts, messageMax, defaultEmail }: { amounts: reado
           {amounts.map((a) => {
             const on = a === amount;
             return (
-              <button key={a} type="button" role="radio" aria-checked={on} onClick={() => setAmount(a)} className={cn("relative rounded-2xl border p-4 pt-8 text-left transition", on ? "border-brand-500 bg-brand-500/10" : "border-ink-800 bg-ink-900/60 hover:border-ink-600")}>
-                <span className="tnum block font-display text-2xl font-semibold text-white">{zarWhole(a)}</span>
+              <button key={a} type="button" role="radio" aria-checked={on} onClick={() => setAmount(a)} className={cn("relative rounded-2xl border p-3 pt-8 text-left transition sm:p-4 sm:pt-8", on ? "border-brand-500 bg-brand-500/10" : "border-ink-800 bg-ink-900/60 hover:border-ink-600")}>
+                <span className="tnum block font-display text-xl font-semibold text-white sm:text-2xl">{zarWhole(a)}</span>
                 <span className="mt-0.5 block text-xs text-ink-400">gift voucher</span>
                 {on && <Check className="absolute right-3 top-3 h-4 w-4 text-brand-400" strokeWidth={2.6} aria-hidden />}
               </button>
@@ -37,7 +37,7 @@ export function GiftForm({ amounts, messageMax, defaultEmail }: { amounts: reado
           <TextInput id="gift-email" name="recipientEmail" type="email" inputMode="email" autoComplete="off" maxLength={120} defaultValue={state.values?.recipientEmail} placeholder="name@example.co.za" />
         </FieldRow>
         <FieldRow label="Your message (optional)" htmlFor="gift-message" className="sm:col-span-2" hint={`${msg.length}/${messageMax}`}>
-          <textarea id="gift-message" name="message" rows={3} maxLength={messageMax} value={msg} onChange={(e) => setMsg(e.target.value)} className={cn(inputClass, "py-3")} placeholder="Happy birthday! Choose something you'll love." />
+          <textarea id="gift-message" name="message" rows={3} maxLength={messageMax} value={msg} onChange={(e) => setMsg(e.target.value)} className={cn(inputClass, "py-3")} placeholder="Happy birthday. Choose something you'll love." />
         </FieldRow>
       </div>
       {state.error && (

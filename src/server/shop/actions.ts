@@ -79,15 +79,15 @@ export async function setBagQty(form: FormData) {
   await saveCart(withQty(await getCart(), variantId, qty));
 }
 
-export type PromoState = { error?: string; ok?: boolean };
+export type PromoState = { error?: string; ok?: boolean; code?: string };
 
 export async function applyPromoCode(_: PromoState, form: FormData): Promise<PromoState> {
   const code = String(form.get("code") ?? "").trim().toUpperCase();
   if (!code) return { error: "Enter a code" };
-  if (!/^[A-Z0-9-]{3,32}$/.test(code)) return { error: "That code isn't valid right now" };
+  if (!/^[A-Z0-9-]{3,32}$/.test(code)) return { error: "That code isn't valid right now", code };
   const customer = await getCustomer();
   const q = await quote({ channel: "ONLINE", items: await getCart(), code, customerId: customer?.id });
-  if (q.codeError) return { error: q.codeError };
+  if (q.codeError) return { error: q.codeError, code };
   await savePromoCode(code);
   return { ok: true };
 }

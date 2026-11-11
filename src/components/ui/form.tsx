@@ -2,7 +2,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const field =
-  "w-full rounded-xl border border-ink-200 bg-white px-3.5 text-sm text-ink-900 placeholder:text-ink-400 shadow-[inset_0_1px_0_rgb(0_0_0/0.02)] transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-ink-50 disabled:text-ink-400";
+  "w-full rounded-xl border border-ink-200 bg-white px-3.5 text-base text-ink-900 sm:text-sm placeholder:text-ink-400 shadow-[inset_0_1px_0_rgb(0_0_0/0.02)] transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-ink-50 disabled:text-ink-400";
 
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return <label className={cn("mb-1.5 block text-[0.78rem] font-semibold text-ink-700", className)} {...props} />;

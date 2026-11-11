@@ -4,6 +4,7 @@ import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { LEDGER_LABEL, ledgerTitle, memberLedger } from "@/server/shop/club";
 import { Container, Pager, Panel } from "@/components/shop/ui";
+import { ButtonLink } from "@/components/ui/button";
 import { pageParam } from "@/components/ui/pagination";
 import { fmtDateTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
@@ -50,7 +51,10 @@ export default async function ClubPoints({ searchParams }: { searchParams: Promi
           ) : (
             <div className="mt-6 rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center">
               <History className="mx-auto h-9 w-9 text-ink-600" />
-              <p className="mt-3 text-sm text-ink-400">No points activity yet.</p>
+              <p className="mt-3 text-sm text-ink-400">No points activity yet. Every purchase earns points.</p>
+              <ButtonLink href="/shop" className="mt-6">
+                Shop the range
+              </ButtonLink>
             </div>
           )}
         </div>

@@ -140,7 +140,7 @@ export function Pager({ page, pageSize, total, href, noun = "results" }: { page:
 
 // ── Forms (dark) ─────────────────────────────────────────────────────────────
 export const inputClass =
-  "w-full rounded-xl border border-ink-700 bg-ink-900 px-3.5 text-[0.95rem] text-white placeholder:text-ink-450 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/20 disabled:opacity-50 aria-[invalid=true]:border-rose-500";
+  "w-full rounded-xl border border-ink-700 bg-ink-900 px-3.5 text-base text-white placeholder:text-ink-450 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/20 disabled:opacity-50 aria-[invalid=true]:border-rose-500";
 
 export function FieldRow({ label, hint, error, htmlFor, children, className }: { label: React.ReactNode; hint?: React.ReactNode; error?: React.ReactNode; htmlFor?: string; children: React.ReactNode; className?: string }) {
   return (
