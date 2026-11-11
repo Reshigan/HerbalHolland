@@ -1,12 +1,13 @@
 "use client";
 // The Android till app (android/till) opens /pos?apk=<its version code>. The till remembers that number and checks
-// /apps/hh-till.json, which CI rewrites with every new signed APK: when a newer one is out, a bar offers it. Sideloaded
-// apps can't update themselves silently (that needs device management or Google Play), so it's one tap to download and
-// one to install. Never shown in a browser or on an iPad, where there's no APK.
+// /apps/hh-till.json, which CI rewrites with every new signed APK: when a newer one is out, a bar offers it. Only APK 1
+// needs this: from APK 2 the app downloads and installs its own updates (android/till/.../UpdateActivity.java). Never
+// shown in a browser or on an iPad, where there's no APK.
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 
 const KEY = "hh-apk";
+const SELF_UPDATING = 2;
 
 export function AppUpdate() {
   const [latest, setLatest] = useState<{ versionName: string; url: string } | null>(null);
@@ -17,7 +18,7 @@ export function AppUpdate() {
       if (fromUrl > 0) localStorage.setItem(KEY, String(fromUrl));
       installed = Number(localStorage.getItem(KEY)) || 0;
     } catch {}
-    if (!installed) return;
+    if (!installed || installed >= SELF_UPDATING) return;
     fetch("/apps/hh-till.json", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((j: { versionCode: number; versionName: string; url: string } | null) => {
