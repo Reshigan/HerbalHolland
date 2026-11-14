@@ -416,16 +416,21 @@ async function Landing() {
   const places = launch.preLaunch && launch.at ? foundingPlaces({ cap: launch.foundingCap, taken, firstYearMonths: launch.firstYearMonths, tierName: tierInfo(launch.foundingTier).name, closes: fmtDate(launch.at) }) : null;
   const trading = stores.filter((s) => s.status === "ACTIVE");
   return (
-    <Container className="pt-10 sm:pt-16">
+    <Container className="pt-5 max-sm:flex max-sm:flex-col max-sm:pb-40 sm:pt-16">
+      {places && (
+        <Tag tone="orange" icon={<Sparkles className="h-3.5 w-3.5" aria-hidden />} className="mb-5 gap-1.5 self-start px-3 py-1 text-xs sm:hidden">
+          {places.chip}
+        </Tag>
+      )}
       {launch.preLaunch && launch.at && (
-        <Callout tone="brand" icon={<CalendarClock className="h-5 w-5" />} title={`Founding Members close ${fmtDate(launch.at)}. Join free.`} className="mb-10">
+        <Callout tone="brand" icon={<CalendarClock className="h-5 w-5" />} title={`Founding Members close ${fmtDate(launch.at)}. Join free.`} className="mb-10 max-sm:order-last max-sm:mb-0 max-sm:mt-10">
           {places?.lead} {places?.full ? "" : `Founding Members get a numbered card and start at ${tierInfo(launch.foundingTier).name} for ${launch.foundingMonths} months.`} Every friend who joins with your link moves you up {num(launch.referralBoost)} places.
         </Callout>
       )}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-16">
         <div>
           <div className="eyebrow text-brand-500">Herbal Holland Rewards</div>
-          <h1 className="mt-3 font-display text-5xl font-semibold leading-[1] tracking-tight text-white sm:text-6xl">
+          <h1 className="mt-3 font-display text-4xl font-semibold leading-[1] tracking-tight text-white sm:text-6xl">
             Join free.
             <br />
             <span className="text-brand-500">Pay less, earn points.</span>
@@ -457,8 +462,9 @@ async function Landing() {
             ))}
           </ol>
         </div>
-        <Panel className="h-fit p-6 sm:p-8">
-          <PhoneAuth turnstileSiteKey={turnstileSiteKey()} next="/club" stores={homeStoreOptions(stores)} defaultStoreId={store?.id} consentWording={CONSENT_WORDING} />
+        {/* Phones: the form is the screen (first, no card, its button pinned to the bottom), like /club/join. */}
+        <Panel className="h-fit max-sm:order-first max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent sm:p-8">
+          <PhoneAuth turnstileSiteKey={turnstileSiteKey()} next="/club" stores={homeStoreOptions(stores)} defaultStoreId={store?.id} consentWording={CONSENT_WORDING} appScreen />
         </Panel>
       </div>
     </Container>

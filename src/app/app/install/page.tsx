@@ -29,7 +29,7 @@ export default async function InstallStepPage({ searchParams }: { searchParams: 
     <div className="min-h-dvh bg-ink-950 text-ink-100">
       <main data-testid="join-install" className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-5 px-4 py-10 app:hidden">
         <Mark className="h-12 w-12 text-brand-500" />
-        <Steps at={3} app />
+        <Steps at={3} app slim />
         <div>
           {customer && (
             <p className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-leaf-400">

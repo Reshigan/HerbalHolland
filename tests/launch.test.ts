@@ -77,6 +77,7 @@ describe("Founding places counter", () => {
     const p = foundingPlaces({ ...base, taken: 1000 });
     expect(p).toMatchObject({ left: 1026, full: false, nearly: false });
     expect(p.strip).toBe("1,026 of 2,026 Founding cards left");
+    expect(p.chip).toBe("1,026 of 2,026 Founding cards left · closes 6 Dec 2026");
     expect(foundingPlaces({ ...base, taken: 1900 })).toMatchObject({ nearly: true });
     expect(foundingPlaces({ ...base, taken: 1900 }).lead).toContain("going fast");
   });
@@ -84,6 +85,7 @@ describe("Founding places counter", () => {
     const p = foundingPlaces({ ...base, taken: 2500 });
     expect(p).toMatchObject({ left: 0, full: true });
     expect(p.strip).toContain("First Year Members still open");
+    expect(p.chip).toBe("First Year Members: join before 6 Dec 2026");
     expect(p.lead).toContain("Sprout for 6 months");
     expect(foundingPlaces({ ...base, taken: 2500, firstYearMonths: 0 }).lead).toBe("All 2,026 Founding Member cards are spoken for.");
   });

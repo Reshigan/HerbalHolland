@@ -80,12 +80,15 @@ export function foundingPlaces(p: { cap: number; taken: number; firstYearMonths:
   const full = left === 0;
   const nearly = !full && left <= Math.max(50, Math.round(p.cap * 0.1));
   const firstYear = p.firstYearMonths > 0 ? `Join before ${p.closes} as a First Year Member: ${p.tierName} for ${p.firstYearMonths} months.` : "";
+  const cards = `${left.toLocaleString("en-US")} of ${p.cap.toLocaleString("en-US")} Founding cards left`;
   return {
     left,
     full,
     nearly,
+    /** The chip under the join title on a phone. */
+    chip: full ? (firstYear ? `First Year Members: join before ${p.closes}` : `All ${p.cap.toLocaleString("en-US")} Founding cards are spoken for`) : `${cards} · closes ${p.closes}`,
     /** The short line for the header strip. */
-    strip: full ? `All ${p.cap.toLocaleString("en-US")} Founding cards are spoken for${firstYear ? ". First Year Members still open" : ""}` : `${left.toLocaleString("en-US")} of ${p.cap.toLocaleString("en-US")} Founding cards left`,
+    strip: full ? `All ${p.cap.toLocaleString("en-US")} Founding cards are spoken for${firstYear ? ". First Year Members still open" : ""}` : cards,
     /** The sentence under the join headline. */
     lead: full
       ? `All ${p.cap.toLocaleString("en-US")} Founding Member cards are spoken for. ${firstYear}`.trim()
