@@ -89,7 +89,7 @@ function IosSteps({ className }: { className?: string }) {
  * `required`: the app-only wall, where this card is the only way forward. It can't be dismissed, and where the browser
  * offers no install event (Firefox, an app already installed, a declined prompt) it gives the browser-menu route instead.
  */
-export function InstallPrompt({ app, variant = "card", once = false, priority = false, required = false, className }: { app: InstallApp; variant?: "card" | "bar" | "menu" | "button" | "sheet"; once?: boolean; priority?: boolean; required?: boolean; className?: string }) {
+export function InstallPrompt({ app, variant = "card", once = false, priority = false, required = false, label, className }: { app: InstallApp; variant?: "card" | "bar" | "menu" | "button" | "sheet"; once?: boolean; priority?: boolean; required?: boolean; label?: string; className?: string }) {
   const [state, setState] = useState<InstallState | null>(null);
   const [evt, setEvt] = useState<PromptEvent | null>(null);
   const [gone, setGone] = useState(false);
@@ -261,7 +261,7 @@ export function InstallPrompt({ app, variant = "card", once = false, priority = 
           className={cn("inline-flex h-12 select-none items-center justify-center gap-2 whitespace-nowrap rounded-full bg-ink-800 px-5 text-[0.95rem] font-semibold text-ink-50 transition hover:bg-ink-700 active:scale-[0.98] disabled:opacity-40", className)}
           {...shared}
         >
-          <Download className="h-4 w-4" aria-hidden /> {title}
+          <Download className="h-4 w-4" aria-hidden /> {label ?? title}
         </button>
         {ios && open && (
           <p className="basis-full text-sm text-ink-400">
