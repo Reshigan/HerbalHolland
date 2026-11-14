@@ -177,10 +177,10 @@ function useKeyboardFlag(on: boolean) {
   }, [on]);
 }
 
-/** A step's main button. Pinned (phones only, `pinned:` in globals.css), it stays at the bottom of the screen above the home indicator. */
+/** A step's main button. Pinned (phones only, `pinned:` in globals.css), it stays at the bottom of the screen above the home indicator, or above the tab bar in the installed app. */
 function ActionBar({ pinned, children }: { pinned?: boolean; children: React.ReactNode }) {
   return (
-    <div data-actionbar className={cn(pinned && "pinned:fixed pinned:inset-x-0 pinned:bottom-0 pinned:z-40 pinned:border-t pinned:border-ink-850 pinned:bg-ink-950/95 pinned:px-4 pinned:pt-3 pinned:pb-[max(0.75rem,env(safe-area-inset-bottom))] pinned:backdrop-blur")}>
+    <div data-actionbar className={cn(pinned && "pinned:fixed pinned:inset-x-0 pinned:bottom-0 pinned:z-40 pinned:border-t pinned:border-ink-850 pinned:bg-ink-950/95 pinned:px-4 pinned:pt-3 pinned:pb-[max(0.75rem,env(safe-area-inset-bottom))] pinned:backdrop-blur app:pinned:bottom-[calc(4rem+env(safe-area-inset-bottom))] app:pinned:pb-3")}>
       {children}
     </div>
   );
