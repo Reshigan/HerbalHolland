@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, KeyRound, Mail, MessageSquareText, Smartphone } from "lucide-react";
 import { authFlow, type AuthState } from "@/server/shop/actions";
 import { buttonClass } from "@/components/ui/button";
@@ -35,6 +35,7 @@ export function PhoneAuth({
   title = "Sign in or join",
   intro = "Use your mobile number (no passwords). New here? It takes one short step.",
   installStep,
+  appScreen,
   turnstileSiteKey,
 }: {
   next?: string;
@@ -52,6 +53,8 @@ export function PhoneAuth({
   intro?: string;
   /** Show installing the app as the last step of joining (the shop is app only). */
   installStep?: boolean;
+  /** Rewards on a phone: the form is the screen (no card around it, a slim progress bar, the main button pinned to the bottom). */
+  appScreen?: boolean;
   /** Cloudflare Turnstile on the code-send forms; null when the check is off. */
   turnstileSiteKey?: string | null;
 }) {
@@ -60,6 +63,7 @@ export function PhoneAuth({
   const viaEmail = byEmail || state.values?.by === "email";
   const [botOk, setBotOk] = useState(!turnstileSiteKey);
   const bot = turnstileSiteKey && <Turnstile siteKey={turnstileSiteKey} action="member_code" reset={state} onReady={setBotOk} />;
+  useKeyboardFlag(!!appScreen);
   const hidden = (
     <>
       {next && <input type="hidden" name="next" value={next} />}
@@ -83,7 +87,7 @@ export function PhoneAuth({
 
   return (
     <div>
-      <Steps at={state.step === "phone" ? 0 : state.step === "code" ? 1 : 2} app={installStep} />
+      <Steps at={state.step === "phone" ? 0 : state.step === "code" ? 1 : 2} app={installStep} slim={appScreen} />
       {state.error && (
         <p className="mb-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100" role="alert">
           {state.error}
@@ -96,12 +100,13 @@ export function PhoneAuth({
           <input type="hidden" name="intent" value="send" />
           <div>
             <h2 className="font-display text-2xl font-semibold text-white">{title}</h2>
-            <p className="mt-1 text-sm text-ink-400">{intro}</p>
+            <p className={cn("mt-1 text-sm text-ink-400", appScreen && "max-sm:hidden")}>{intro}</p>
+            {appScreen && <p className="mt-1 text-sm text-ink-400 sm:hidden">New or returning? Enter your number.</p>}
           </div>
-          <FieldRow label="Mobile number" htmlFor="auth-phone" error={state.fields?.phone} hint={viaEmail ? "Your number is your membership; the code goes to your email." : "We'll send a 6-digit code by SMS."}>
+          <FieldRow label={appScreen ? <span className="max-sm:sr-only">Mobile number</span> : "Mobile number"} htmlFor="auth-phone" error={state.fields?.phone} hint={viaEmail ? "Your number is your membership; the code goes to your email." : "We'll send a 6-digit code by SMS."}>
             <div className="relative">
               <Smartphone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-              <TextInput id="auth-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel-national" required placeholder="082 123 4567" defaultValue={state.values?.phone ?? defaultPhone} className="pl-11 text-lg tracking-wide" aria-invalid={!!state.fields?.phone} autoFocus={!!state.error || !!state.fields?.phone} />
+              <TextInput id="auth-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel-national" required placeholder="082 123 4567" defaultValue={state.values?.phone ?? defaultPhone} className={cn("pl-11 text-lg tracking-wide", appScreen && "max-sm:scroll-mb-28")} aria-invalid={!!state.fields?.phone} autoFocus={!!state.error || !!state.fields?.phone} />
             </div>
           </FieldRow>
           {viaEmail ? (
@@ -113,51 +118,111 @@ export function PhoneAuth({
               </div>
             </FieldRow>
           ) : (
-            <button type="button" onClick={() => setByEmail(true)} className="flex items-center gap-2 text-sm font-medium text-ink-400 hover:text-white">
+            <button type="button" onClick={() => setByEmail(true)} className={cn("flex items-center gap-2 text-sm font-medium text-ink-400 hover:text-white", appScreen && "max-sm:hidden")}>
               <Mail className="h-4 w-4" /> Get my code by email instead
             </button>
           )}
           {bot}
-          <button disabled={pending || !botOk} className={buttonClass("primary", "xl", "w-full")}>
-            {pending ? "Sending…" : "Send my code"} <ArrowRight className="h-5 w-5" />
-          </button>
+          <ActionBar pinned={appScreen}>
+            <button disabled={pending || !botOk} className={buttonClass("primary", "xl", "w-full")}>
+              {pending ? "Sending…" : "Send my code"} <ArrowRight className="h-5 w-5" />
+            </button>
+            {appScreen && !viaEmail && (
+              <button type="button" onClick={() => setByEmail(true)} className="mx-auto mt-1 block h-11 px-4 text-sm font-medium text-ink-400 underline underline-offset-4 hover:text-white sm:hidden">
+                Get my code by email instead
+              </button>
+            )}
+          </ActionBar>
           <p className="text-center text-xs text-ink-450">
             Adults 18+ only. By continuing you accept our <Link href="/legal/terms" className="underline hover:text-ink-300">terms</Link> and <Link href="/legal/privacy" className="underline hover:text-ink-300">privacy notice</Link>.
           </p>
         </form>
       )}
 
-      {state.step === "code" && <CodeStep state={state} action={action} pending={pending} hidden={hidden} bot={bot} botOk={botOk} />}
+      {state.step === "code" && <CodeStep state={state} action={action} pending={pending} hidden={hidden} bot={bot} botOk={botOk} pinned={appScreen} />}
 
       {state.step === "register" && (
-        <RegisterStep state={state} action={action} pending={pending} hidden={hidden} stores={stores} defaultStoreId={defaultStoreId} referral={referral} consentWording={consentWording} partner={partner} shareOffers={shareOffers} />
+        <RegisterStep state={state} action={action} pending={pending} hidden={hidden} stores={stores} defaultStoreId={defaultStoreId} referral={referral} consentWording={consentWording} partner={partner} shareOffers={shareOffers} pinned={appScreen} />
       )}
     </div>
   );
 }
 
-/** Joining's progress. With the shop app only, installing the app is the last step (src/app/app/install). */
-export function Steps({ at, app }: { at: number; app?: boolean }) {
-  const i = at;
-  const labels = app ? ["Number", "Code", "Details", "App"] : ["Number", "Code", "Details"];
+/**
+ * Marks <html> with `data-kb` while the on-screen keyboard is up (it covers the page without resizing it on iOS and
+ * Android Chrome). The pinned ActionBar then drops back into the form, under the field, and is scrolled into sight
+ * when it fits on screen together with the field being typed in.
+ */
+function useKeyboardFlag(on: boolean) {
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!on || !vv) return;
+    const root = document.documentElement;
+    const set = () => {
+      const up = vv.scale <= 1 && window.innerHeight - vv.height - vv.offsetTop > 120;
+      if (up === root.hasAttribute("data-kb")) return;
+      root.toggleAttribute("data-kb", up);
+      const bar = document.querySelector("[data-actionbar]")?.getBoundingClientRect();
+      const field = document.activeElement?.getBoundingClientRect();
+      if (!up || !bar || !field || bar.bottom - field.top + 24 > vv.height) return;
+      const over = bar.bottom + 12 - (vv.offsetTop + vv.height);
+      if (over > 0) window.scrollBy({ top: over, behavior: "smooth" });
+    };
+    set();
+    vv.addEventListener("resize", set);
+    return () => {
+      vv.removeEventListener("resize", set);
+      root.removeAttribute("data-kb");
+    };
+  }, [on]);
+}
+
+/** A step's main button. Pinned (phones only, `pinned:` in globals.css), it stays at the bottom of the screen above the home indicator, or above the tab bar in the installed app. */
+function ActionBar({ pinned, children }: { pinned?: boolean; children: React.ReactNode }) {
   return (
-    <ol className="mb-6 flex flex-wrap items-center gap-2 text-xs font-semibold" aria-label="Progress">
-      {labels.map((l, n) => (
-        <li key={l} className="flex items-center gap-2">
-          <span className={cn("grid h-6 w-6 place-items-center rounded-full text-[0.68rem]", n < i ? "bg-leaf-500 text-ink-950" : n === i ? "bg-brand-500 text-ink-950" : "bg-ink-800 text-ink-400")} aria-current={n === i ? "step" : undefined}>
-            {n + 1}
-          </span>
-          <span className={n === i ? "text-white" : "text-ink-450"}>{l}</span>
-          {n < labels.length - 1 && <span className="mx-1 h-px w-4 bg-ink-700 sm:w-6" />}
-        </li>
-      ))}
-    </ol>
+    <div data-actionbar className={cn(pinned && "pinned:fixed pinned:inset-x-0 pinned:bottom-0 pinned:z-40 pinned:border-t pinned:border-ink-850 pinned:bg-ink-950/95 pinned:px-4 pinned:pt-3 pinned:pb-[max(0.75rem,env(safe-area-inset-bottom))] pinned:backdrop-blur app:pinned:bottom-[calc(4rem+env(safe-area-inset-bottom))] app:pinned:pb-3")}>
+      {children}
+    </div>
   );
 }
 
-type StepProps = { state: AuthState; action: (f: FormData) => void; pending: boolean; hidden: React.ReactNode };
+/** Joining's progress. With the shop app only, installing the app is the last step (src/app/app/install). */
+export function Steps({ at, app, slim }: { at: number; app?: boolean; slim?: boolean }) {
+  const i = at;
+  const labels = app ? ["Number", "Code", "Details", "App"] : ["Number", "Code", "Details"];
+  return (
+    <>
+      {/* Phones: one slim bar instead of the numbered row, which wraps at four steps. */}
+      {slim && (
+        <div className="mb-5 sm:hidden" role="progressbar" aria-label="Progress" aria-valuemin={1} aria-valuemax={labels.length} aria-valuenow={i + 1} aria-valuetext={`Step ${i + 1} of ${labels.length}: ${labels[i]}`}>
+          <div className="flex gap-1.5" aria-hidden>
+            {labels.map((l, n) => (
+              <span key={l} className={cn("h-1 flex-1 rounded-full", n <= i ? "bg-brand-500" : "bg-ink-800")} />
+            ))}
+          </div>
+          <div className="mt-2 text-xs font-semibold text-ink-400">
+            Step {i + 1} of {labels.length}
+          </div>
+        </div>
+      )}
+      <ol className={cn("mb-6 flex flex-wrap items-center gap-2 text-xs font-semibold", slim && "max-sm:hidden")} aria-label="Progress">
+        {labels.map((l, n) => (
+          <li key={l} className="flex items-center gap-2">
+            <span className={cn("grid h-6 w-6 place-items-center rounded-full text-[0.68rem]", n < i ? "bg-leaf-500 text-ink-950" : n === i ? "bg-brand-500 text-ink-950" : "bg-ink-800 text-ink-400")} aria-current={n === i ? "step" : undefined}>
+              {n + 1}
+            </span>
+            <span className={n === i ? "text-white" : "text-ink-450"}>{l}</span>
+            {n < labels.length - 1 && <span className="mx-1 h-px w-4 bg-ink-700 sm:w-6" />}
+          </li>
+        ))}
+      </ol>
+    </>
+  );
+}
 
-function CodeStep({ state, action, pending, hidden, bot, botOk }: StepProps & { bot: React.ReactNode; botOk: boolean }) {
+type StepProps = { state: AuthState; action: (f: FormData) => void; pending: boolean; hidden: React.ReactNode; pinned?: boolean };
+
+function CodeStep({ state, action, pending, hidden, bot, botOk, pinned }: StepProps & { bot: React.ReactNode; botOk: boolean }) {
   const [code, setCode] = useState("");
   return (
     <div className="space-y-4">
@@ -193,20 +258,22 @@ function CodeStep({ state, action, pending, hidden, bot, botOk }: StepProps & { 
               required
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="tnum pl-11 text-xl tracking-[0.5em]"
+              className={cn("tnum pl-11 text-xl tracking-[0.5em]", pinned && "max-sm:scroll-mb-28")}
               aria-invalid={!!state.fields?.code}
               autoFocus
             />
           </div>
         </FieldRow>
-        <button disabled={pending || code.length !== 6} className={buttonClass("primary", "xl", "w-full")}>
-          {pending ? "Checking…" : "Verify"}
-        </button>
+        <ActionBar pinned={pinned}>
+          <button disabled={pending || code.length !== 6} className={buttonClass("primary", "xl", "w-full")}>
+            {pending ? "Checking…" : "Verify"}
+          </button>
+        </ActionBar>
       </form>
       <div className="flex items-center justify-between text-sm">
         <form action={action}>
           <input type="hidden" name="intent" value="restart" />
-          <button className="font-medium text-ink-400 hover:text-white">Use a different number</button>
+          <button className="min-h-11 font-medium text-ink-400 hover:text-white">Use a different number</button>
         </form>
         <form action={action}>
           {hidden}
@@ -214,7 +281,7 @@ function CodeStep({ state, action, pending, hidden, bot, botOk }: StepProps & { 
           {state.email && <input type="hidden" name="by" value="email" />}
           {state.email && <input type="hidden" name="email" value={state.email} />}
           {bot}
-          <button disabled={!botOk} className="font-semibold text-brand-400 hover:underline disabled:opacity-50">Send a new code</button>
+          <button disabled={!botOk} className="min-h-11 font-semibold text-brand-400 hover:underline disabled:opacity-50">Send a new code</button>
         </form>
       </div>
     </div>
@@ -260,7 +327,7 @@ function DobPicker({ initial, error }: { initial?: string; error?: string }) {
   );
 }
 
-function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, referral, consentWording, partner, shareOffers }: StepProps & { stores: StoreOpt[]; defaultStoreId?: string | null; referral?: { code: string; name: string } | null; consentWording: string; partner?: { name: string } | null; shareOffers?: ShareOffer[] }) {
+function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, referral, consentWording, partner, shareOffers, pinned }: StepProps & { stores: StoreOpt[]; defaultStoreId?: string | null; referral?: { code: string; name: string } | null; consentWording: string; partner?: { name: string } | null; shareOffers?: ShareOffer[] }) {
   const v = state.values ?? {};
   const cities = useMemo(() => [...new Set(stores.map((s) => s.city))].sort(), [stores]);
 
@@ -363,9 +430,11 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
 
       {referral && <p className="rounded-xl bg-brand-500/10 px-4 py-3 text-sm text-brand-200">Invited by {referral.name}. You&apos;ll both get bonus points after your first purchase.</p>}
 
-      <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
-        {pending ? "Creating your account…" : "Join and continue"} <ArrowRight className="h-5 w-5" />
-      </button>
+      <ActionBar pinned={pinned}>
+        <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
+          {pending ? "Creating your account…" : "Join and continue"} <ArrowRight className="h-5 w-5" />
+        </button>
+      </ActionBar>
     </form>
   );
 }

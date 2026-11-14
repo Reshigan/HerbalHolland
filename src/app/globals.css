@@ -8,6 +8,11 @@
   @media (display-mode: standalone) { @slot; }
   [data-appframe] & { @media (width < 40rem) { @slot; } }
 }
+/* A step's main button pinned to the bottom of a phone screen (PhoneAuth's ActionBar): `pinned:` applies below sm, and
+   lets go while the on-screen keyboard is up (html[data-kb]), so the button sits under the field instead of over it. */
+@custom-variant pinned {
+  @media (width < 40rem) { html:not([data-kb]) & { @slot; } }
+}
 
 @media (display-mode: standalone) {
   html { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; scrollbar-color: var(--color-ink-700) transparent; }
