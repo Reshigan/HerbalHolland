@@ -62,14 +62,15 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
   const home = qrStore ?? preferred;
 
   return (
-    <Container className="pt-10 sm:pt-16">
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_30rem] lg:gap-16">
-        <div className="lg:pt-6">
-          <Mark className="h-14 w-14 text-brand-500" />
-          <h1 className="mt-6 font-display text-5xl font-semibold leading-[1] tracking-tight text-white">
+    <Container className="pt-5 sm:pt-16">
+      {/* Phones get the form first: a short intro, the form, then the detail. Desktop keeps the two columns. */}
+      <div className="grid grid-cols-1 gap-6 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_30rem] lg:grid-rows-[auto_1fr] lg:gap-x-16 lg:gap-y-0">
+        <div className="lg:col-start-1 lg:pt-6">
+          <Mark className="hidden h-14 w-14 text-brand-500 sm:block" />
+          <h1 className="font-display text-3xl sm:mt-6 sm:text-5xl font-semibold leading-[1] tracking-tight text-white">
             {arrival ? `Welcome from ${arrival.partner.name}` : referrer ? `${referrer.firstName} invited you` : places?.full ? "Become a First Year Member." : pre ? "Become a Founding Member." : "Join in a minute."}
           </h1>
-          <p className="mt-5 max-w-lg text-lg leading-relaxed text-ink-300">
+          <p className="mt-3 max-w-lg leading-relaxed text-ink-300 max-sm:line-clamp-3 sm:mt-5 sm:text-lg">
             {pre && places
               ? `${places.lead} ${places.full ? "" : `Founding Members get a numbered card and start at ${tierInfo(launch.foundingTier).name} for ${launch.foundingMonths} months.`}${
                   referrer ? ` Joining with ${referrer.firstName}'s link moves them up ${num(launch.referralBoost)} places, and you'll both get ${fmtPoints(settings.loyalty.referralBonus)} after your first purchase.` : ""
@@ -78,6 +79,8 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
                 ? `Join Herbal Holland Rewards free. After your first purchase you'll both get ${fmtPoints(settings.loyalty.referralBonus)}, on top of your ${fmtPoints(settings.loyalty.signupBonus)} welcome bonus.`
                 : `Free, no passwords and no plastic. Your card lives on your phone and works in ${trading.length > 1 ? `all ${trading.length} stores` : "every store"} and in the app.`}
           </p>
+        </div>
+        <div className="max-lg:order-3 lg:col-start-1 lg:row-start-2">
           {qrStore && (
             <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-brand-500/40 bg-brand-500/10 px-4 py-2 text-sm text-brand-200">
               <MapPin className="h-4 w-4" /> Joining at Herbal Holland {qrStore.name}
@@ -107,7 +110,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             </Link>
           </p>
         </div>
-        <Panel className="h-fit p-6 sm:p-8">
+        <Panel className="h-fit p-6 max-lg:order-2 sm:p-8 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <PhoneAuth turnstileSiteKey={turnstileSiteKey()}
             next={next}
             stores={homeStoreOptions(stores)}
@@ -120,7 +123,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             shareOffers={shareOffers}
             installStep={appOnly()}
             title="Your mobile number"
-            intro="Already a member? We'll sign you straight in."
+            intro="New or already a member? Enter your number: new members join, members sign straight in."
           />
         </Panel>
       </div>

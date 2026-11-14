@@ -16,6 +16,7 @@ import { tierMeta } from "@/server/shop/club";
 import { Logo, Mark, Wordmark } from "@/components/brand/logo";
 import { buttonClass } from "@/components/ui/button";
 import { ServiceWorker } from "@/components/ui/service-worker";
+import { InstallPrompt } from "@/components/ui/install-prompt";
 import { AppTabBar, MobileMenu, NavLinks, StorePicker, type NavItem } from "./nav-client";
 import { Container } from "./ui";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
@@ -98,11 +99,11 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
       <a href="#main" className="sr-only z-[70] rounded-full bg-brand-500 px-4 py-2 font-semibold text-ink-950 focus:not-sr-only focus:fixed focus:left-4 focus:top-3">
         Skip to content
       </a>
-      <div className="flex min-h-dvh flex-col bg-ink-950 text-ink-100" inert={age === "unknown" || undefined}>
+      <div className="flex min-h-dvh flex-col bg-ink-950 text-ink-100" inert={age === "unknown" || undefined} data-appframe={compact || undefined}>
         {/* iOS draws the status bar over the page in the installed app: this strip keeps its white text on black, and content from sliding under it. */}
         <div aria-hidden className="fixed inset-x-0 top-0 z-50 hidden h-[env(safe-area-inset-top)] bg-ink-950 app:block" />
         <nav aria-label="Offers" className="bg-brand-500 pt-[env(safe-area-inset-top)] text-ink-950">
-          <Container className={cn("flex h-9 items-center justify-center gap-6 text-[0.78rem] font-semibold", compact && "app:hidden")}>
+          <Container className={cn("flex h-9 items-center justify-center gap-6 text-[0.78rem] font-semibold", compact && "appframe:hidden")}>
             {messages.map((m, i) => (
               <Link key={m.text} href={m.href} className={cn("truncate hover:underline", i > 0 && "hidden md:inline", i > 1 && "md:hidden lg:inline")}>
                 {m.text}
@@ -117,12 +118,14 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
 
         <header className="sticky top-[env(safe-area-inset-top)] z-40 border-b border-ink-850 bg-ink-950/85 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-950/70">
           <Container className="flex h-16 items-center gap-2 lg:h-[4.5rem] lg:gap-4">
-            <MobileMenu
-              items={NAV}
-              footer={
-                <p className="text-center text-xs text-ink-400">Adults 18+ only · Free to join</p>
-              }
-            />
+            <div className={cn("contents", compact && "appframe:hidden")}>
+              <MobileMenu
+                items={NAV}
+                footer={
+                  <p className="text-center text-xs text-ink-400">Adults 18+ only · Free to join</p>
+                }
+              />
+            </div>
             <Link href="/" className="shrink-0 rounded-lg" aria-label="Herbal Holland home">
               <Logo markClassName="h-9 w-9 lg:h-10 lg:w-10" />
             </Link>
@@ -146,12 +149,13 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
               </form>
               <Link
                 href="/shop?focus=1"
-                className="grid h-11 w-11 place-items-center rounded-full text-ink-200 transition hover:bg-ink-850 hover:text-white 2xl:hidden"
+                className={cn("grid h-11 w-11 place-items-center rounded-full text-ink-200 transition hover:bg-ink-850 hover:text-white 2xl:hidden", compact && "appframe:hidden")}
                 aria-label="Search products"
               >
                 <Search className="h-[22px] w-[22px]" strokeWidth={1.8} />
               </Link>
               <StorePicker current={current} className="hidden md:flex" />
+              {compact && <InstallPrompt app="rewards" variant="button" label="Get the app" className="hidden h-9 px-4 text-sm appframe:inline-flex" />}
               <Link
                 href={customer ? "/club/settings" : "/club"}
                 className="flex h-11 shrink-0 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3"
@@ -174,7 +178,7 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
               )}
             </div>
           </Container>
-          <div className={cn("border-t border-ink-850 md:hidden", compact && "app:hidden")}>
+          <div className={cn("border-t border-ink-850 md:hidden", compact && "appframe:hidden")}>
             <Container>
               <StorePicker current={current} variant="bar" />
             </Container>
@@ -187,7 +191,7 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
 
         {/* Already-rendered content inside a Suspense boundary hydrates later, in small slices, instead of in the first long task. */}
         <Suspense>
-        <footer className="mt-24 border-t border-ink-850 bg-ink-950 app:hidden">
+        <footer className={cn("mt-24 border-t border-ink-850 bg-ink-950 app:hidden", compact && "appframe:hidden")}>
           <Container className="grid grid-cols-1 gap-12 py-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
             <div>
               <Link href="/" className="inline-flex items-center gap-3 text-brand-500" aria-label="Herbal Holland home">
