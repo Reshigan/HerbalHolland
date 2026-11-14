@@ -155,7 +155,12 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
                 <Search className="h-[22px] w-[22px]" strokeWidth={1.8} />
               </Link>
               <StorePicker current={current} className="hidden md:flex" />
-              {compact && <InstallPrompt app="rewards" variant="button" label="Get the app" className="hidden h-9 px-4 text-sm appframe:inline-flex" />}
+              {compact && (
+                // iPhone's Add to Home Screen steps open as a panel under the bar, not inside the row.
+                <div className="relative hidden appframe:block [&>p]:absolute [&>p]:right-0 [&>p]:top-full [&>p]:z-50 [&>p]:mt-2 [&>p]:w-64 [&>p]:rounded-2xl [&>p]:border [&>p]:border-ink-800 [&>p]:bg-ink-900 [&>p]:p-4 [&>p]:text-ink-200 [&>p]:shadow-lift">
+                  <InstallPrompt app="rewards" variant="button" label="Get the app" className="h-11 px-4 text-sm" />
+                </div>
+              )}
               <Link
                 href={customer ? "/club/settings" : "/club"}
                 className="flex h-11 shrink-0 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3"
