@@ -114,14 +114,14 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
         </Panel>
       )}
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
-        <div className="mx-auto w-full max-w-md space-y-4 md:max-w-none">
+        <div className="hh-enter mx-auto w-full max-w-md space-y-4 md:max-w-none">
           <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} firstYear={!m.customer.foundingNo && !!m.floor && !!launch.at && m.customer.createdAt < launch.at} floorUntil={floorUntil} countFrom={countFrom} earned={earned} className={sp.welcome ? "hh-shimmer-once" : undefined} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
           <WalletButtons />
           {!sp.welcome && <InstallPrompt app="rewards" />}
         </div>
 
-        <div className="space-y-6">
+        <div className="hh-enter hh-stagger space-y-6 [--hh-delay:80ms]">
           <div>
             <div className="eyebrow text-brand-500">{m.tier.name} member{m.customer.homeStore ? ` · ${m.customer.homeStore.name}` : ""}</div>
             <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white">Hi {m.customer.firstName}</h1>

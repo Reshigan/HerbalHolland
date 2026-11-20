@@ -59,12 +59,15 @@ export function ClubNav({ owner = false, play = false }: { owner?: boolean; play
         ))}
         {slide && <span aria-hidden className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-px origin-left bg-brand-500 transition-transform duration-[var(--dur)] ease-[var(--ease-out-expo)] motion-reduce:transition-none" style={{ transform: slide }} />}
       </nav>
-      <nav aria-label="Rewards" className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-800 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur app:hidden sm:hidden">
+      <nav aria-label="Rewards" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.06] bg-ink-950/80 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_32px_rgb(0_0_0/0.45)] backdrop-blur-xl backdrop-saturate-150 app:hidden sm:hidden">
         <ul className={cn("grid", tabs.length === 5 ? "grid-cols-5" : "grid-cols-4")}>
           {tabs.map((t) => (
             <li key={t.href}>
-              <Link href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("flex h-16 flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold", active(t.href) ? "text-brand-400" : "text-ink-400")}>
-                <t.icon className="h-5 w-5" strokeWidth={1.9} /> {t.label}
+              <Link href={t.href} onClick={() => setTap(t.href)} aria-current={active(t.href) ? "page" : undefined} className={cn("group flex h-16 select-none flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold transition-colors", active(t.href) ? "text-brand-300" : "text-ink-400 active:text-ink-200")}>
+                <span className={cn("grid h-7 w-14 place-items-center rounded-full transition-colors duration-200", active(t.href) && "bg-brand-500/15")}>
+                  <t.icon className="h-5 w-5 transition-transform motion-safe:group-active:scale-90" strokeWidth={active(t.href) ? 2.3 : 1.9} />
+                </span>
+                {t.label}
               </Link>
             </li>
           ))}
