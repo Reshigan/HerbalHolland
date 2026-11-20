@@ -64,6 +64,7 @@ export async function memberExport(customerId: string) {
       reviews: { select: { rating: true, title: true, body: true, photoUploadIds: true, hidden: true, createdAt: true, product: { select: { name: true } } } },
       alerts: { select: { createdAt: true, notifiedAt: true, variant: { select: { sku: true } } } },
       pushSubs: { select: { endpoint: true, createdAt: true } },
+      passkeys: { select: { label: true, createdAt: true, lastUsedAt: true } },
       offers: { orderBy: { createdAt: "asc" }, select: { title: true, kind: true, value: true, startsAt: true, endsAt: true, redeemedAt: true } },
       rsvps: { select: { createdAt: true, checkedInAt: true, event: { select: { title: true, startsAt: true } } } },
       dropWatches: { select: { createdAt: true, drop: { select: { name: true } } } },
@@ -156,6 +157,7 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     await t.stockAlert.deleteMany({ where: { customerId } });
     await t.dropWatch.deleteMany({ where: { customerId } });
     await t.pushSubscription.deleteMany({ where: { customerId } });
+    await t.passkey.deleteMany({ where: { customerId } });
     await t.questCompletion.deleteMany({ where: { customerId } });
     await t.partnerLink.deleteMany({ where: { customerId } });
     await t.memberOffer.deleteMany({ where: { customerId, redeemedAt: null } }); // a used deal stays with the sale it discounted

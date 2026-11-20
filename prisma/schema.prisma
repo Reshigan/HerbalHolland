@@ -638,6 +638,7 @@ model Customer {
   consentEvents ConsentEvent[]
   patientAuths  PatientAuth[]
   pushSubs      PushSubscription[]
+  passkeys      Passkey[]
   offers        MemberOffer[]
   rsvps         Rsvp[]
   dropWatches   DropWatch[]
@@ -1370,6 +1371,20 @@ model Counter {
 /**
  * Web Push subscriptions for the Rewards app (one per browser/device).
  */
+/// A member's passkey (fingerprint / face sign-in on their phone). The public key is SPKI, base64url.
+model Passkey {
+  id         String    @id // the credential id, base64url
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  publicKey  String
+  alg        Int       @default(-7) // COSE: -7 ES256, -257 RS256
+  label      String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([customerId])
+}
+
 model PushSubscription {
   id         String   @id @default(cuid())
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)

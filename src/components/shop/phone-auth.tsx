@@ -9,6 +9,7 @@ import { displayPhone } from "@/lib/sa";
 import { clampDay, daysInMonth, dobValue } from "@/lib/dob";
 import { cn } from "@/lib/cn";
 import { Turnstile } from "@/components/ui/turnstile";
+import { PasskeySignIn } from "./passkey";
 import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
 import { INTERESTS, type InterestKey } from "@/lib/rfm";
 
@@ -133,6 +134,7 @@ export function PhoneAuth({
               </button>
             )}
           </ActionBar>
+          <PasskeySignIn next={next} />
           <p className="text-center text-xs text-ink-450">
             Adults 18+ only. By continuing you accept our <Link href="/legal/terms" className="underline hover:text-ink-300">terms</Link> and <Link href="/legal/privacy" className="underline hover:text-ink-300">privacy notice</Link>.
           </p>
