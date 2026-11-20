@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { getCustomer, getStaff } from "@/server/auth";
 import { db } from "@/server/db";
 import { INSIGHT_ROLES, cardHolderMayView } from "@/server/insights";
@@ -29,7 +30,7 @@ export default async function ClubLayout({ children }: { children: React.ReactNo
     <ShopChrome compact>
       {customer && (
         <Container className="pt-2 sm:pt-6">
-          <ClubNav owner={owner} />
+          <ClubNav owner={owner} play={(await cookies()).has("hh_play")} />
         </Container>
       )}
       <div className={customer ? "pb-20 app:pb-0 sm:pb-0" : undefined}>
