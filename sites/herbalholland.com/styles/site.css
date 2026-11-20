@@ -217,6 +217,7 @@ main > section ~ section, main > .marquee, .ftr { content-visibility: auto; cont
 .f-canal { fill: url(#canal); }
 .f-sea { fill: url(#seafill); }
 .s-ripple { fill: none; stroke: var(--brand-400); stroke-width: 2; stroke-linecap: round; opacity: .35; }
+@media (max-width: 899px) { .s-ripple { opacity: .12; } }
 .f-star, #stars, #stars2, #crux { fill: var(--ink-50); }
 #stars2 { opacity: .45; }
 .star__glow { fill: url(#starglow); }
@@ -482,13 +483,14 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .plane__dot { fill: var(--brand-300); }
 .readout { grid-area: read; display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem 1.75rem; font-family: var(--display); }
 .readout div { display: grid; gap: .2rem; }
-.readout dt { font-size: .62rem; color: var(--ink-500); }
+.readout dt { font-size: .62rem; color: var(--ink-400); }
 .readout dd { min-width: 6.6em; font-weight: 500; color: var(--ink-100); font-variant-numeric: tabular-nums; }
 .chapters { grid-area: chap; display: grid; gap: 2rem; }
 .chapter { display: grid; gap: .6rem; align-content: start; max-width: 34rem; }
 .chapter__n { gap: .6rem; color: var(--brand-500); }
 .chapter__title { font: 600 clamp(1.55rem, 2.6vw, 2.35rem)/1.06 var(--display); letter-spacing: -.03em; color: var(--ink-50); text-wrap: balance; }
-.chapter__body { font-size: clamp(.98rem, 1.1vw, 1.08rem); color: var(--ink-300); }
+.chapter__body { font-size: clamp(.98rem, 1.1vw, 1.08rem); color: var(--ink-200); text-shadow: 0 1px 14px color-mix(in oklab, var(--ink-950) 70%, transparent); }
+.chapter__title { text-shadow: 0 2px 24px color-mix(in oklab, var(--ink-950) 60%, transparent); }
 .story__bar { display: none; gap: .4rem; }
 .story__bar span { position: relative; width: 3.25rem; height: 2px; overflow: hidden; background: var(--ink-800); }
 .story__bar i { position: absolute; inset: 0; background: var(--brand-500); transform-origin: left; transform: scaleX(0); }
