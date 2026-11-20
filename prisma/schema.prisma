@@ -638,6 +638,7 @@ model Customer {
   consentEvents ConsentEvent[]
   patientAuths  PatientAuth[]
   pushSubs      PushSubscription[]
+  passkeys      Passkey[]
   offers        MemberOffer[]
   rsvps         Rsvp[]
   dropWatches   DropWatch[]
@@ -1370,6 +1371,20 @@ model Counter {
 /**
  * Web Push subscriptions for the Rewards app (one per browser/device).
  */
+/// A member's passkey (fingerprint / face sign-in on their phone). The public key is SPKI, base64url.
+model Passkey {
+  id         String    @id // the credential id, base64url
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  publicKey  String
+  alg        Int       @default(-7) // COSE: -7 ES256, -257 RS256
+  label      String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([customerId])
+}
+
 model PushSubscription {
   id         String   @id @default(cuid())
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -2023,11 +2038,31 @@ model GiftVoucher {
   expiresAt             DateTime
   redeemedOrderIds      Json @default("[]")
   sentAt                DateTime?
+  /// Set on a member's referral credit wallet: one per member, topped up with the affiliate share of referred
+  /// friends' purchases, spent only by that member at the till, and only on lines that are not medicines.
+  affiliateOfId         String?       @unique
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
   @@index([purchasedByCustomerId, createdAt])
   @@index([status, expiresAt])
+}
+
+/// One affiliate share: a referred friend's purchase (saleId) put `cents` into the referrer's wallet voucher. A refund
+/// takes the share back with a negative row keyed by the refund's sale id. The row is written before the balance moves,
+/// so a run that stops halfway misses a credit and never doubles one.
+model AffiliateCredit {
+  id         String   @id @default(cuid())
+  customerId String
+  friendId   String
+  voucherId  String
+  saleId     String   @unique
+  orderId    String?
+  cents      Int
+  createdAt  DateTime @default(now())
+
+  @@index([customerId, createdAt])
+  @@index([friendId])
 }
 
 /// Money taken from a voucher: by an online order at checkout (orderId), by a till sale (saleId), or by a counter

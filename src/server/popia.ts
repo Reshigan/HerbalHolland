@@ -64,6 +64,7 @@ export async function memberExport(customerId: string) {
       reviews: { select: { rating: true, title: true, body: true, photoUploadIds: true, hidden: true, createdAt: true, product: { select: { name: true } } } },
       alerts: { select: { createdAt: true, notifiedAt: true, variant: { select: { sku: true } } } },
       pushSubs: { select: { endpoint: true, createdAt: true } },
+      passkeys: { select: { label: true, createdAt: true, lastUsedAt: true } },
       offers: { orderBy: { createdAt: "asc" }, select: { title: true, kind: true, value: true, startsAt: true, endsAt: true, redeemedAt: true } },
       rsvps: { select: { createdAt: true, checkedInAt: true, event: { select: { title: true, startsAt: true } } } },
       dropWatches: { select: { createdAt: true, drop: { select: { name: true } } } },
@@ -72,7 +73,7 @@ export async function memberExport(customerId: string) {
     },
   });
   if (!c) return null;
-  const [messages, addresses, wishlist, reminders, tickets, returns, vouchers, photos, doNotContact, activity, firstAccess] = await Promise.all([
+  const [messages, addresses, wishlist, reminders, tickets, returns, vouchers, referralCredit, photos, doNotContact, activity, firstAccess] = await Promise.all([
     db.messageLog.findMany({ where: messagesOf(c), orderBy: { createdAt: "asc" }, select: { channel: true, kind: true, to: true, body: true, status: true, createdAt: true } }),
     db.address.findMany({ where: { customerId }, orderBy: { createdAt: "asc" }, select: { label: true, line: true, suburb: true, city: true, province: true, postalCode: true, notes: true, isDefault: true, createdAt: true } }),
     db.wishlist.findMany({ where: { customerId }, orderBy: { createdAt: "asc" }, select: { variantId: true, createdAt: true } }),
@@ -87,6 +88,8 @@ export async function memberExport(customerId: string) {
     }),
     db.returnRequest.findMany({ where: { customerId }, orderBy: { createdAt: "asc" }, select: { number: true, orderId: true, reason: true, items: true, note: true, photoUploadIds: true, status: true, refundCents: true, decisionNote: true, createdAt: true, decidedAt: true } }),
     db.giftVoucher.findMany({ where: vouchersOf(c), orderBy: { createdAt: "asc" }, select: { code: true, purchasedByCustomerId: true, amountCents: true, balanceCents: true, recipientName: true, recipientEmail: true, message: true, status: true, issuedAt: true, expiresAt: true } }),
+    // Referral credit: what they earned from friends they referred, and what their own purchases earned their referrer.
+    db.affiliateCredit.findMany({ where: { OR: [{ customerId }, { friendId: customerId }] }, orderBy: { createdAt: "asc" }, select: { customerId: true, cents: true, createdAt: true } }),
     db.upload.findMany({ where: { uploadedById: customerId }, orderBy: { createdAt: "asc" }, select: { fileName: true, contentType: true, sizeBytes: true, createdAt: true } }),
     db.suppression.findMany({ where: { value: { in: contactOf(c) } }, select: { value: true, channel: true, source: true, createdAt: true } }),
     db.auditLog.findMany({ where: { actorType: "CUSTOMER", actorId: customerId }, orderBy: { at: "asc" }, select: { at: true, action: true } }),
@@ -112,6 +115,7 @@ export async function memberExport(customerId: string) {
     supportRequests: tickets.map(({ messages: thread, ...t }) => ({ ...t, messages: thread.map(({ attachmentUploadId, ...m }) => ({ ...m, photo: !!attachmentUploadId })) })),
     returns: returns.map(({ orderId, photoUploadIds, ...r }) => ({ ...r, order: orderCodes.find((o) => o.id === orderId)?.code ?? null, photos: asList(photoUploadIds).length })),
     giftVouchers: vouchers.map(({ purchasedByCustomerId, ...v }) => ({ ...v, boughtByThem: purchasedByCustomerId === c.id })),
+    referralCredit: referralCredit.map(({ customerId: to, ...r }) => ({ ...r, earnedByThem: to === c.id })),
     photos,
     doNotContact,
     activity,
@@ -153,6 +157,7 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     await t.stockAlert.deleteMany({ where: { customerId } });
     await t.dropWatch.deleteMany({ where: { customerId } });
     await t.pushSubscription.deleteMany({ where: { customerId } });
+    await t.passkey.deleteMany({ where: { customerId } });
     await t.questCompletion.deleteMany({ where: { customerId } });
     await t.partnerLink.deleteMany({ where: { customerId } });
     await t.memberOffer.deleteMany({ where: { customerId, redeemedAt: null } }); // a used deal stays with the sale it discounted

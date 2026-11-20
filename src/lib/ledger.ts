@@ -71,6 +71,7 @@ export const CHART: ChartRow[] = [
   { key: "points.issued", code: "6300", name: "Rewards points issued", type: "EXPENSE", only: "FRANCHISEE" },
   { key: "points.hq", code: "6310", name: "Rewards points given by Herbal Holland", type: "EXPENSE", only: "HQ" },
   { key: "offers.funded", code: "6320", name: "My Deals funded", type: "EXPENSE", only: "HQ" },
+  { key: "affiliate.hq", code: "6330", name: "Referral credit given by Herbal Holland", type: "EXPENSE", only: "HQ" },
   { key: "cash.diff", code: "6400", name: "Cash over and short", type: "EXPENSE" },
   { code: "6500", name: "Depreciation", type: "EXPENSE" },
   { key: "vat.nonclaimable", code: "6600", name: "VAT not claimable", type: "EXPENSE" },

@@ -18,7 +18,7 @@ export type PosCtx = {
   orders: OrderCard[] | null;
   ordersAt: string | null;
   setShift: (s: BootShift | null) => void;
-  refreshBoot: () => Promise<void>;
+  refreshBoot: () => Promise<unknown>;
   refreshOrders: () => Promise<void>;
   syncNow: () => Promise<void>;
   queueSale: (p: SalePayload, totalCents: number) => void;

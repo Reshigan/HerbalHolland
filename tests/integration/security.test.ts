@@ -117,6 +117,20 @@ describe("One-time codes", () => {
     expect(await checkCode({ phone }, third!)).toBe("locked");
   });
 
+  it("gives the Play reviewer's number its fixed code without a text, and still limits tries", async () => {
+    vi.stubEnv("PLAY_REVIEW_LOGIN", "060 555 0199:246810");
+    try {
+      const sent = await db.messageLog.count();
+      expect(await requestOtp("0605550199")).toMatchObject({ phone: "+27605550199" });
+      expect(await db.messageLog.count()).toBe(sent);
+      expect(await checkCode({ phone: "+27605550199" }, "246810")).toBe("ok");
+      await issueCode({ phone: "+27605550199" });
+      expect(await checkCode({ phone: "+27605550199" }, "111111")).toBe("wrong");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("sends at most five codes per address per ten minutes, however many are asked for at once", async () => {
     const email = "buyer@throttle.example";
     const codes = await Promise.all(Array.from({ length: 12 }, () => issueCode({ email })));

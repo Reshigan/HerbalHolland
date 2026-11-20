@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ArrowRight, BadgePercent, Cake, CalendarClock, Crown, Gift, Pill, ShieldCheck, Sparkles, Trophy, Users } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -29,6 +30,8 @@ import { zar, zarWhole } from "@/lib/money";
 import { BOOST_DAYS, nextRung, windmillCrew } from "@/lib/referral-ladder";
 import { cn } from "@/lib/cn";
 import { turnstileSiteKey } from "@/server/turnstile";
+import { db } from "@/server/db";
+import { PasskeyToggle } from "@/components/shop/passkey";
 
 export const metadata = { title: { absolute: "Herbal Holland Rewards" } };
 
@@ -49,15 +52,18 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
   const [customer, settings, store] = await Promise.all([getCustomer(), getSettings(), getPreferredStore()]);
   if (!customer) return <Landing />;
 
-  const [m, launch, deals, tickets, gifts] = await Promise.all([
+  const [m, launch, deals, tickets, gifts, passkeys] = await Promise.all([
     memberOverview(customer.id),
     launchState(),
     memberDeals(customer.id),
     memberTickets(customer.id),
     welcomeGifts(customer, store?.id),
+    db.passkey.count({ where: { customerId: customer.id } }),
   ]);
   const [waitlist, coming] = await Promise.all([launch.preLaunch ? waitlistPlace(customer.id) : null, tickets.length ? [] : upcomingEvents({ take: 2, homeStoreId: customer.homeStoreId })]);
-  const canBuy = canBuyOnline(settings.launch.phase);
+  // The Play Store build is Rewards only: no orders, no dispensary (Google Play does not allow cannabis sales).
+  const play = (await cookies()).has("hh_play");
+  const canBuy = canBuyOnline(settings.launch.phase) && !play;
   const savings = settings.loyalty.tierSavingsPct as Record<TierKey, number>;
   const idx = tierIndex(m.customer.tier);
   const base = APP_URL();
@@ -111,14 +117,14 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
         </Panel>
       )}
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
-        <div className="mx-auto w-full max-w-md space-y-4 md:max-w-none">
+        <div className="hh-enter mx-auto w-full max-w-md space-y-4 md:max-w-none">
           <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} firstYear={!m.customer.foundingNo && !!m.floor && !!launch.at && m.customer.createdAt < launch.at} floorUntil={floorUntil} countFrom={countFrom} earned={earned} className={sp.welcome ? "hh-shimmer-once" : undefined} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
           <WalletButtons />
           {!sp.welcome && <InstallPrompt app="rewards" />}
         </div>
 
-        <div className="space-y-6">
+        <div className="hh-enter hh-stagger space-y-6 [--hh-delay:80ms]">
           <div>
             <div className="eyebrow text-brand-500">{m.tier.name} member{m.customer.homeStore ? ` · ${m.customer.homeStore.name}` : ""}</div>
             <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white">Hi {m.customer.firstName}</h1>
@@ -130,6 +136,12 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                 <BadgePercent className="h-4 w-4 shrink-0 text-brand-400" />
                 <span>You&apos;ve saved <strong className="tnum text-white">{zar(m.savedCents)}</strong> with Herbal Holland Rewards</span>
               </p>
+            )}
+            {m.referralCredit && m.referralCredit.balanceCents > 0 && (
+              <a href="#refer" className="mt-3 flex w-fit max-w-full items-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-50 hover:border-emerald-300">
+                <Gift className="h-4 w-4 shrink-0 text-emerald-300" strokeWidth={1.9} />
+                <span><strong className="tnum text-white">{zar(m.referralCredit.balanceCents)}</strong> referral credit. Use it in store: show your card at the till</span>
+              </a>
             )}
             <div className="mt-4 flex flex-wrap gap-2">
               {shareSavings && (
@@ -144,6 +156,9 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             </div>
           </div>
 
+          {!sp.welcome && passkeys === 0 && (
+            <PasskeyToggle count={0} prompt />
+          )}
           {waitlist && launch.at && (
             <WaitlistCard
               w={waitlist}
@@ -275,7 +290,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           )}
         </Panel>
 
-        <Panel className="p-5">
+        {!play && <Panel className="p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold text-white">Recent orders</h2>
             <Link href="/club/orders" className="text-sm font-semibold text-brand-400 hover:underline">
@@ -315,7 +330,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               </Link>
             </div>
           )}
-        </Panel>
+        </Panel>}
 
         {!waitlist && (
           <Panel className="scroll-mt-28 p-5" id="refer">
@@ -324,8 +339,18 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             </h2>
             <p className="mt-1 text-sm text-ink-300">
               When a friend (18+) joins with your link and makes their first purchase, you each get {fmtPoints(settings.loyalty.referralBonus)}.
+              {settings.loyalty.affiliatePct > 0 && ` After that you earn ${settings.loyalty.affiliatePct}% of what they spend, as rand credit to spend at the till (not on medicines).`}
               {m.referrals > 0 && ` You've invited ${m.referrals} member${m.referrals === 1 ? "" : "s"} so far.`}
             </p>
+            {m.referralCredit && (
+              <div className="mt-3 rounded-xl bg-ink-850 px-4 py-3">
+                <p className="text-xs text-ink-450">Referral credit to spend in store</p>
+                <p className="tnum font-display text-2xl font-semibold text-white">{zar(m.referralCredit.balanceCents)}</p>
+                <p className="mt-0.5 text-xs text-ink-450">
+                  {zar(m.referralCredit.earnedCents)} earned from friends so far. Show your member card at the till to use it. Expires {fmtDate(m.referralCredit.expiresAt)} unless you earn more.
+                </p>
+              </div>
+            )}
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-ink-200">
                 <span className="tnum font-semibold text-white">{num(m.qualifiedReferrals)}</span> {m.qualifiedReferrals === 1 ? "friend has" : "friends have"} made a first purchase
@@ -350,7 +375,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           </Panel>
         )}
 
-        <Panel className="p-5">
+        {!play && <Panel className="p-5">
           <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
             <Pill className="h-5 w-5 text-brand-500" /> Patient authorisation
           </h2>
@@ -399,10 +424,10 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               </Link>
             </p>
           )}
-        </Panel>
+        </Panel>}
       </div>
 
-      {!m.customer.ageVerifiedAt && (
+      {!play && !m.customer.ageVerifiedAt && (
         <Callout tone="warn" title="Verify your age to order in the app" className="mt-6">
           Add your SA ID number in <Link href="/club/settings" className="font-semibold text-white underline">your profile</Link>, or show your ID or passport at any store.
         </Callout>

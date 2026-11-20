@@ -21,7 +21,7 @@ export const LEDGER_LABEL: Record<string, string> = {
 };
 
 export async function memberOverview(customerId: string) {
-  const [customer, spend, ledger, orders, ctx, referrals, qualified, saved] = await Promise.all([
+  const [customer, spend, ledger, orders, ctx, referrals, qualified, saved, wallet, earnedCredit] = await Promise.all([
     db.customer.findUniqueOrThrow({ where: { id: customerId }, include: { homeStore: { select: { name: true, slug: true, code: true } } } }),
     spend12m(db, customerId),
     db.loyaltyEntry.findMany({ where: { customerId }, orderBy: { createdAt: "desc" }, take: 6, include: { store: { select: { name: true } } } }),
@@ -30,6 +30,8 @@ export async function memberOverview(customerId: string) {
     db.customer.count({ where: { referredById: customerId } }),
     qualifiedReferrals(db, customerId),
     db.sale.aggregate({ where: { customerId }, _sum: { memberSavingsCents: true } }),
+    db.giftVoucher.findUnique({ where: { affiliateOfId: customerId }, select: { code: true, balanceCents: true, expiresAt: true } }),
+    db.affiliateCredit.aggregate({ where: { customerId }, _sum: { cents: true } }),
   ]);
   // Tiers are re-assessed on every purchase against rolling 12-month spend. If spend has
   // slipped below the member's current tier, show what it takes to keep it rather than the next rung,
@@ -53,6 +55,8 @@ export async function memberOverview(customerId: string) {
     // `floor` (Founding / First Year) and `boost` (referral ladder): each while active, even when the other holds higher.
     customer, spend, goal, floor, boost, tier: tierMeta(customer.tier), ledger, orders,
     auth: ctx.auth ?? null, patient: ctx.customer?.patient ?? null, referrals, qualifiedReferrals: qualified, savedCents: saved._sum.memberSavingsCents ?? 0,
+    // The affiliate wallet: rand credit from referred friends' spend, spent at the till (src/server/affiliate.ts).
+    referralCredit: wallet ? { ...wallet, earnedCents: earnedCredit._sum.cents ?? 0 } : null,
   };
 }
 

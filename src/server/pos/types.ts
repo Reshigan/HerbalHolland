@@ -240,6 +240,7 @@ export type CustomerDetail = {
   foundingNo: number | null; // Founding Member number
   tierFloor: { tier: TierKey; until: string } | null; // active guaranteed minimum tier (a founding floor or a referral boost, whichever holds higher)
   offers: { id: string; title: string; endsAt: string }[]; // My Deals on the card (auto-apply online)
+  referralCredit?: { code: string; balanceCents: number } | null; // the affiliate wallet voucher, spent as a VOUCHER tender
   patient: {
     authNumber: string;
     prescriber: string;

@@ -47,4 +47,21 @@ export function pointsFor(paidCents: number, tier: TierKey, promoMultiplier = 1,
   return Math.floor((paidCents / 10_000) * earnPer100 * tierInfo(tier).multiplier * promoMultiplier);
 }
 
+/**
+ * The affiliate share: a referrer earns `pct`% of a referred friend's net spend (paid, after points, medicines and VAT
+ * taken out), as rand credit in cents, rounded down. It goes into the referrer's referral credit wallet, spent at the till.
+ */
+export function affiliateCents(netCents: number, pct: number) {
+  if (netCents <= 0 || pct <= 0) return 0;
+  return Math.floor((netCents * pct) / 100);
+}
+
+/** The share a refund takes back: the same fraction of the credit as the refund is of the sale, never more than was paid. */
+export const affiliateClawback = (creditCents: number, refundCents: number, saleTotalCents: number) =>
+  saleTotalCents > 0 ? Math.min(creditCents, Math.round((creditCents * Math.max(0, refundCents)) / saleTotalCents)) : 0;
+
+/** Net (ex-VAT) part of what was paid: the paid amount carries the sale's VAT share. Non-VAT-vendor sales have none. */
+export const netOfVat = (paidCents: number, totalCents: number, vatCents: number) =>
+  totalCents > 0 ? Math.round((paidCents * (totalCents - vatCents)) / totalCents) : 0;
+
 export const fmtPoints = (points: number) => `${new Intl.NumberFormat("en-US").format(points)} pts`;

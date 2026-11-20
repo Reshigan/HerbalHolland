@@ -20,6 +20,7 @@ export const SOURCE_LABEL: Record<string, string> = {
   "statement-payment": "Statement payment",
   "online-payment": "Online payment",
   voucher: "Gift voucher",
+  affiliate: "Referral credit",
   points: "Rewards points",
   "trade-entry": "Trade account",
   "trade-eft": "Trade EFT",

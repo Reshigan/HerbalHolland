@@ -10,6 +10,9 @@ export function GET(request: NextRequest) {
   const next = safePath(request.nextUrl.searchParams.get("next"));
   // Relative Location: in the standalone server req.url names localhost, not the host the browser used.
   const response = new NextResponse(null, { status: 303, headers: { Location: !next || /^\/app([/?#]|$)/.test(next) ? "/club" : next } });
-  response.cookies.set("hh_app", "1", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 31_536_000 });
+  const cookie = { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 31_536_000 } as const;
+  response.cookies.set("hh_app", "1", cookie);
+  // The Google Play build is Rewards only (Play doesn't allow selling cannabis products): the proxy keeps it off the shop.
+  if (request.nextUrl.searchParams.get("src") === "play") response.cookies.set("hh_play", "1", cookie);
   return response;
 }

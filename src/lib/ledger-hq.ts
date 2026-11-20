@@ -65,6 +65,9 @@ export const statementOutstanding = (netCents: number, payments: { amountCents: 
 export const onlinePaymentLines = (cents: number, storeId: string | null = null): Line[] =>
   netLines([{ key: "gateway", cents, storeId }, { key: "prepaid", cents: -cents, storeId }]);
 
+/** Referral credit HQ gave into a member's wallet voucher (negative when a refund takes it back). */
+export const affiliateLines = (cents: number): Line[] => netLines([{ key: "affiliate.hq", cents }, { key: "vouchers", cents: -cents }]);
+
 /** A gift voucher: sold through the gateway (owed to whoever holds it), and what's left on it when it expires (breakage). */
 export const voucherLines = (v: { soldCents?: number; expiredCents?: number }): Line[] =>
   netLines([

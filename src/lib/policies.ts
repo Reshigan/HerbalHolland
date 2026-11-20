@@ -6,6 +6,7 @@
 import { MADE_TO_ORDER_LEAD } from "./merch";
 import { zarWhole } from "./money";
 import { BOOST_DAYS, RUNGS } from "./referral-ladder";
+import { VOUCHER_VALID_YEARS } from "./vouchers";
 
 export const LEGAL_DOCS = {
   terms: { title: "Membership terms", dek: "The agreement you accept when you become a Herbal Holland member, whether online, in the Rewards app or at the till." },
@@ -13,6 +14,7 @@ export const LEGAL_DOCS = {
   returns: { title: "Returns & refunds", dek: "What you can send back, how to do it and how your refund works." },
   delivery: { title: "Delivery", dek: "Where we deliver, what it costs, when it arrives and who can receive it." },
   referrals: { title: "Referral rules", dek: "How inviting friends to Herbal Holland Rewards works, what counts and what you can earn." },
+  "delete-account": { title: "Delete your account", dek: "How to delete your Herbal Holland Rewards account, what we delete and what the law makes us keep." },
 } as const;
 export type LegalSlug = keyof typeof LEGAL_DOCS;
 
@@ -90,8 +92,8 @@ export function returnsPolicy(f: PolicyFacts): PolicyBlock[] {
   ];
 }
 
-/** The referral ladder's rules (/legal/referrals). `bonus`: the referral points each side gets (HQ settings). */
-export function referralRules(f: PolicyFacts, bonus: number): PolicyBlock[] {
+/** The referral ladder's rules (/legal/referrals). `bonus`: the referral points each side gets; `pct`: the affiliate share (HQ settings). */
+export function referralRules(f: PolicyFacts, bonus: number, pct = 0): PolicyBlock[] {
   const rungs = RUNGS.map((r) => `${r.at} friends: ${r.kind === "BOOST" ? `the tier above the one you hold, for ${BOOST_DAYS} days (Harvest members keep Harvest for ${BOOST_DAYS} days)` : `${r.reward}, a badge on your Rewards card page. It carries no discount.`}`);
   return [
     { p: `Herbal Holland Rewards is run by ${f.entity} (“Herbal Holland”, “we”). These rules are part of our [membership terms](/legal/terms).` },
@@ -103,6 +105,20 @@ export function referralRules(f: PolicyFacts, bonus: number): PolicyBlock[] {
         `When your friend makes their first purchase, in a store or online, you each get ${bonus} points.`,
       ],
     },
+    ...(pct > 0
+      ? [
+          { h: "Your share of their spend" },
+          {
+            list: [
+              `Every time a friend you referred buys, in a store or online, you get rand credit worth ${pct}% of what they paid, before VAT. It goes into your referral credit on your Rewards page.`,
+              "Points they pay with, and licensed medicines, don't count towards your share.",
+              "If your friend returns something, the share you earned on it comes off your credit.",
+              "Spend your credit at the till in any Herbal Holland store: show your member card. Only you can use it, and not on medicines.",
+              `Your credit lasts ${VOUCHER_VALID_YEARS} years from the last time you earned some. It can't be exchanged for cash or transferred.`,
+            ],
+          },
+        ]
+      : []),
     { h: "What counts" },
     {
       list: [
@@ -129,6 +145,42 @@ export function referralRules(f: PolicyFacts, bonus: number): PolicyBlock[] {
         `Questions: ${mail(f.email)}.`,
       ],
     },
+  ];
+}
+
+/** How a member deletes their account (/legal/delete-account; the Google Play data deletion link). Mirrors eraseMember in src/server/popia.ts. */
+export function deletionPolicy(f: PolicyFacts): PolicyBlock[] {
+  return [
+    {
+      p: `This page explains how to delete your account in Herbal Holland Rewards (the app and this website), run by ${f.entity} (“Herbal Holland”, “we”). Deleting your account ends your membership.`,
+    },
+    { h: "How to ask" },
+    {
+      list: [
+        `Email ${mail(f.email)} from the email on your account, or with your mobile number, and say you want your account deleted. Your member number (in Rewards settings) helps us find you quickly.`,
+        f.phone ? `Or call us on ${f.phone}, or ask at any Herbal Holland store.` : "Or ask at any Herbal Holland store.",
+        "We confirm it's you, then delete your account within 30 days and tell you when it's done.",
+      ],
+    },
+    { important: ["Use your Rewards credit and vouchers first: they're lost when your account is deleted and can't be paid out in cash."] },
+    { h: "What we delete" },
+    {
+      list: [
+        "Your profile: name, mobile number, email, date of birth, ID fingerprint and home store.",
+        "Your Rewards balance, credit, vouchers, referral links and saved favourites.",
+        "Your marketing choices, sign-in sessions, app notifications and delivery addresses.",
+        "The words and photos in your reviews, returns and support messages.",
+      ],
+    },
+    { h: "What we keep, and for how long" },
+    {
+      list: [
+        "Tax invoices for your purchases, with the buyer details on them, for 5 years, as the VAT Act requires.",
+        "Sales records and offers used on them, without your contact details, for our accounts and product recall records.",
+        "Event attendance already recorded, without your contact details.",
+      ],
+    },
+    { p: `See our [privacy notice](/legal/privacy) for your other rights under POPIA.` },
   ];
 }
 

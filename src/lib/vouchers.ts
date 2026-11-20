@@ -100,3 +100,13 @@ export function allocateRefundAcross<V extends { paidCents: number; refundedCent
   }
   return { parts, toTender: remaining };
 }
+
+/**
+ * Referral credit wallets pay only for their owner, at the till, and only towards lines that are not medicines
+ * (Medicines Act s18A: no incentives on medicines). `eligibleCents` is the sale's non-medicine line total.
+ */
+export function referralCreditProblem(a: { ownerId: string; customerId?: string | null; cents: number; eligibleCents: number }): string | null {
+  if (!a.customerId || a.customerId !== a.ownerId) return "Referral credit can only be spent by its member: add them to the sale";
+  if (a.cents > a.eligibleCents) return `Referral credit can pay up to ${(Math.max(0, a.eligibleCents) / 100).toFixed(2)} on this sale (not on medicines)`;
+  return null;
+}

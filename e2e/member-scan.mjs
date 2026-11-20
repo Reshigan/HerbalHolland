@@ -121,9 +121,7 @@ try {
   assert(device, "till paired");
   await page.getByRole("button", { name: /Shireen Singh/ }).click({ timeout: 120_000 });
   for (const d of "1111") await page.getByRole("button", { name: d, exact: true }).click();
-  await page.waitForSelector("[aria-label=Catalogue]");
-  await page.getByRole("button", { name: "Open shift", exact: true }).click();
-  await page.getByTestId("open-shift").click();
+  await page.getByTestId("open-shift").click(); // no shift open: unlocking lands on the shift screen
   await page.waitForSelector("[aria-label=Catalogue]:visible");
   shiftOpen = true;
   await page.getByRole("button", { name: /^Recover CBD Muscle Balm/ }).click();

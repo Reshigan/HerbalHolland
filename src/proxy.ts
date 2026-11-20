@@ -9,6 +9,9 @@ import { ensureStartupChecks } from "@/server/startup";
 
 const SNIPPET_HASH = `sha256-${createHash("sha256").update(HEAD_SNIPPET).digest("base64")}`;
 
+/** What the Google Play (Rewards only) app never shows: the shop, the basket, online orders and the dispensary. */
+const PLAY_CLOSED = /^\/(shop|p|cart|checkout|drops|specials|gift|orders|dispensary|club\/orders|club\/wishlist|club\/reminders)(\/|$)|^\/$/;
+
 export function proxy(request: NextRequest) {
   const notServing = ensureStartupChecks(); // the reason is in the log (console.error), never in the response
   if (notServing) return new NextResponse("The shop is not configured to serve: see the log", { status: 500 });
@@ -20,6 +23,12 @@ export function proxy(request: NextRequest) {
     const to = request.nextUrl.clone();
     to.pathname = "/app";
     to.search = `?next=${encodeURIComponent(`${pathname}${search}`)}`;
+    return NextResponse.redirect(to);
+  }
+  if (request.cookies.has("hh_play") && PLAY_CLOSED.test(pathname)) {
+    const to = request.nextUrl.clone();
+    to.pathname = "/club";
+    to.search = "";
     return NextResponse.redirect(to);
   }
   const prefetch = request.headers.has("next-router-prefetch") || request.headers.get("purpose") === "prefetch";

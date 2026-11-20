@@ -1,5 +1,6 @@
 // The Rewards features that don't fit the six tabs: wishlist, reorder reminders, gift vouchers and saved addresses.
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { BellRing, Gift, Heart, MapPin } from "lucide-react";
 import { db } from "@/server/db";
 import { wishlistCount } from "@/server/shop/wishlist";
@@ -19,9 +20,11 @@ export async function ClubMore({ customerId, className }: { customerId: string; 
     { href: "/club/vouchers", icon: Gift, label: "Gift vouchers", count: vouchers, flag: null },
     { href: "/club/addresses", icon: MapPin, label: "Addresses", count: addresses, flag: null },
   ];
+  // The Play Store build is Rewards only, so the shopping features stay out of it.
+  const shown = (await cookies()).has("hh_play") ? items.filter((i) => i.href === "/club/vouchers") : items;
   return (
     <nav aria-label="More in Rewards" className={cn("scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0", className)}>
-      {items.map((i) => (
+      {shown.map((i) => (
         <Link key={i.href} href={i.href} className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-ink-800 bg-ink-900/60 px-4 text-sm font-medium text-ink-100 transition hover:border-brand-500/60 hover:text-white">
           <i.icon className="h-4 w-4 text-brand-500" strokeWidth={1.9} />
           {i.label}

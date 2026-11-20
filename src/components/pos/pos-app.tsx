@@ -149,8 +149,10 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   // ── Data ────────────────────────────────────────────────────────────────
   const refreshBoot = useCallback(async () => {
     try {
-      setBoot(await api<BootData>("/api/pos/bootstrap"));
+      const b = await api<BootData>("/api/pos/bootstrap");
+      setBoot(b);
       setBootError(null);
+      return b;
     } catch (e) {
       if (!(e instanceof OfflineError) && !(e instanceof ApiError && e.status === 401)) setBootError(errorText(e));
     }
@@ -360,13 +362,17 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         const then = afterUnlock.current;
         afterUnlock.current = null;
         if (then) setTimeout(then, 50);
+        // No shift yet: the first thing to do is count the float, so go straight there.
+        else if (bootRef.current && !bootRef.current.shift && !trainingRef.current) setTab("shift");
         if (switchingRef.current && h.prev && h.prev.id !== me.id && h.when === "now") setTimeout(() => setHandoff((x) => (x ? { ...x, ask: true } : x)), 120);
       };
       try {
         const r = await api<{ me: StaffTile }>("/api/pos/session", { body: { userId: staff.id, pin }, quiet401: true });
         void rememberPin(r.me.id, pin);
+        const then = afterUnlock.current;
         finish(r.me, false);
-        void refreshBoot();
+        // The cached boot can still show a shift that has since closed: check again on the fresh one.
+        void refreshBoot().then((b) => !then && b && !b.shift && !trainingRef.current && setTab("shift"));
         void syncNow();
         return null;
       } catch (e) {

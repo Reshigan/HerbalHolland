@@ -238,7 +238,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       return;
     }
     setVoucherScan({ code, n: Date.now() });
-    pos.toast(`Gift voucher ${code}: taking payment`);
+    pos.toast(code === cartRef.current.customer?.referralCredit?.code ? "Referral credit: taking payment" : `Gift voucher ${code}: taking payment`);
     void checkoutRef.current();
   };
   const voucherScannedRef = useRef(voucherScanned);
@@ -728,6 +728,11 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       payDisabledReason={payDisabledReason}
       checking={checking}
       onDetachCustomer={() => setCart((c) => ({ ...c, customer: null, ageCheck: null, memberScanned: false }))}
+      credit={
+        !cart.trade && cart.customer?.referralCredit?.balanceCents
+          ? { cents: cart.customer.referralCredit.balanceCents, disabled: !online, onUse: () => voucherScanned(cart.customer!.referralCredit!.code) }
+          : null
+      }
       customerCard={
         cart.trade ? (
           <TradeCard account={cart.trade} ageCheck={cart.ageCheck} onLeave={leaveTrade} />
@@ -745,6 +750,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
             onDetach={() => setCart((c) => ({ ...c, customer: null, ageCheck: null, memberScanned: false }))}
             onScan={() => setScanning("member")}
             onTrade={() => setTradeSheet(true)}
+            onReferralCredit={voucherScanned}
           />
         )
       }

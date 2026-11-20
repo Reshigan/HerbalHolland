@@ -8,7 +8,7 @@ import { addPoints } from "./loyalty";
 import { getSettings } from "./settings";
 import { audit, type Actor } from "./audit";
 import { nextNumber, shortCode } from "./counters";
-import { checkCodeSentTo, issueCode, OtpLimitError } from "./otp";
+import { checkCodeSentTo, issueCode, OtpLimitError, reviewLogin } from "./otp";
 import { graphConfigured } from "./graph-mail";
 import { count, hit } from "./throttle";
 import { ageOn, checkSaId, normalisePhone } from "@/lib/sa";
@@ -49,6 +49,7 @@ export async function requestOtp(raw: string, opts?: { ip: string | null; email?
   // Short and plain on purpose: South African networks silently dropped a longer wording ("sign-in code… don't share it",
   // with the browser-autofill line), while this one is delivered.
   const text = (c: string) => `Herbal Holland: ${c} is your code. Valid 10 minutes.`;
+  if (!email && reviewLogin()?.phone === phone) return { phone, email: undefined, demoCode: undefined }; // the Play reviewer's number: no text
   const sent = email
     ? await send({ channel: "EMAIL", to: email, subject: "Your Herbal Holland sign-in code", body: `${text(code)}\n\nIf you didn't ask for a code, you can ignore this email.`, logBody: text("••••••"), kind: "TRANSACTIONAL" })
     : await send({ channel: "SMS", to: phone, body: text(code), logBody: text("••••••"), kind: "TRANSACTIONAL" });

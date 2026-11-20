@@ -269,6 +269,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
                       ["minRedeem", "Minimum to redeem", l.minRedeem, "Points"],
                       ["signupBonus", "Sign-up bonus", l.signupBonus, "Points"],
                       ["referralBonus", "Referral bonus", l.referralBonus, "Each side, first purchase"],
+                      ["affiliatePct", "Affiliate share %", l.affiliatePct, "Of a referred friend's net spend, as rand credit"],
                       ["birthdayBonus", "Birthday bonus", l.birthdayBonus, "Points"],
                     ] as const
                   ).map(([name, label, value, hint]) => (

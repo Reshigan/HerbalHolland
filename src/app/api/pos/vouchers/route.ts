@@ -10,7 +10,7 @@ const Body = z.object({ code: z.string().trim().min(1, "Enter the voucher code")
 
 export const POST = withStaff(async (req) => {
   const b = await readBody(req, Body);
-  const r = await voucherForCheckout(b.code);
+  const r = await voucherForCheckout(b.code, new Date(), true);
   if (!r.ok) throw new PosError(r.error, 422, "VOUCHER");
   const v = r.voucher;
   const voucher: VoucherLookupDTO = { code: v.code, balanceCents: v.balanceCents, amountCents: v.amountCents, expiresAt: v.expiresAt.toISOString() };

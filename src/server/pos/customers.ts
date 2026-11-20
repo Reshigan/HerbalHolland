@@ -80,7 +80,10 @@ export async function searchCustomers(raw: string, storeId: string): Promise<Cus
 }
 
 export async function customerDetail(id: string, storeId: string): Promise<CustomerDetail> {
-  const [ctx, here, offers] = await Promise.all([customerContext(id), visitsHere(storeId, [id]), activeOffers(id)]);
+  const [ctx, here, offers, wallet] = await Promise.all([
+    customerContext(id), visitsHere(storeId, [id]), activeOffers(id),
+    db.giftVoucher.findUnique({ where: { affiliateOfId: id }, select: { code: true, balanceCents: true, status: true, expiresAt: true } }),
+  ]);
   const c = ctx.record;
   if (!c) throw new PosError("Member not found", 404);
   const home = c.homeStoreId ? await db.store.findUnique({ where: { id: c.homeStoreId }, select: { name: true } }) : null;
@@ -104,6 +107,7 @@ export async function customerDetail(id: string, storeId: string): Promise<Custo
     foundingNo: c.foundingNo,
     tierFloor: hold ? { tier: hold.tier, until: hold.until.toISOString() } : null,
     offers: offers.map((o) => ({ id: o.id, title: o.title, endsAt: o.endsAt.toISOString() })),
+    referralCredit: wallet && wallet.status === "ACTIVE" && wallet.balanceCents > 0 && wallet.expiresAt > new Date() ? { code: wallet.code, balanceCents: wallet.balanceCents } : null,
     patient: auth
       ? {
           authNumber: auth.authNumber,

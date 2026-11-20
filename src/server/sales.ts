@@ -19,13 +19,15 @@ import { redeemVoucherTx, restoreVoucherTx, VoucherError } from "./shop/vouchers
 import { lockedCreditCheck, postLedgerEntry } from "./trade/ledger";
 import { licenceProblem } from "./trade/licences";
 import { lockCustomer } from "./locks";
+import { clawbackAffiliateTx } from "./affiliate";
 import { promotionProblem } from "./pricing";
 import { queuePosting, queueStoreDay } from "./ledger/core";
 import { addDays, dayKey, fmtDate } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
 import { ACCOUNT_STATUS_PROBLEM, tradeBuyerBlock } from "@/lib/trade";
-import { allocateRefundAcross, maskVoucherCode, normaliseVoucherCode, voucherProblem } from "@/lib/vouchers";
+import { allocateRefundAcross, maskVoucherCode, normaliseVoucherCode, referralCreditProblem, voucherProblem } from "@/lib/vouchers";
 import { backHowTheyPaid, cashLeft, lineShare, moneyPartsOf, pointsBack } from "@/lib/pos-refund";
+import { netOfVat } from "@/lib/loyalty-rules";
 import type { Allocation } from "@/lib/fefo";
 import type { AgeCheck, GiftVoucher, PayMethod } from "@/generated/prisma/client";
 
@@ -158,6 +160,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
       customerId: a.customerId, storeId: a.storeId, paidCents: Math.max(0, total - a.pointsRedeemed * 100 - noEarn), totalCents: total,
       multiplier: a.quote.pointsMultiplier, saleId: sale.id, orderId: a.orderId, at: a.createdAt,
       earnPer100: settings.loyalty.earnPer100, referralBonus: settings.loyalty.referralBonus,
+      netCents: netOfVat(Math.max(0, total - a.pointsRedeemed * 100 - noEarn), total, vat), affiliatePct: settings.loyalty.affiliatePct,
     });
     pointsEarned = r.points;
   }
@@ -188,7 +191,8 @@ export type VoucherTender = { code: string; cents: number; voucher: GiftVoucher 
  * unexpired and hold at least what it is tendered for (the same code tendered twice counts once). The failure names
  * the voucher and the shortfall so the operator can lower the amount or add another tender.
  */
-export async function checkVoucherTenders(payments: { method: string; amountCents: number; reference?: string | null }[], now = new Date()): Promise<VoucherTender[]> {
+/** `member`: who the sale is for and what of it isn't medicines, so a referral credit wallet pays only its member's non-medicine lines. */
+export async function checkVoucherTenders(payments: { method: string; amountCents: number; reference?: string | null }[], now = new Date(), member?: { customerId?: string | null; eligibleCents: number }): Promise<VoucherTender[]> {
   const cents = new Map<string, number>();
   for (const p of payments) {
     if (p.method !== "VOUCHER") continue;
@@ -203,6 +207,10 @@ export async function checkVoucherTenders(payments: { method: string; amountCent
     if (problem || !voucher) throw new SaleError(`Gift voucher ${code}: ${problem ?? "can't pay right now"}`);
     if (amount > voucher.balanceCents)
       throw new SaleError(`Gift voucher ${code} has ${zar(voucher.balanceCents)} left, ${zar(amount - voucher.balanceCents)} short of the ${zar(amount)} tendered. Lower the voucher amount or add another tender`);
+    if (voucher.affiliateOfId) {
+      const wrong = referralCreditProblem({ ownerId: voucher.affiliateOfId, customerId: member?.customerId, cents: amount, eligibleCents: member?.eligibleCents ?? 0 });
+      if (wrong) throw new SaleError(wrong);
+    }
     out.push({ code, cents: amount, voucher });
   }
   return out;
@@ -283,7 +291,7 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   // never carry one (the till refuses it too). The operator re-tenders that sale with another payment.
   if (offline && input.payments.some((p) => p.method === "VOUCHER"))
     throw new SaleError("Gift vouchers can't be taken on an offline sale. This queued sale needs another tender: ring it up again and discard this one");
-  const vouchers = await checkVoucherTenders(input.payments, createdAtOf(input));
+  const vouchers = await checkVoucherTenders(input.payments, createdAtOf(input), { customerId: input.customerId, eligibleCents: q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0) });
   const tenders = normaliseVoucherTenders(input.payments);
 
   const [store, staff, soldBy] = await Promise.all([
@@ -612,6 +620,8 @@ export async function refundSale(a: {
     if (orig.customerId) {
       if (loyaltyBack) await addPoints(t, { customerId: orig.customerId, points: loyaltyBack / 100, kind: "REVERSAL", storeId: orig.storeId, saleId: refund.id, note: "points returned on refund" });
       if (earnedBack) await addPoints(t, { customerId: orig.customerId, points: -earnedBack, kind: "REVERSAL", storeId: orig.storeId, saleId: refund.id, note: "points reversed on refund" });
+      // The referrer's affiliate credit comes back in proportion, from what is left in their wallet.
+      await clawbackAffiliateTx(t, { origSaleId: orig.id, refundSaleId: refund.id, refundCents: amount, origTotalCents: orig.totalCents });
       await t.customer.update({ where: { id: orig.customerId }, data: { lifetimeCents: { decrement: amount } } });
     }
 

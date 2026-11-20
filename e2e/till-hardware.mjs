@@ -61,9 +61,7 @@ try {
   assert(device, `device paired (prefix ${device?.prefix})`);
   await page.getByRole("button", { name: /Shireen Singh/ }).click({ timeout: 120_000 });
   await pin("1111");
-  await page.waitForSelector("[aria-label=Catalogue]");
-  await page.getByRole("button", { name: "Open shift", exact: true }).click();
-  await page.getByTestId("open-shift").click();
+  await page.getByTestId("open-shift").click(); // no shift open: unlocking lands on the shift screen
   await page.waitForSelector("[aria-label=Catalogue]:visible");
   ok("shift open");
 
