@@ -149,6 +149,10 @@ export default async function ClubSettings() {
               <Link href="/legal/privacy" className="font-semibold text-brand-400 hover:underline">
                 Privacy notice
               </Link>{" "}
+              ·{" "}
+              <Link href="/legal/delete-account" className="font-semibold text-brand-400 hover:underline">
+                Delete my account
+              </Link>{" "}
               · <a href="https://herbalholland.com/paia" className="font-semibold text-brand-400 hover:underline">PAIA manual</a>
             </p>
             <p className="mt-2 text-xs text-ink-450">{legalNameOf(company)} is the responsible party for Rewards.</p>

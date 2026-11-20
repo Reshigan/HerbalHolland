@@ -1,6 +1,7 @@
 // Storefront chrome (server): announcement bar, header, footer and the 18+ age gate.
 // Used by the (shop) route group and Rewards (/club) so the consumer surfaces share one frame.
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { Search, ShoppingBag, UserRound } from "lucide-react";
 import { getCustomer } from "@/server/auth";
@@ -39,6 +40,7 @@ export const NAV: NavItem[] = [
   { href: "/learn", label: "Learn" },
   { href: "/club", label: "Rewards" },
 ];
+const PLAY_NAV = ["/club", "/stores", "/learn"];
 
 /** Dark page surface for the consumer app (body background, native controls, reduced motion). */
 export function ShopSurface() {
@@ -68,11 +70,15 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
     launchState(),
     foundingTaken(),
   ]);
+  // The Google Play build is Rewards only (the proxy keeps it off the shop), so its menus leave the shop out.
+  const play = (await cookies()).has("hh_play");
+  const nav = play ? NAV.filter((i) => PLAY_NAV.includes(i.href)) : NAV;
   const hours = store && openState(parseHours(store.hours));
   const current = store && hours ? { code: store.code, name: store.name, open: hours.open, openLabel: hours.label } : null;
   // Headline the newest public deal (code-only offers stay private; copy is screened defensively).
   const headline = promos.find((p) => !p.code && !screenCopy(p.name).length);
   const phase = settings.launch.phase;
+  const buy = canBuyOnline(phase) && !play;
   // While the Founding Members list is open, lead with its closing date.
   const messages = launch.preLaunch && launch.at
     ? [
@@ -104,7 +110,7 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
         <div aria-hidden className="fixed inset-x-0 top-0 z-50 hidden h-[env(safe-area-inset-top)] bg-ink-950 app:block" />
         <nav aria-label="Offers" className="bg-brand-500 pt-[env(safe-area-inset-top)] text-ink-950">
           <Container className={cn("flex h-9 items-center justify-center gap-6 text-[0.78rem] font-semibold", compact && "appframe:hidden")}>
-            {messages.map((m, i) => (
+            {messages.filter((m) => !play || m.href !== "/shop").map((m, i) => (
               <Link key={m.text} href={m.href} className={cn("truncate hover:underline", i > 0 && "hidden md:inline", i > 1 && "md:hidden lg:inline")}>
                 {m.text}
               </Link>
@@ -120,7 +126,7 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
           <Container className="flex h-16 items-center gap-2 lg:h-[4.5rem] lg:gap-4">
             <div className={cn("contents", compact && "appframe:hidden")}>
               <MobileMenu
-                items={NAV}
+                items={nav}
                 footer={
                   <p className="text-center text-xs text-ink-400">Adults 18+ only · Free to join</p>
                 }
@@ -129,9 +135,10 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
             <Link href="/" className="shrink-0 rounded-lg" aria-label="Herbal Holland home">
               <Logo markClassName="h-9 w-9 lg:h-10 lg:w-10" />
             </Link>
-            <NavLinks items={NAV} className="ml-4 hidden xl:flex" />
+            <NavLinks items={nav} className="ml-4 hidden xl:flex" />
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
               {/* Product search from every page: a field on wide screens, an icon to the shop's search on smaller ones. */}
+              {!play && <>
               <form action="/shop" role="search" className="relative hidden 2xl:block">
                 <label htmlFor="header-q" className="sr-only">
                   Search products
@@ -154,6 +161,7 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
               >
                 <Search className="h-[22px] w-[22px]" strokeWidth={1.8} />
               </Link>
+              </>}
               <StorePicker current={current} className="hidden md:flex" />
               {compact && (
                 // iPhone's Add to Home Screen steps open as a panel under the bar, not inside the row.
@@ -172,7 +180,7 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
                 </span>
                 <span className="hidden max-w-[7rem] truncate sm:inline">{customer ? customer.firstName : "Sign in"}</span>
               </Link>
-              {canBuyOnline(phase) && (
+              {buy && (
               <Link href="/cart" className="relative flex h-11 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3" aria-label={`Bag, ${count} item${count === 1 ? "" : "s"}`}>
                 <ShoppingBag className="h-[22px] w-[22px]" strokeWidth={1.8} />
                 <span className="hidden sm:inline">Bag</span>
@@ -214,9 +222,9 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
-              <FooterCol title="Shop" links={[["CBD wellness", "/shop?category=wellness"], ["Accessories", "/shop?category=accessories"], ["Grow", "/shop?category=grow"], ["Apparel", "/shop?category=apparel"], ["Gift vouchers", "/gift"], ["Dispensary (patients)", "/dispensary"]]} />
-              <FooterCol title="Help" links={[["Store finder", "/stores"], ["Track an order", "/club/orders"], ["Learn", "/learn"], ["Contact us", `mailto:${contactEmailOf(company)}`]]} />
-              <FooterCol title="Rewards" links={[...(customer ? [["Your card", "/club"], ["Profile", "/club/settings"]] as [string, string][] : [["Join free", "/club/join"], ["Sign in", "/club"]] as [string, string][]), ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"], ["Wishlist", "/club/wishlist"], ["Reorder reminders", "/club/reminders"]]} />
+              {!play && <FooterCol title="Shop" links={[["CBD wellness", "/shop?category=wellness"], ["Accessories", "/shop?category=accessories"], ["Grow", "/shop?category=grow"], ["Apparel", "/shop?category=apparel"], ["Gift vouchers", "/gift"], ["Dispensary (patients)", "/dispensary"]]} />}
+              <FooterCol title="Help" links={[["Store finder", "/stores"], ...(play ? [] : [["Track an order", "/club/orders"]] as [string, string][]), ["Learn", "/learn"], ["Contact us", `mailto:${contactEmailOf(company)}`]]} />
+              <FooterCol title="Rewards" links={[...(customer ? [["Your card", "/club"], ["Profile", "/club/settings"]] as [string, string][] : [["Join free", "/club/join"], ["Sign in", "/club"]] as [string, string][]), ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"], ...(play ? [] : [["Wishlist", "/club/wishlist"], ["Reorder reminders", "/club/reminders"]] as [string, string][])]} />
               <FooterCol title="Legal" links={[["Membership terms", "/legal/terms"], ["Privacy notice (POPIA)", "/legal/privacy"], ["Returns & refunds", "/legal/returns"], ["Delivery", "/legal/delivery"], ["Referral rules", "/legal/referrals"], ["PAIA manual", `${SITE}/paia`], ["Responsible use", "/learn/responsible-use"]]} />
               {/* The corporate site (sites/herbalholland.com, on Cloudflare) */}
               <FooterCol title="About Herbal Holland" links={[["About us", `${SITE}/about`], ["Own a store", `${SITE}/franchise`], ["Press", `${SITE}/press`], ["Careers", `${SITE}/careers`]]} />
@@ -255,7 +263,7 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
         </Suspense>
       </div>
       <div inert={age === "unknown" || undefined}>
-        <AppTabBar bag={canBuyOnline(phase) ? count : null} />
+        <AppTabBar bag={buy ? count : null} play={play} />
       </div>
       {age === "unknown" && <AgeGate />}
       {/* The Rewards worker (push only) registers once the page is idle, so the app is installable from any consumer page. */}

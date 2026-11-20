@@ -14,6 +14,7 @@ export const LEGAL_DOCS = {
   returns: { title: "Returns & refunds", dek: "What you can send back, how to do it and how your refund works." },
   delivery: { title: "Delivery", dek: "Where we deliver, what it costs, when it arrives and who can receive it." },
   referrals: { title: "Referral rules", dek: "How inviting friends to Herbal Holland Rewards works, what counts and what you can earn." },
+  "delete-account": { title: "Delete your account", dek: "How to delete your Herbal Holland Rewards account, what we delete and what the law makes us keep." },
 } as const;
 export type LegalSlug = keyof typeof LEGAL_DOCS;
 
@@ -144,6 +145,42 @@ export function referralRules(f: PolicyFacts, bonus: number, pct = 0): PolicyBlo
         `Questions: ${mail(f.email)}.`,
       ],
     },
+  ];
+}
+
+/** How a member deletes their account (/legal/delete-account; the Google Play data deletion link). Mirrors eraseMember in src/server/popia.ts. */
+export function deletionPolicy(f: PolicyFacts): PolicyBlock[] {
+  return [
+    {
+      p: `This page explains how to delete your account in Herbal Holland Rewards (the app and this website), run by ${f.entity} (“Herbal Holland”, “we”). Deleting your account ends your membership.`,
+    },
+    { h: "How to ask" },
+    {
+      list: [
+        `Email ${mail(f.email)} from the email on your account, or with your mobile number, and say you want your account deleted. Your member number (in Rewards settings) helps us find you quickly.`,
+        f.phone ? `Or call us on ${f.phone}, or ask at any Herbal Holland store.` : "Or ask at any Herbal Holland store.",
+        "We confirm it's you, then delete your account within 30 days and tell you when it's done.",
+      ],
+    },
+    { important: ["Use your Rewards credit and vouchers first: they're lost when your account is deleted and can't be paid out in cash."] },
+    { h: "What we delete" },
+    {
+      list: [
+        "Your profile: name, mobile number, email, date of birth, ID fingerprint and home store.",
+        "Your Rewards balance, credit, vouchers, referral links and saved favourites.",
+        "Your marketing choices, sign-in sessions, app notifications and delivery addresses.",
+        "The words and photos in your reviews, returns and support messages.",
+      ],
+    },
+    { h: "What we keep, and for how long" },
+    {
+      list: [
+        "Tax invoices for your purchases, with the buyer details on them, for 5 years, as the VAT Act requires.",
+        "Sales records and offers used on them, without your contact details, for our accounts and product recall records.",
+        "Event attendance already recorded, without your contact details.",
+      ],
+    },
+    { p: `See our [privacy notice](/legal/privacy) for your other rights under POPIA.` },
   ];
 }
 

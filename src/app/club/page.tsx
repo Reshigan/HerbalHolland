@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { ArrowRight, BadgePercent, Cake, CalendarClock, Crown, Gift, Pill, ShieldCheck, Sparkles, Trophy, Users } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -57,7 +58,9 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
     welcomeGifts(customer, store?.id),
   ]);
   const [waitlist, coming] = await Promise.all([launch.preLaunch ? waitlistPlace(customer.id) : null, tickets.length ? [] : upcomingEvents({ take: 2, homeStoreId: customer.homeStoreId })]);
-  const canBuy = canBuyOnline(settings.launch.phase);
+  // The Play Store build is Rewards only: no orders, no dispensary (Google Play does not allow cannabis sales).
+  const play = (await cookies()).has("hh_play");
+  const canBuy = canBuyOnline(settings.launch.phase) && !play;
   const savings = settings.loyalty.tierSavingsPct as Record<TierKey, number>;
   const idx = tierIndex(m.customer.tier);
   const base = APP_URL();
@@ -275,7 +278,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           )}
         </Panel>
 
-        <Panel className="p-5">
+        {!play && <Panel className="p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold text-white">Recent orders</h2>
             <Link href="/club/orders" className="text-sm font-semibold text-brand-400 hover:underline">
@@ -315,7 +318,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               </Link>
             </div>
           )}
-        </Panel>
+        </Panel>}
 
         {!waitlist && (
           <Panel className="scroll-mt-28 p-5" id="refer">
@@ -360,7 +363,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           </Panel>
         )}
 
-        <Panel className="p-5">
+        {!play && <Panel className="p-5">
           <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
             <Pill className="h-5 w-5 text-brand-500" /> Patient authorisation
           </h2>
@@ -409,10 +412,10 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               </Link>
             </p>
           )}
-        </Panel>
+        </Panel>}
       </div>
 
-      {!m.customer.ageVerifiedAt && (
+      {!play && !m.customer.ageVerifiedAt && (
         <Callout tone="warn" title="Verify your age to order in the app" className="mt-6">
           Add your SA ID number in <Link href="/club/settings" className="font-semibold text-white underline">your profile</Link>, or show your ID or passport at any store.
         </Callout>

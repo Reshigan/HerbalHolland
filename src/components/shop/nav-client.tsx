@@ -35,7 +35,7 @@ export function useTappedPath() {
  * The installed app's tab bar (display-mode standalone only; a browser tab keeps the website footer). `bag` is the
  * item count while online shopping is open, or null, when Learn takes its place.
  */
-export function AppTabBar({ bag }: { bag: number | null }) {
+export function AppTabBar({ bag, play = false }: { bag: number | null; play?: boolean }) {
   const [path, setTap] = useTappedPath();
   const tabs = [
     { href: "/", label: "Home", icon: House },
@@ -43,10 +43,10 @@ export function AppTabBar({ bag }: { bag: number | null }) {
     { href: "/stores", label: "Stores", icon: MapPin },
     { href: "/club", label: "Rewards", icon: CreditCard },
     bag === null ? { href: "/learn", label: "Learn", icon: BookOpen } : { href: "/cart", label: "Bag", icon: ShoppingBag },
-  ];
+  ].filter((t) => !play || (t.href !== "/" && t.href !== "/shop"));
   return (
     <nav aria-label="App" className="fixed inset-x-0 bottom-0 z-40 hidden border-t border-ink-800 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur app:block">
-      <ul className="mx-auto grid max-w-xl grid-cols-5">
+      <ul className="mx-auto grid max-w-xl auto-cols-fr grid-flow-col">
         {tabs.map((t) => {
           const on = isActive(path, t.href);
           return (

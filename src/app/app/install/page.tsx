@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { Mark } from "@/components/brand/logo";
@@ -7,7 +8,7 @@ import { Steps } from "@/components/shop/phone-auth";
 import { QrCode } from "@/components/shop/qr";
 import { InstallPrompt } from "@/components/ui/install-prompt";
 import { ServiceWorker } from "@/components/ui/service-worker";
-import { appOnly, appOnlyOpen } from "@/lib/install";
+import { appOnly, appOnlyOpen, detectPlatform } from "@/lib/install";
 import { safePath } from "@/lib/safe-path";
 import { getCustomer } from "@/server/auth";
 import { APP_URL } from "@/server/email-templates";
@@ -21,6 +22,9 @@ export const metadata: Metadata = { title: "Install the app", robots: { index: f
 export default async function InstallStepPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const next = safePath((await searchParams).next) ?? "/club";
   if (!appOnly()) redirect(next);
+  // Android members go straight to the Google Play listing once it is live (PLAY_STORE_URL unset until then).
+  const play = process.env.PLAY_STORE_URL;
+  if (play && !(await cookies()).has("hh_app") && detectPlatform((await headers()).get("user-agent") ?? "").platform === "android") redirect(play);
   const customer = await getCustomer();
   // Most pages are closed to a browser; only offer to carry on in it when the next page is one it may open.
   const onward = appOnlyOpen(new URL(next, "http://local").pathname) ? next : null;

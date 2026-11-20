@@ -8,6 +8,7 @@ import { db, tx } from "./db";
 import { sha256 } from "./crypto";
 import { hit, ipKey } from "./throttle";
 import { audit, SYSTEM } from "./audit";
+import { normalisePhone } from "@/lib/sa";
 
 export type OtpAddress = { phone: string } | { email: string };
 export const OTP_MINUTES = 10;
@@ -20,6 +21,17 @@ const CODES_PER_IP_HOUR = 30; // mobile networks put many shoppers behind one ad
 /** A wider limit refused the code (the connection's, or the SMS ceiling); the message says what to do. */
 export class OtpLimitError extends Error {}
 
+/**
+ * The Google Play reviewer's sign-in: PLAY_REVIEW_LOGIN = "<SA mobile>:<six digits>" (a Worker secret). That number never
+ * gets a text; its code is the fixed one, issued and checked like any other (same expiry, tries and hourly lock).
+ */
+export function reviewLogin(): { phone: string; code: string } | null {
+  const [raw, code] = (process.env.PLAY_REVIEW_LOGIN ?? "").split(":");
+  const phone = normalisePhone(raw ?? "");
+  return phone && /^\d{6}$/.test(code ?? "") ? { phone, code } : null;
+}
+const isReview = (a: OtpAddress) => "phone" in a && reviewLogin()?.phone === a.phone;
+
 const value = (a: OtpAddress) => ("phone" in a ? a.phone : a.email);
 const hashOf = (a: OtpAddress, code: string) => sha256(`${value(a)}:${code}`);
 
@@ -29,11 +41,11 @@ const hashOf = (a: OtpAddress, code: string) => sha256(`${value(a)}:${code}`);
  */
 export async function issueCode(a: OtpAddress, opts?: { ip: string | null; sentTo?: string | null }): Promise<string | null> {
   if (opts && !(await hit(`otp-ip:${ipKey(opts.ip)}`, CODES_PER_IP_HOUR, HOUR_MS))) throw new OtpLimitError("Too many codes requested. Try again in an hour");
-  if ("phone" in a && !opts?.sentTo) await smsCeiling(); // a member's code by email isn't a text
+  if ("phone" in a && !opts?.sentTo && !isReview(a)) await smsCeiling(); // a member's code by email isn't a text
   return tx(async (t) => {
     const recent = await t.otp.count({ where: { ...a, createdAt: { gte: new Date(Date.now() - OTP_MINUTES * 60_000) } } });
     if (recent >= CODES_PER_WINDOW) return null;
-    const code = String(randomInt(100_000, 1_000_000));
+    const code = isReview(a) ? reviewLogin()!.code : String(randomInt(100_000, 1_000_000));
     await t.otp.create({ data: { ...a, sentTo: opts?.sentTo ?? null, codeHash: hashOf(a, code), expiresAt: new Date(Date.now() + OTP_MINUTES * 60_000) } });
     return code;
   });

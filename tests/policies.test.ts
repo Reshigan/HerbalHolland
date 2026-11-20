@@ -1,7 +1,7 @@
 // The returns and delivery policies: every line passes the copy screen (no medical claims), says "members", takes its
 // fees, threshold and cut-off from the settings, states the CPA/ECTA rights, and marks the line counsel must confirm.
 import { describe, expect, it } from "vitest";
-import { LEGAL_DOCS, deliveryPolicy, referralRules, returnsPolicy, type PolicyBlock, type PolicyFacts } from "@/lib/policies";
+import { LEGAL_DOCS, deletionPolicy, deliveryPolicy, referralRules, returnsPolicy, type PolicyBlock, type PolicyFacts } from "@/lib/policies";
 import { screenCopy } from "@/lib/compliance";
 
 // As the defaults in HQ → Online orders (settings.ecommerce).
@@ -12,11 +12,11 @@ const facts = (over: Partial<PolicyFacts["ecommerce"]> = {}): PolicyFacts => ({
 const lines = (blocks: PolicyBlock[]) =>
   blocks.flatMap((b) => ("h" in b ? [b.h] : "p" in b ? [b.p] : "important" in b ? b.important : b.list.flatMap((l) => (typeof l === "string" ? [l] : [l.text, l.counsel]))));
 const text = (blocks: PolicyBlock[]) => lines(blocks).join("\n");
-const both = (f = facts()) => [...lines(returnsPolicy(f)), ...lines(deliveryPolicy(f)), ...lines(referralRules(f, 50, 5))];
+const both = (f = facts()) => [...lines(returnsPolicy(f)), ...lines(deliveryPolicy(f)), ...lines(referralRules(f, 50, 5)), ...lines(deletionPolicy(f))];
 
 describe("shop policies", () => {
   it("are listed with the legal documents (page, footer and sitemap read this)", () => {
-    expect(Object.keys(LEGAL_DOCS)).toEqual(["terms", "privacy", "returns", "delivery", "referrals"]);
+    expect(Object.keys(LEGAL_DOCS)).toEqual(["terms", "privacy", "returns", "delivery", "referrals", "delete-account"]);
     expect([LEGAL_DOCS.returns.title, LEGAL_DOCS.delivery.title]).toEqual(["Returns & refunds", "Delivery"]);
   });
 

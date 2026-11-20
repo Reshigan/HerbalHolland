@@ -30,5 +30,26 @@ app full screen, without an address bar. Nothing of the till lives here; updatin
   `gradle assembleRelease -Phost=staging.example.com`.
 - **Card payments:** Halo Dot tap-on-glass opens the Halo app from the till page as it does in Chrome; nothing extra.
 
-The shop and Rewards app is the installed web app (PWA) only; neither app store allows cannabis sales. The till and
-the back office install from Safari (Share → Add to Home Screen) and open full screen with their own icons.
+## Herbal Holland Rewards (`shop/`, Google Play)
+
+A Trusted Web Activity like the till, for members: Rewards card, referral credit, stores and learn. Google Play does
+not allow cannabis sales, so this build is Rewards only. It opens `/api/app?src=play`, which sets the `hh_play`
+cookie; while that cookie is present the proxy sends the shop, basket, checkout, drops, specials, gift and order
+pages to `/club`. The full shop stays the installed web app (PWA) in the browser.
+
+- **Signing key:** `herbal-holland-shop-upload.jks` (alias `upload`) is the Play upload key, kept by HQ, never in the
+  repository. Play App Signing holds the app key: add both fingerprints to `/.well-known/assetlinks.json`.
+- **Build** (same tools as the till):
+
+  ```bash
+  cd android/shop
+  ANDROID_HOME=/path/to/sdk SHOP_KEYSTORE=/secure/herbal-holland-shop-upload.jks SHOP_KEYSTORE_PASSWORD=… gradle bundleRelease
+  # → app/build/outputs/bundle/release/app-release.aab; upload it in Play Console
+  ```
+
+  Raise `versionCode` for each upload (`-PversionCode=2 -PversionName=1.0.1`).
+- **After the listing is live:** set `PLAY_STORE_URL` (the listing link) in the Worker's vars. Android members who
+  join in the browser are then sent to the Play listing instead of the install page.
+
+The till and the back office install on iPads from Safari (Share → Add to Home Screen) and open full screen with
+their own icons.
