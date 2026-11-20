@@ -238,7 +238,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       return;
     }
     setVoucherScan({ code, n: Date.now() });
-    pos.toast(`Gift voucher ${code}: taking payment`);
+    pos.toast(code === cartRef.current.customer?.referralCredit?.code ? "Referral credit: taking payment" : `Gift voucher ${code}: taking payment`);
     void checkoutRef.current();
   };
   const voucherScannedRef = useRef(voucherScanned);
