@@ -94,6 +94,10 @@ describe("referral rules", () => {
     expect(r).toContain("no cash value");
     expect(r).toContain("fake or duplicate accounts");
     expect(r).not.toContain("share of their spend");
-    expect(text(referralRules(facts(), 50, 5))).toContain("worth 5% of what they paid, before VAT");
+    const share = text(referralRules(facts(), 50, 5));
+    expect(share).toContain("rand credit worth 5% of what they paid, before VAT");
+    expect(share).toContain("at the till");
+    expect(share).toContain("not on medicines");
+    expect(share).toContain("lasts 3 years");
   });
 });

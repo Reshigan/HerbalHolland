@@ -3,7 +3,7 @@
 // steppers, price-rule labels, promotion and My Deals discounts, drop limits), "complete
 // the deal" suggestions, promo code, totals and the Pay button.
 import { useEffect, useRef, useState } from "react";
-import { Award, BadgeCheck, Building2, Gem, Gift, IdCard, Info, Pill, Plus, ScanLine, ShieldAlert, ShieldCheck, Sparkles, Stethoscope, Tag, Trash2, UserPlus, UserRound, Users, X } from "lucide-react";
+import { Award, BadgeCheck, Building2, Gem, Gift, IdCard, Info, Pill, Plus, ScanLine, ShieldAlert, ShieldCheck, Sparkles, Stethoscope, Tag, Trash2, UserPlus, UserRound, X } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
@@ -70,6 +70,7 @@ export function CustomerCard({
   onDetach,
   onScan,
   onTrade,
+  onReferralCredit,
 }: {
   customer: CustomerDetail | null;
   ageCheck: Cart["ageCheck"];
@@ -84,6 +85,8 @@ export function CustomerCard({
   onScan?: () => void;
   /** Trade-sale mode: a business buying on its trade account (needs the connection). */
   onTrade?: () => void;
+  /** Spend the member's referral credit: opens payment on the Gift voucher tender with their wallet code. */
+  onReferralCredit?: (code: string) => void;
 }) {
   if (!customer)
     return (
@@ -171,11 +174,6 @@ export function CustomerCard({
         <Chip tone="orange" icon={<Sparkles className="h-3 w-3" />}>
           {fmtPoints(customer.points)}
         </Chip>
-        {!!customer.affiliatePoints && (
-          <Chip tone="neutral" icon={<Users className="h-3 w-3" />}>
-            <span data-testid="affiliate-earned">{fmtPoints(customer.affiliatePoints)} from friends</span>
-          </Chip>
-        )}
         {customer.ageVerified ? (
           <Chip tone="green" icon={<BadgeCheck className="h-3 w-3" />}>
             18+ verified{customer.age ? ` · ${customer.age}` : ""}
@@ -190,6 +188,20 @@ export function CustomerCard({
             Patient · {Math.round(p.remainingGrams * 10) / 10}g left this month
           </Chip>
         ) : null}
+        {customer.referralCredit && (
+          <button
+            type="button"
+            onClick={() => onReferralCredit?.(customer.referralCredit!.code)}
+            disabled={!online || !onReferralCredit}
+            title={online ? "Pay with the member's referral credit (not on medicines)" : "Referral credit needs a connection"}
+            className="disabled:opacity-60"
+            data-testid="referral-credit"
+          >
+            <Chip tone="green" icon={<Gift className="h-3 w-3" />}>
+              {zar(customer.referralCredit.balanceCents)} referral credit
+            </Chip>
+          </button>
+        )}
         {customer.tierFloor && (
           <Chip tone="neutral" icon={<ShieldCheck className="h-3 w-3" />}>
             <span data-testid="tier-floor">

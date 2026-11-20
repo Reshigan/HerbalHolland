@@ -59,7 +59,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const deals = sum.offerCents; // My Deals: HQ-funded discounts, credited to the selling store on its statement
   const fundSpend = spend + deals;
   const kind = (k: string) => points.find((p) => p.kind === k)?._sum.points ?? 0;
-  const issued = ["EARN", "SIGNUP", "REFERRAL", "AFFILIATE", "BIRTHDAY", "BONUS"].reduce((a, k) => a + kind(k), 0);
+  const issued = ["EARN", "SIGNUP", "REFERRAL", "BIRTHDAY", "BONUS"].reduce((a, k) => a + kind(k), 0);
   const redeemed = -kind("REDEEM");
   const expired = -kind("EXPIRE");
   const wholesaleEx = Math.round(wholesale[0]?.ex ?? 0);

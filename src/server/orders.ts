@@ -473,7 +473,9 @@ export async function advanceOrder(
       if (paid !== due) throw new OrderError(`Take payment of ${zar(due)} before handover`);
       payments = normaliseVoucherTenders(opts.payments ?? []);
       try {
-        counterVouchers = await checkVoucherTenders(payments);
+        const excluded = incentiveExcluded(settings.compliance);
+        const eligibleCents = o.lines.filter((l) => !excluded.includes(l.variant.product.regClass)).reduce((s, l) => s + l.totalCents, 0) - o.pointsRedeemed * 100;
+        counterVouchers = await checkVoucherTenders(payments, new Date(), { customerId: o.customerId, eligibleCents });
       } catch (e) {
         if (e instanceof SaleError) throw new OrderError(e.message);
         throw e;

@@ -6,6 +6,7 @@
 //   statement-payment  <StatementPayment id>
 //   online-payment     <Order id>              paid online; <id>:cancel refunded on cancelling; <id>:<credit note id> a return refunded
 //   voucher            <GiftVoucher id>        sold; <id>:expiry what was left on it when it expired
+//   affiliate          <AffiliateCredit id>    referral credit HQ put into (or a refund took from) a member's wallet
 //   points             <YYYY-MM-DD>            points HQ gave (or its own stores issued) and points that expired that day
 //   trade-entry        <TradeLedgerEntry id>   payments, credit notes and adjustments HQ made
 //   trade-eft          <TradeOrder id>         an EFT paid ahead; <id>:refund refunded when the order was cancelled
@@ -16,7 +17,7 @@ import type { Posting, SourceHandler } from "../core";
 import { CATCH_UP_DAYS, missed } from "./catch-up";
 import { addMonths, monthEnd, monthsBetween, periodOf } from "@/lib/ledger";
 import {
-  HQ_POINT_KINDS, onlinePaymentLines, orderCancelledAt, orderPaidAt, pointsLines, POINTS_SOURCE_KINDS, statementLines, statementPaymentLines, tradeEftLines, tradeEntryLines, voucherLines,
+  affiliateLines, HQ_POINT_KINDS, onlinePaymentLines, orderCancelledAt, orderPaidAt, pointsLines, POINTS_SOURCE_KINDS, statementLines, statementPaymentLines, tradeEftLines, tradeEntryLines, voucherLines,
 } from "@/lib/ledger-hq";
 import { POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
 import { isVoucherSku, maskVoucherCode } from "@/lib/vouchers";
@@ -113,13 +114,22 @@ const onlinePayment: SourceHandler = async (sourceId, t) => {
 /** A gift voucher: sold through the gateway on the day it was issued (`<id>`); what was left on it when it expired (`<id>:expiry`). */
 const voucher: SourceHandler = async (sourceId, t) => {
   const [id, part] = sourceId.split(":");
-  const v = await t.giftVoucher.findUnique({ where: { id }, select: { code: true, amountCents: true, balanceCents: true, status: true, issuedAt: true, expiresAt: true } });
+  const v = await t.giftVoucher.findUnique({ where: { id }, select: { code: true, amountCents: true, balanceCents: true, status: true, issuedAt: true, expiresAt: true, affiliateOfId: true } });
   if (!v?.issuedAt || v.status === "PENDING" || v.status === "CANCELLED") return [];
   const hq = await hqCompany(t);
   const code = maskVoucherCode(v.code);
+  if (!part && v.affiliateOfId) return []; // a referral credit wallet isn't sold: each top-up posts as "affiliate"
   if (!part) return [{ companyId: hq.id, date: dayKey(v.issuedAt), memo: `Gift voucher sold · ${code}`, lines: voucherLines({ soldCents: v.amountCents }) }];
   const expired = part === "expiry" && (v.status === "EXPIRED" || v.expiresAt <= new Date());
   return expired ? [{ companyId: hq.id, date: dayKey(v.expiresAt), memo: `Gift voucher expired unused · ${code}`, lines: voucherLines({ expiredCents: Math.max(0, v.balanceCents) }) }] : [];
+};
+
+/** One referral credit top-up or clawback, on its day. */
+const affiliate: SourceHandler = async (id, t) => {
+  const c = await t.affiliateCredit.findUnique({ where: { id }, select: { cents: true, createdAt: true } });
+  if (!c?.cents) return [];
+  const memo = c.cents > 0 ? "Referral credit · a referred friend's purchase" : "Referral credit reversed · a referred friend's refund";
+  return [{ companyId: (await hqCompany(t)).id, date: dayKey(c.createdAt), memo, lines: affiliateLines(c.cents) }];
 };
 
 // ── Rewards points (HQ's books) ─────────────────────────────────────────────────────
@@ -184,6 +194,7 @@ export const HQ_SOURCES: Record<string, SourceHandler> = {
   "statement-payment": statementPayment,
   "online-payment": onlinePayment,
   voucher,
+  affiliate,
   points,
   "trade-entry": tradeEntry,
   "trade-eft": tradeEft,
@@ -251,6 +262,7 @@ export async function hqBackfill(from: string, to: string): Promise<Source[]> {
     if (within(v.issuedAt)) add("voucher", v.id);
     if (within(v.expiresAt) && v.expiresAt <= now) add("voucher", `${v.id}:expiry`);
   }
+  for (const c of await db.affiliateCredit.findMany({ where: { createdAt: { gte: start, lt: end } }, select: { id: true } })) add("affiliate", c.id);
 
   const days = await db.$queryRaw<{ day: string }[]>`
     SELECT ${sastDay('"createdAt"')} AS day FROM "LoyaltyEntry"

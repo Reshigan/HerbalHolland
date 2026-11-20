@@ -26,7 +26,7 @@ import type { LoyaltyKind } from "@/generated/prisma/client";
 export const metadata = { title: "Rewards" };
 
 const KIND_LABEL: Record<LoyaltyKind, string> = {
-  EARN: "Earned on purchases", REDEEM: "Redeemed", SIGNUP: "Sign-up bonuses", REFERRAL: "Referral bonuses", AFFILIATE: "Affiliate share", BIRTHDAY: "Birthday bonuses",
+  EARN: "Earned on purchases", REDEEM: "Redeemed", SIGNUP: "Sign-up bonuses", REFERRAL: "Referral bonuses", BIRTHDAY: "Birthday bonuses",
   BONUS: "Goodwill bonuses", REVERSAL: "Reversals (refunds, cancellations)", EXPIRE: "Expired / forfeited", ADJUST: "Manual adjustments",
 };
 
@@ -46,7 +46,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
     db.customer.aggregate({ where: { ...members, points: { gt: 0 } }, _sum: { points: true }, _count: true }),
     db.customer.groupBy({ by: ["tier"], where: members, _count: true }),
     db.loyaltyEntry.groupBy({ by: ["kind"], where: { createdAt: { gte: since }, ...(scope.kind === "HQ" ? {} : { storeId: { in: ids } }) }, _sum: { points: true }, _count: true }),
-    db.loyaltyEntry.groupBy({ by: ["storeId", "kind"], where: { createdAt: { gte: since }, storeId: { in: ids }, kind: { in: ["EARN", "REDEEM", "REFERRAL", "AFFILIATE", "BONUS", "BIRTHDAY", "REVERSAL"] } }, _sum: { points: true } }),
+    db.loyaltyEntry.groupBy({ by: ["storeId", "kind"], where: { createdAt: { gte: since }, storeId: { in: ids }, kind: { in: ["EARN", "REDEEM", "REFERRAL", "BONUS", "BIRTHDAY", "REVERSAL"] } }, _sum: { points: true } }),
     db.customer.findMany({ where: members, orderBy: { lifetimeCents: "desc" }, take: 8, select: { id: true, firstName: true, lastName: true, memberNo: true, tier: true, points: true, lifetimeCents: true, homeStore: { select: { name: true } } } }),
     db.store.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true } }),
     db.$queryRaw<{ saved: number; offers: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0) AS saved, COALESCE(SUM("offerCents"), 0) AS offers FROM "DailyStoreStat" WHERE "storeId" IN (SELECT value FROM json_each(${JSON.stringify(ids)})) AND "date" >= ${r30.fromDate}`,
@@ -60,14 +60,14 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
   const l = settings.loyalty;
   const admin = can(user, "admin");
   const kindSum = (k: LoyaltyKind) => movement.find((m) => m.kind === k)?._sum.points ?? 0;
-  const issued = (["EARN", "SIGNUP", "REFERRAL", "AFFILIATE", "BIRTHDAY", "BONUS"] as LoyaltyKind[]).reduce((s, k) => s + kindSum(k), 0);
+  const issued = (["EARN", "SIGNUP", "REFERRAL", "BIRTHDAY", "BONUS"] as LoyaltyKind[]).reduce((s, k) => s + kindSum(k), 0);
   const redeemed = -kindSum("REDEEM");
 
   const settle = stores
     .map((s) => {
       const rows = byStore.filter((r) => r.storeId === s.id);
       const sum = (k: LoyaltyKind[]) => rows.filter((r) => k.includes(r.kind)).reduce((a, r) => a + (r._sum.points ?? 0), 0);
-      const iss = sum(["EARN", "REFERRAL", "AFFILIATE", "BONUS", "BIRTHDAY", "REVERSAL"]);
+      const iss = sum(["EARN", "REFERRAL", "BONUS", "BIRTHDAY", "REVERSAL"]);
       const red = -sum(["REDEEM"]);
       return { ...s, issued: iss, redeemed: red, net: (red - iss) * POINT_VALUE_CENTS };
     })
@@ -269,7 +269,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
                       ["minRedeem", "Minimum to redeem", l.minRedeem, "Points"],
                       ["signupBonus", "Sign-up bonus", l.signupBonus, "Points"],
                       ["referralBonus", "Referral bonus", l.referralBonus, "Each side, first purchase"],
-                      ["affiliatePct", "Affiliate share %", l.affiliatePct, "Of a referred friend's net spend"],
+                      ["affiliatePct", "Affiliate share %", l.affiliatePct, "Of a referred friend's net spend, as rand credit"],
                       ["birthdayBonus", "Birthday bonus", l.birthdayBonus, "Points"],
                     ] as const
                   ).map(([name, label, value, hint]) => (

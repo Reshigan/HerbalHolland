@@ -65,6 +65,9 @@ export const statementOutstanding = (netCents: number, payments: { amountCents: 
 export const onlinePaymentLines = (cents: number, storeId: string | null = null): Line[] =>
   netLines([{ key: "gateway", cents, storeId }, { key: "prepaid", cents: -cents, storeId }]);
 
+/** Referral credit HQ gave into a member's wallet voucher (negative when a refund takes it back). */
+export const affiliateLines = (cents: number): Line[] => netLines([{ key: "affiliate.hq", cents }, { key: "vouchers", cents: -cents }]);
+
 /** A gift voucher: sold through the gateway (owed to whoever holds it), and what's left on it when it expires (breakage). */
 export const voucherLines = (v: { soldCents?: number; expiredCents?: number }): Line[] =>
   netLines([
@@ -95,7 +98,7 @@ export function orderCancelledAt(events: OrderEvent[]) {
  * forward). Points a store issues on a sale are charged to it on its statement; points redeemed are a tender on the
  * sale; reversals undo one of those two, so they post with them.
  */
-export const HQ_POINT_KINDS: readonly string[] = ["SIGNUP", "REFERRAL", "BIRTHDAY", "BONUS", "ADJUST", "AFFILIATE"];
+export const HQ_POINT_KINDS: readonly string[] = ["SIGNUP", "REFERRAL", "BIRTHDAY", "BONUS", "ADJUST"];
 /** Kinds the daily `points` source posts: what HQ gives, and points that expire or are forfeited. */
 export const POINTS_SOURCE_KINDS: readonly string[] = [...HQ_POINT_KINDS, "EXPIRE"];
 

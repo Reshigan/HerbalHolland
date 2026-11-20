@@ -2,11 +2,12 @@
 // funds them and the redeeming store is reimbursed on the franchise statement.
 import type { Tx } from "./db";
 import { queuePosting } from "./ledger/core";
-import { affiliatePoints, pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
+import { affiliateCents, pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
 import { POINTS_SOURCE_KINDS } from "@/lib/ledger-hq";
 import { dayKey } from "@/lib/format";
 import { boostDue, boostFor, effectiveTier } from "@/lib/referral-ladder";
 import { audit, SYSTEM } from "./audit";
+import { creditAffiliateTx } from "./affiliate";
 import type { LoyaltyKind } from "@/generated/prisma/client";
 
 export class LoyaltyError extends Error {}
@@ -70,14 +71,10 @@ export async function recordPurchase(
     await addPoints(t, { customerId: before.referredById, points: a.referralBonus, kind: "REFERRAL", storeId: a.storeId, note: `Referral: ${before.firstName}` });
     await climbReferralLadder(t, before.referredById, a.at);
   }
-  // The affiliate share: the referrer earns a % of every purchase this friend makes, for as long as both are members.
+  // The affiliate share: the referrer gets a % of every purchase this friend makes, as rand credit in their wallet.
   // ponytail: no end date or cap per friend; add one to the loyalty settings if HQ wants referrals to stop earning.
-  const share = before.referredById ? affiliatePoints(a.netCents ?? 0, a.affiliatePct ?? 0) : 0;
-  if (share && before.referredById) {
-    const referrer = await t.customer.findUnique({ where: { id: before.referredById }, select: { id: true, phone: true } });
-    if (referrer && !referrer.phone.startsWith("anon-")) // an erased (POPIA) member earns nothing more
-      await addPoints(t, { customerId: referrer.id, points: share, kind: "AFFILIATE", storeId: a.storeId, saleId: a.saleId, orderId: a.orderId, note: `Affiliate: ${before.firstName}` });
-  }
+  if (before.referredById)
+    await creditAffiliateTx(t, { referrerId: before.referredById, friendId: a.customerId, saleId: a.saleId, orderId: a.orderId, cents: affiliateCents(a.netCents ?? 0, a.affiliatePct ?? 0) });
   return { points, tier, tierChanged: tier !== before.tier };
 }
 

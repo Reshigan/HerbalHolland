@@ -231,7 +231,6 @@ export type CustomerDetail = {
   email: string | null;
   tier: TierKey;
   points: number;
-  affiliatePoints?: number; // of `points`, earned so far from referred friends' spend (net of refunds); absent offline
   ageCheck: AgeCheckKind;
   ageVerified: boolean;
   age: number | null;
@@ -241,6 +240,7 @@ export type CustomerDetail = {
   foundingNo: number | null; // Founding Member number
   tierFloor: { tier: TierKey; until: string } | null; // active guaranteed minimum tier (a founding floor or a referral boost, whichever holds higher)
   offers: { id: string; title: string; endsAt: string }[]; // My Deals on the card (auto-apply online)
+  referralCredit?: { code: string; balanceCents: number } | null; // the affiliate wallet voucher, spent as a VOUCHER tender
   patient: {
     authNumber: string;
     prescriber: string;

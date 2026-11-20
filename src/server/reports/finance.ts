@@ -505,7 +505,7 @@ export const loyaltyLiability: ReportDef = {
       db.dailyStoreStat.groupBy({ by: ["storeId"], where, _sum: { pointsIssued: true, loyaltyCents: true, memberSavingsCents: true } }),
       db.customer.aggregate({ where: { ...memberWhere, points: { gt: 0 } }, _sum: { points: true }, _count: true }),
       ctx.networkWide
-        ? db.loyaltyEntry.groupBy({ by: ["kind"], where: { storeId: null, kind: { in: ["SIGNUP", "BIRTHDAY", "REFERRAL", "BONUS", "ADJUST", "AFFILIATE"] }, createdAt: { gte: start, lt: end } }, _sum: { points: true }, _count: true })
+        ? db.loyaltyEntry.groupBy({ by: ["kind"], where: { storeId: null, kind: { in: ["SIGNUP", "BIRTHDAY", "REFERRAL", "BONUS", "ADJUST"] }, createdAt: { gte: start, lt: end } }, _sum: { points: true }, _count: true })
         : Promise.resolve([]),
     ]);
     const savedBy = new Map<string, number>([
@@ -572,4 +572,4 @@ export const loyaltyLiability: ReportDef = {
     };
   },
 };
-const KIND_LABEL: Record<string, string> = { SIGNUP: "Sign-up bonus", BIRTHDAY: "Birthday bonus", REFERRAL: "Referral bonus", AFFILIATE: "Affiliate share", BONUS: "Bonus", ADJUST: "Adjustment", REVERSAL: "Reversal", EXPIRE: "Expiry", EARN: "Earned", REDEEM: "Redeemed" };
+const KIND_LABEL: Record<string, string> = { SIGNUP: "Sign-up bonus", BIRTHDAY: "Birthday bonus", REFERRAL: "Referral bonus", BONUS: "Bonus", ADJUST: "Adjustment", REVERSAL: "Reversal", EXPIRE: "Expiry", EARN: "Earned", REDEEM: "Redeemed" };

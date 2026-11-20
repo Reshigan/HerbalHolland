@@ -6,6 +6,7 @@
 import { MADE_TO_ORDER_LEAD } from "./merch";
 import { zarWhole } from "./money";
 import { BOOST_DAYS, RUNGS } from "./referral-ladder";
+import { VOUCHER_VALID_YEARS } from "./vouchers";
 
 export const LEGAL_DOCS = {
   terms: { title: "Membership terms", dek: "The agreement you accept when you become a Herbal Holland member, whether online, in the Rewards app or at the till." },
@@ -108,10 +109,11 @@ export function referralRules(f: PolicyFacts, bonus: number, pct = 0): PolicyBlo
           { h: "Your share of their spend" },
           {
             list: [
-              `Every time a friend you referred buys, in a store or online, you get points worth ${pct}% of what they paid, before VAT. 1 point is R1.`,
+              `Every time a friend you referred buys, in a store or online, you get rand credit worth ${pct}% of what they paid, before VAT. It goes into your referral credit on your Rewards page.`,
               "Points they pay with, and licensed medicines, don't count towards your share.",
-              "If your friend returns something, the share you earned on it comes off your points.",
-              "Spend the points like any others: at the till in any Herbal Holland store, or online.",
+              "If your friend returns something, the share you earned on it comes off your credit.",
+              "Spend your credit at the till in any Herbal Holland store: show your member card. Only you can use it, and not on medicines.",
+              `Your credit lasts ${VOUCHER_VALID_YEARS} years from the last time you earned some. It can't be exchanged for cash or transferred.`,
             ],
           },
         ]

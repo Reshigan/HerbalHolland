@@ -185,11 +185,12 @@ export async function sendVoucher(v: GiftVoucher) {
 // ── Redeeming ─────────────────────────────────────────────────────────────────
 
 /** The voucher a member typed at checkout (or the till scanned), or why it can't pay right now. */
-export async function voucherForCheckout(raw: string, now = new Date()): Promise<{ ok: true; voucher: GiftVoucher } | { ok: false; error: string }> {
+/** `till`: the POS looking a voucher up; a referral credit wallet pays only there (the sale checks whose it is). */
+export async function voucherForCheckout(raw: string, now = new Date(), till = false): Promise<{ ok: true; voucher: GiftVoucher } | { ok: false; error: string }> {
   const code = normaliseVoucherCode(raw);
   if (!code) return { ok: false, error: "That doesn't look like a gift voucher code (HH-XXXX-XXXX-XXXX)." };
   const v = await db.giftVoucher.findUnique({ where: { code } });
-  const problem = voucherProblem(v, now, fmtDate);
+  const problem = voucherProblem(v, now, fmtDate) ?? (v?.affiliateOfId && !till ? "Referral credit is spent in store: show your member card at the till." : null);
   return problem ? { ok: false, error: problem } : { ok: true, voucher: v! };
 }
 

@@ -745,6 +745,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
             onDetach={() => setCart((c) => ({ ...c, customer: null, ageCheck: null, memberScanned: false }))}
             onScan={() => setScanning("member")}
             onTrade={() => setTradeSheet(true)}
+            onReferralCredit={voucherScanned}
           />
         )
       }

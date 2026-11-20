@@ -697,7 +697,6 @@ enum LoyaltyKind {
   REVERSAL
   EXPIRE
   ADJUST
-  AFFILIATE // the referrer's share of a referred friend's net spend (HQ-funded)
 }
 
 // Points ledger. Points are a network-wide liability settled between stores
@@ -2024,11 +2023,31 @@ model GiftVoucher {
   expiresAt             DateTime
   redeemedOrderIds      Json @default("[]")
   sentAt                DateTime?
+  /// Set on a member's referral credit wallet: one per member, topped up with the affiliate share of referred
+  /// friends' purchases, spent only by that member at the till, and only on lines that are not medicines.
+  affiliateOfId         String?       @unique
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
   @@index([purchasedByCustomerId, createdAt])
   @@index([status, expiresAt])
+}
+
+/// One affiliate share: a referred friend's purchase (saleId) put `cents` into the referrer's wallet voucher. A refund
+/// takes the share back with a negative row keyed by the refund's sale id. The row is written before the balance moves,
+/// so a run that stops halfway misses a credit and never doubles one.
+model AffiliateCredit {
+  id         String   @id @default(cuid())
+  customerId String
+  friendId   String
+  voucherId  String
+  saleId     String   @unique
+  orderId    String?
+  cents      Int
+  createdAt  DateTime @default(now())
+
+  @@index([customerId, createdAt])
+  @@index([friendId])
 }
 
 /// Money taken from a voucher: by an online order at checkout (orderId), by a till sale (saleId), or by a counter

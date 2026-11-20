@@ -324,21 +324,24 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             </h2>
             <p className="mt-1 text-sm text-ink-300">
               When a friend (18+) joins with your link and makes their first purchase, you each get {fmtPoints(settings.loyalty.referralBonus)}.
-              {settings.loyalty.affiliatePct > 0 && ` After that you earn ${settings.loyalty.affiliatePct}% of everything they spend, as points to spend in any store.`}
+              {settings.loyalty.affiliatePct > 0 && ` After that you earn ${settings.loyalty.affiliatePct}% of what they spend, as rand credit to spend at the till (not on medicines).`}
               {m.referrals > 0 && ` You've invited ${m.referrals} member${m.referrals === 1 ? "" : "s"} so far.`}
             </p>
+            {m.referralCredit && (
+              <div className="mt-3 rounded-xl bg-ink-850 px-4 py-3">
+                <p className="text-xs text-ink-450">Referral credit to spend in store</p>
+                <p className="tnum font-display text-2xl font-semibold text-white">{zar(m.referralCredit.balanceCents)}</p>
+                <p className="mt-0.5 text-xs text-ink-450">
+                  {zar(m.referralCredit.earnedCents)} earned from friends so far. Show your member card at the till to use it. Expires {fmtDate(m.referralCredit.expiresAt)} unless you earn more.
+                </p>
+              </div>
+            )}
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-ink-200">
                 <span className="tnum font-semibold text-white">{num(m.qualifiedReferrals)}</span> {m.qualifiedReferrals === 1 ? "friend has" : "friends have"} made a first purchase
               </span>
               {windmillCrew(m.qualifiedReferrals) && <Tag tone="solid" icon={<Trophy className="h-3 w-3" />}>Windmill Crew</Tag>}
             </div>
-            {settings.loyalty.affiliatePct > 0 && (
-              <p className="mt-1 text-sm text-ink-200">
-                Earned from friends' spend: <span className="tnum font-semibold text-white">{fmtPoints(m.affiliatePoints)}</span>
-                <span className="text-ink-450"> · {zar(m.affiliatePoints * 100)} to redeem at the till</span>
-              </p>
-            )}
             {rung && (
               <p className="mt-1 text-sm text-ink-300">
                 {rung.remaining} more {rung.remaining === 1 ? "friend's first purchase" : "friends' first purchases"}:{" "}
