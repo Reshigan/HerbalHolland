@@ -79,11 +79,11 @@ try {
   step("Lock screen → Shireen Singh → PIN 1111");
   await page.getByRole("button", { name: /Shireen Singh/ }).click({ timeout: 120_000 });
   for (const d of "1111") await page.getByRole("button", { name: d, exact: true }).click();
-  await page.waitForSelector("[aria-label=Catalogue]");
-  ok("signed in");
+  // With no shift open, unlocking lands on the shift screen.
+  await page.getByTestId("open-shift").waitFor();
+  ok("signed in, straight to Open a shift");
 
   step("Open a shift with the default R1,000 float");
-  await page.getByRole("button", { name: "Open shift", exact: true }).click();
   await page.getByTestId("open-shift").click();
   await page.waitForSelector("[aria-label=Catalogue]:visible");
   const shift = (await q(`select id, "openingFloatCents", "openedAt" from "Shift" where "deviceId" = $1 and "closedAt" is null`, [device.id]))[0];
