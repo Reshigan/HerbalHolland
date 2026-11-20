@@ -3,7 +3,7 @@
 // steppers, price-rule labels, promotion and My Deals discounts, drop limits), "complete
 // the deal" suggestions, promo code, totals and the Pay button.
 import { useEffect, useRef, useState } from "react";
-import { Award, BadgeCheck, Building2, Gem, Gift, IdCard, Info, Pill, Plus, ScanLine, ShieldAlert, ShieldCheck, Sparkles, Stethoscope, Tag, Trash2, UserPlus, UserRound, X } from "lucide-react";
+import { Award, BadgeCheck, Building2, Gem, Gift, IdCard, Info, Pill, Plus, ScanLine, ShieldAlert, ShieldCheck, Sparkles, Stethoscope, Tag, Trash2, UserPlus, UserRound, Users, X } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
@@ -171,6 +171,11 @@ export function CustomerCard({
         <Chip tone="orange" icon={<Sparkles className="h-3 w-3" />}>
           {fmtPoints(customer.points)}
         </Chip>
+        {!!customer.affiliatePoints && (
+          <Chip tone="neutral" icon={<Users className="h-3 w-3" />}>
+            <span data-testid="affiliate-earned">{fmtPoints(customer.affiliatePoints)} from friends</span>
+          </Chip>
+        )}
         {customer.ageVerified ? (
           <Chip tone="green" icon={<BadgeCheck className="h-3 w-3" />}>
             18+ verified{customer.age ? ` · ${customer.age}` : ""}

@@ -697,6 +697,7 @@ enum LoyaltyKind {
   REVERSAL
   EXPIRE
   ADJUST
+  AFFILIATE // the referrer's share of a referred friend's net spend (HQ-funded)
 }
 
 // Points ledger. Points are a network-wide liability settled between stores

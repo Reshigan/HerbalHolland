@@ -176,6 +176,7 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     await t.giftVoucher.updateMany({ where: vouchersOf(c), data: { recipientName: null, recipientEmail: null, message: null } }); // the money stays on the code
     await t.messageLog.updateMany({ where: messagesOf(c), data: { to: "[erased]", body: ERASED } });
     if (c.referredById) await t.loyaltyEntry.updateMany({ where: { customerId: c.referredById, kind: "REFERRAL", note: `Referral: ${c.firstName}` }, data: { note: `Referral: ${ANONYMISED}` } });
+    if (c.referredById) await t.loyaltyEntry.updateMany({ where: { customerId: c.referredById, kind: "AFFILIATE", note: `Affiliate: ${c.firstName}` }, data: { note: `Affiliate: ${ANONYMISED}` } });
     await t.patientAuth.updateMany({ where: { customerId }, data: { documentRef: null, status: "REVOKED" } });
     // The audit trail keeps what happened, not who: their name comes off what they did, and their mobile off the
     // "already linked to another member" checks made while they joined.

@@ -12,6 +12,7 @@ const RULES = {
   earnPer100: [1, 50, "1–50 points per R100"],
   signupBonus: [0, 1000, "0–1,000 points"],
   referralBonus: [0, 1000, "0–1,000 points"],
+  affiliatePct: [0, 20, "0–20%"],
   birthdayBonus: [0, 1000, "0–1,000 points"],
   minRedeem: [1, 10_000, "1–10,000 points"],
   maxRedeemPct: [1, 100, "1–100%"],

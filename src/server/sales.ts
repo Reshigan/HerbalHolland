@@ -26,6 +26,7 @@ import { vatOf, zar } from "@/lib/money";
 import { ACCOUNT_STATUS_PROBLEM, tradeBuyerBlock } from "@/lib/trade";
 import { allocateRefundAcross, maskVoucherCode, normaliseVoucherCode, voucherProblem } from "@/lib/vouchers";
 import { backHowTheyPaid, cashLeft, lineShare, moneyPartsOf, pointsBack } from "@/lib/pos-refund";
+import { netOfVat } from "@/lib/loyalty-rules";
 import type { Allocation } from "@/lib/fefo";
 import type { AgeCheck, GiftVoucher, PayMethod } from "@/generated/prisma/client";
 
@@ -158,6 +159,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
       customerId: a.customerId, storeId: a.storeId, paidCents: Math.max(0, total - a.pointsRedeemed * 100 - noEarn), totalCents: total,
       multiplier: a.quote.pointsMultiplier, saleId: sale.id, orderId: a.orderId, at: a.createdAt,
       earnPer100: settings.loyalty.earnPer100, referralBonus: settings.loyalty.referralBonus,
+      netCents: netOfVat(Math.max(0, total - a.pointsRedeemed * 100 - noEarn), total, vat), affiliatePct: settings.loyalty.affiliatePct,
     });
     pointsEarned = r.points;
   }
@@ -612,6 +614,10 @@ export async function refundSale(a: {
     if (orig.customerId) {
       if (loyaltyBack) await addPoints(t, { customerId: orig.customerId, points: loyaltyBack / 100, kind: "REVERSAL", storeId: orig.storeId, saleId: refund.id, note: "points returned on refund" });
       if (earnedBack) await addPoints(t, { customerId: orig.customerId, points: -earnedBack, kind: "REVERSAL", storeId: orig.storeId, saleId: refund.id, note: "points reversed on refund" });
+      // The referrer's affiliate share comes back in proportion too (as AFFILIATE, so HQ's books net it off).
+      const aff = await t.loyaltyEntry.findFirst({ where: { saleId: orig.id, kind: "AFFILIATE", points: { gt: 0 } }, select: { customerId: true, points: true } });
+      const affBack = aff && orig.totalCents > 0 ? Math.round((aff.points * amount) / orig.totalCents) : 0;
+      if (aff && affBack) await addPoints(t, { customerId: aff.customerId, points: -affBack, kind: "AFFILIATE", storeId: orig.storeId, saleId: refund.id, note: `Affiliate reversed: refund ${refund.number}` });
       await t.customer.update({ where: { id: orig.customerId }, data: { lifetimeCents: { decrement: amount } } });
     }
 

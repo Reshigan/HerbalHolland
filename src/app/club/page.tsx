@@ -324,6 +324,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             </h2>
             <p className="mt-1 text-sm text-ink-300">
               When a friend (18+) joins with your link and makes their first purchase, you each get {fmtPoints(settings.loyalty.referralBonus)}.
+              {settings.loyalty.affiliatePct > 0 && ` After that you earn ${settings.loyalty.affiliatePct}% of everything they spend, as points to spend in any store.`}
               {m.referrals > 0 && ` You've invited ${m.referrals} member${m.referrals === 1 ? "" : "s"} so far.`}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
@@ -332,6 +333,12 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               </span>
               {windmillCrew(m.qualifiedReferrals) && <Tag tone="solid" icon={<Trophy className="h-3 w-3" />}>Windmill Crew</Tag>}
             </div>
+            {settings.loyalty.affiliatePct > 0 && (
+              <p className="mt-1 text-sm text-ink-200">
+                Earned from friends' spend: <span className="tnum font-semibold text-white">{fmtPoints(m.affiliatePoints)}</span>
+                <span className="text-ink-450"> · {zar(m.affiliatePoints * 100)} to redeem at the till</span>
+              </p>
+            )}
             {rung && (
               <p className="mt-1 text-sm text-ink-300">
                 {rung.remaining} more {rung.remaining === 1 ? "friend's first purchase" : "friends' first purchases"}:{" "}

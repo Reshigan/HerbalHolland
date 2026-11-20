@@ -80,7 +80,10 @@ export async function searchCustomers(raw: string, storeId: string): Promise<Cus
 }
 
 export async function customerDetail(id: string, storeId: string): Promise<CustomerDetail> {
-  const [ctx, here, offers] = await Promise.all([customerContext(id), visitsHere(storeId, [id]), activeOffers(id)]);
+  const [ctx, here, offers, affiliate] = await Promise.all([
+    customerContext(id), visitsHere(storeId, [id]), activeOffers(id),
+    db.loyaltyEntry.aggregate({ where: { customerId: id, kind: "AFFILIATE" }, _sum: { points: true } }),
+  ]);
   const c = ctx.record;
   if (!c) throw new PosError("Member not found", 404);
   const home = c.homeStoreId ? await db.store.findUnique({ where: { id: c.homeStoreId }, select: { name: true } }) : null;
@@ -95,6 +98,7 @@ export async function customerDetail(id: string, storeId: string): Promise<Custo
     email: c.email,
     tier: c.tier as TierKey,
     points: c.points,
+    affiliatePoints: affiliate._sum.points ?? 0,
     ageCheck: c.ageCheck as AgeCheckKind,
     ageVerified: !!c.ageVerifiedAt,
     age: ctx.customer?.age ?? null,

@@ -12,7 +12,7 @@ const facts = (over: Partial<PolicyFacts["ecommerce"]> = {}): PolicyFacts => ({
 const lines = (blocks: PolicyBlock[]) =>
   blocks.flatMap((b) => ("h" in b ? [b.h] : "p" in b ? [b.p] : "important" in b ? b.important : b.list.flatMap((l) => (typeof l === "string" ? [l] : [l.text, l.counsel]))));
 const text = (blocks: PolicyBlock[]) => lines(blocks).join("\n");
-const both = (f = facts()) => [...lines(returnsPolicy(f)), ...lines(deliveryPolicy(f)), ...lines(referralRules(f, 50))];
+const both = (f = facts()) => [...lines(returnsPolicy(f)), ...lines(deliveryPolicy(f)), ...lines(referralRules(f, 50, 5))];
 
 describe("shop policies", () => {
   it("are listed with the legal documents (page, footer and sitemap read this)", () => {
@@ -93,5 +93,7 @@ describe("referral rules", () => {
     expect(r).toContain("never apply to licensed medicines");
     expect(r).toContain("no cash value");
     expect(r).toContain("fake or duplicate accounts");
+    expect(r).not.toContain("share of their spend");
+    expect(text(referralRules(facts(), 50, 5))).toContain("worth 5% of what they paid, before VAT");
   });
 });

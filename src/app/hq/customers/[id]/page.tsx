@@ -38,7 +38,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const c = await db.customer.findUnique({ where: { id }, include: { homeStore: { select: { code: true, name: true } } } });
   if (!c || (scope.kind !== "HQ" && (!c.homeStoreId || !ids.includes(c.homeStoreId)))) notFound();
   const year = addDays(new Date(), -365);
-  const [ledger, consents, sales, byStore, spend12, auths, reviews, orders, referrer, referrals, settings] = await Promise.all([
+  const [ledger, consents, sales, byStore, spend12, auths, reviews, orders, referrer, referrals, settings, affiliate] = await Promise.all([
     db.loyaltyEntry.findMany({ where: { customerId: id }, include: { store: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 15 }),
     db.consentEvent.findMany({ where: { customerId: id }, orderBy: { createdAt: "desc" }, take: 12 }),
     db.sale.findMany({ where: { customerId: id }, include: { store: { select: { name: true, code: true } }, lines: { select: { qty: true } } }, orderBy: { createdAt: "desc" }, take: 12 }),
@@ -50,6 +50,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
     c.referredById ? db.customer.findUnique({ where: { id: c.referredById }, select: { id: true, firstName: true, memberNo: true } }) : null,
     db.customer.count({ where: { referredById: id } }),
     getSettings(),
+    db.loyaltyEntry.aggregate({ where: { customerId: id, kind: "AFFILIATE" }, _sum: { points: true } }),
   ]);
   const storeNames = new Map((await db.store.findMany({ where: { id: { in: byStore.map((b) => b.storeId) } }, select: { id: true, name: true } })).map((s) => [s.id, s.name]));
   const anonymised = c.phone.startsWith("anon-");
@@ -205,6 +206,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   <span className="font-mono text-xs">{c.referralCode}</span>
                   {referrals > 0 && <span className="text-xs text-ink-500"> · {referrals} referred</span>}
                 </Detail>
+                {!!affiliate._sum.points && <Detail label="Affiliate share">{fmtPoints(affiliate._sum.points)} from friends&apos; spend</Detail>}
                 {referrer && (
                   <Detail label="Referred by">
                     <Link href={`/hq/customers/${referrer.id}`} className="hover:text-brand-700">{referrer.firstName} ({referrer.memberNo})</Link>

@@ -90,8 +90,8 @@ export function returnsPolicy(f: PolicyFacts): PolicyBlock[] {
   ];
 }
 
-/** The referral ladder's rules (/legal/referrals). `bonus`: the referral points each side gets (HQ settings). */
-export function referralRules(f: PolicyFacts, bonus: number): PolicyBlock[] {
+/** The referral ladder's rules (/legal/referrals). `bonus`: the referral points each side gets; `pct`: the affiliate share (HQ settings). */
+export function referralRules(f: PolicyFacts, bonus: number, pct = 0): PolicyBlock[] {
   const rungs = RUNGS.map((r) => `${r.at} friends: ${r.kind === "BOOST" ? `the tier above the one you hold, for ${BOOST_DAYS} days (Harvest members keep Harvest for ${BOOST_DAYS} days)` : `${r.reward}, a badge on your Rewards card page. It carries no discount.`}`);
   return [
     { p: `Herbal Holland Rewards is run by ${f.entity} (“Herbal Holland”, “we”). These rules are part of our [membership terms](/legal/terms).` },
@@ -103,6 +103,19 @@ export function referralRules(f: PolicyFacts, bonus: number): PolicyBlock[] {
         `When your friend makes their first purchase, in a store or online, you each get ${bonus} points.`,
       ],
     },
+    ...(pct > 0
+      ? [
+          { h: "Your share of their spend" },
+          {
+            list: [
+              `Every time a friend you referred buys, in a store or online, you get points worth ${pct}% of what they paid, before VAT. 1 point is R1.`,
+              "Points they pay with, and licensed medicines, don't count towards your share.",
+              "If your friend returns something, the share you earned on it comes off your points.",
+              "Spend the points like any others: at the till in any Herbal Holland store, or online.",
+            ],
+          },
+        ]
+      : []),
     { h: "What counts" },
     {
       list: [

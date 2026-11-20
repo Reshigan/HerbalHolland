@@ -47,4 +47,17 @@ export function pointsFor(paidCents: number, tier: TierKey, promoMultiplier = 1,
   return Math.floor((paidCents / 10_000) * earnPer100 * tierInfo(tier).multiplier * promoMultiplier);
 }
 
+/**
+ * The affiliate share: a referrer earns `pct`% of a referred friend's net spend (paid, after points, medicines and VAT
+ * taken out), as whole points (1 point = R1), rounded down. Redeemed like any points, at the till or online.
+ */
+export function affiliatePoints(netCents: number, pct: number) {
+  if (netCents <= 0 || pct <= 0) return 0;
+  return Math.floor((netCents * pct) / 100 / POINT_VALUE_CENTS);
+}
+
+/** Net (ex-VAT) part of what was paid: the paid amount carries the sale's VAT share. Non-VAT-vendor sales have none. */
+export const netOfVat = (paidCents: number, totalCents: number, vatCents: number) =>
+  totalCents > 0 ? Math.round((paidCents * (totalCents - vatCents)) / totalCents) : 0;
+
 export const fmtPoints = (points: number) => `${new Intl.NumberFormat("en-US").format(points)} pts`;

@@ -32,7 +32,7 @@ import { plural } from "@/lib/plural";
 export const metadata = { title: "Member" };
 const PAGE_SIZE = 10;
 const CHANNEL: Record<MsgChannel, string> = { SMS: "SMS", WHATSAPP: "WhatsApp", EMAIL: "Email", PUSH: "App push" };
-const KIND: Record<string, string> = { EARN: "Earned", REDEEM: "Redeemed", SIGNUP: "Welcome bonus", REFERRAL: "Referral", BIRTHDAY: "Birthday", BONUS: "Bonus", REVERSAL: "Reversal", EXPIRE: "Expired", ADJUST: "Adjustment" };
+const KIND: Record<string, string> = { EARN: "Earned", REDEEM: "Redeemed", SIGNUP: "Welcome bonus", REFERRAL: "Referral", AFFILIATE: "Affiliate share", BIRTHDAY: "Birthday", BONUS: "Bonus", REVERSAL: "Reversal", EXPIRE: "Expired", ADJUST: "Adjustment" };
 
 export default async function MemberPage({ params, searchParams }: { params: Promise<{ code: string; id: string }>; searchParams: Promise<{ page?: string }> }) {
   const [{ code, id }, sp] = await Promise.all([params, searchParams]);

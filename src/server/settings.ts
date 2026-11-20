@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS = {
     earnPer100: 5,
     signupBonus: 25,
     referralBonus: 50,
+    affiliatePct: 5, // referrers earn this % of each referred friend's net (ex-VAT) spend, as points
     birthdayBonus: 100,
     tierSavingsPct: DEFAULT_TIER_SAVINGS as Record<TierKey, number>, // instant Rewards prices by tier
     minRedeem: 20,

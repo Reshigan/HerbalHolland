@@ -231,6 +231,7 @@ export type CustomerDetail = {
   email: string | null;
   tier: TierKey;
   points: number;
+  affiliatePoints?: number; // of `points`, earned so far from referred friends' spend (net of refunds); absent offline
   ageCheck: AgeCheckKind;
   ageVerified: boolean;
   age: number | null;

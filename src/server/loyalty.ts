@@ -2,7 +2,7 @@
 // funds them and the redeeming store is reimbursed on the franchise statement.
 import type { Tx } from "./db";
 import { queuePosting } from "./ledger/core";
-import { pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
+import { affiliatePoints, pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
 import { POINTS_SOURCE_KINDS } from "@/lib/ledger-hq";
 import { dayKey } from "@/lib/format";
 import { boostDue, boostFor, effectiveTier } from "@/lib/referral-ladder";
@@ -46,7 +46,7 @@ export async function redeemPoints(t: Tx, a: { customerId: string; points: numbe
  */
 export async function recordPurchase(
   t: Tx,
-  a: { customerId: string; storeId: string; paidCents: number; totalCents: number; multiplier: number; saleId: string; orderId?: string; at: Date; earnPer100: number; referralBonus: number },
+  a: { customerId: string; storeId: string; paidCents: number; totalCents: number; multiplier: number; saleId: string; orderId?: string; at: Date; earnPer100: number; referralBonus: number; netCents?: number; affiliatePct?: number },
 ) {
   // The member's row first (no row locks on D1: writes are serialised, so the second of two first purchases sees the first).
   const before = await t.customer.findUniqueOrThrow({ where: { id: a.customerId } });
@@ -69,6 +69,14 @@ export async function recordPurchase(
     await addPoints(t, { customerId: a.customerId, points: a.referralBonus, kind: "REFERRAL", storeId: a.storeId, note: "Welcome: you were referred" });
     await addPoints(t, { customerId: before.referredById, points: a.referralBonus, kind: "REFERRAL", storeId: a.storeId, note: `Referral: ${before.firstName}` });
     await climbReferralLadder(t, before.referredById, a.at);
+  }
+  // The affiliate share: the referrer earns a % of every purchase this friend makes, for as long as both are members.
+  // ponytail: no end date or cap per friend; add one to the loyalty settings if HQ wants referrals to stop earning.
+  const share = before.referredById ? affiliatePoints(a.netCents ?? 0, a.affiliatePct ?? 0) : 0;
+  if (share && before.referredById) {
+    const referrer = await t.customer.findUnique({ where: { id: before.referredById }, select: { id: true, phone: true } });
+    if (referrer && !referrer.phone.startsWith("anon-")) // an erased (POPIA) member earns nothing more
+      await addPoints(t, { customerId: referrer.id, points: share, kind: "AFFILIATE", storeId: a.storeId, saleId: a.saleId, orderId: a.orderId, note: `Affiliate: ${before.firstName}` });
   }
   return { points, tier, tierChanged: tier !== before.tier };
 }
