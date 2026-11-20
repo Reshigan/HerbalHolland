@@ -24,7 +24,7 @@ function usePlatformPasskey() {
 
 const cancelled = (e: unknown) => e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "AbortError");
 
-export function PasskeyToggle({ count }: { count: number }) {
+export function PasskeyToggle({ count, prompt = false }: { count: number; prompt?: boolean }) {
   const router = useRouter();
   const available = usePlatformPasskey();
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +72,10 @@ export function PasskeyToggle({ count }: { count: number }) {
     });
 
   const on = count > 0;
+  // As a prompt on club home it only shows where it can be turned on, and goes once it is.
+  if (prompt && (!available || on || done)) return null;
   return (
-    <div>
+    <div className={prompt ? "rounded-2xl border border-ink-800 bg-ink-900/70 p-4" : undefined}>
       <div className="flex items-center justify-between gap-4 py-2">
         <div className="flex min-w-0 items-start gap-3">
           <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors", on ? "bg-brand-500 text-ink-950" : "bg-ink-850 text-ink-300")}>

@@ -360,6 +360,8 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         const then = afterUnlock.current;
         afterUnlock.current = null;
         if (then) setTimeout(then, 50);
+        // No shift yet: the first thing to do is count the float, so go straight there.
+        else if (bootRef.current && !bootRef.current.shift && !trainingRef.current) setTab("shift");
         if (switchingRef.current && h.prev && h.prev.id !== me.id && h.when === "now") setTimeout(() => setHandoff((x) => (x ? { ...x, ask: true } : x)), 120);
       };
       try {

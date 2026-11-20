@@ -303,6 +303,7 @@ export function CartPanel({
   checking,
   customerCard,
   onDetachCustomer,
+  credit,
 }: {
   cart: Cart;
   index: VariantIndex;
@@ -324,6 +325,8 @@ export function CartPanel({
   customerCard: React.ReactNode;
   /** Removes the member (the × on the compact strip shown while their card is scrolled out of view). */
   onDetachCustomer?: () => void;
+  /** The member's referral credit, offered in one tap above Charge. */
+  credit?: { cents: number; disabled: boolean; onUse: () => void } | null;
 }) {
   const [codeOpen, setCodeOpen] = useState(!!cart.code);
   const [code, setCode] = useState(cart.code ?? "");
@@ -598,6 +601,20 @@ export function CartPanel({
           )}
         </dl>
 
+        {credit && cart.lines.length > 0 && (
+          <button
+            type="button"
+            onClick={credit.onUse}
+            disabled={credit.disabled}
+            className="mt-3 flex min-h-12 w-full items-center justify-between gap-3 rounded-full bg-emerald-500/10 px-5 text-left ring-1 ring-emerald-400/40 transition hover:bg-emerald-500/20 disabled:opacity-60"
+            data-testid="use-credit"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-emerald-200">
+              <Gift className="h-4 w-4" strokeWidth={1.9} /> Use {zar(credit.cents)} referral credit
+            </span>
+            <span className="text-xs text-ink-400">{credit.disabled ? "Needs a connection" : "Not on medicines"}</span>
+          </button>
+        )}
         <div className="mt-3 flex gap-2">
           {cart.lines.length > 0 && (
             <PosButton variant="outline" size="xl" className="px-5" onClick={onClear} aria-label="Clear the basket">

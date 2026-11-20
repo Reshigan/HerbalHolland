@@ -30,6 +30,8 @@ import { zar, zarWhole } from "@/lib/money";
 import { BOOST_DAYS, nextRung, windmillCrew } from "@/lib/referral-ladder";
 import { cn } from "@/lib/cn";
 import { turnstileSiteKey } from "@/server/turnstile";
+import { db } from "@/server/db";
+import { PasskeyToggle } from "@/components/shop/passkey";
 
 export const metadata = { title: { absolute: "Herbal Holland Rewards" } };
 
@@ -50,12 +52,13 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
   const [customer, settings, store] = await Promise.all([getCustomer(), getSettings(), getPreferredStore()]);
   if (!customer) return <Landing />;
 
-  const [m, launch, deals, tickets, gifts] = await Promise.all([
+  const [m, launch, deals, tickets, gifts, passkeys] = await Promise.all([
     memberOverview(customer.id),
     launchState(),
     memberDeals(customer.id),
     memberTickets(customer.id),
     welcomeGifts(customer, store?.id),
+    db.passkey.count({ where: { customerId: customer.id } }),
   ]);
   const [waitlist, coming] = await Promise.all([launch.preLaunch ? waitlistPlace(customer.id) : null, tickets.length ? [] : upcomingEvents({ take: 2, homeStoreId: customer.homeStoreId })]);
   // The Play Store build is Rewards only: no orders, no dispensary (Google Play does not allow cannabis sales).
@@ -134,6 +137,12 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                 <span>You&apos;ve saved <strong className="tnum text-white">{zar(m.savedCents)}</strong> with Herbal Holland Rewards</span>
               </p>
             )}
+            {m.referralCredit && m.referralCredit.balanceCents > 0 && (
+              <a href="#refer" className="mt-3 flex w-fit max-w-full items-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-50 hover:border-emerald-300">
+                <Gift className="h-4 w-4 shrink-0 text-emerald-300" strokeWidth={1.9} />
+                <span><strong className="tnum text-white">{zar(m.referralCredit.balanceCents)}</strong> referral credit. Use it in store: show your card at the till</span>
+              </a>
+            )}
             <div className="mt-4 flex flex-wrap gap-2">
               {shareSavings && (
                 <ShareButton
@@ -147,6 +156,9 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             </div>
           </div>
 
+          {!sp.welcome && passkeys === 0 && (
+            <PasskeyToggle count={0} prompt />
+          )}
           {waitlist && launch.at && (
             <WaitlistCard
               w={waitlist}
