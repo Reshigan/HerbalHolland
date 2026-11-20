@@ -95,23 +95,27 @@ export function LockScreen({
   return (
     <div className="fixed inset-0 z-[55] flex flex-col overflow-y-auto bg-ink-950 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] text-ink-100 print:hidden lg:flex-row">
       {/* Brand + store panel */}
-      <section className="relative flex shrink-0 flex-col justify-between gap-6 border-b border-ink-850 px-6 py-6 lg:w-[38%] lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
-        <div className="flex items-center gap-3 text-brand-500">
+      <section className="relative flex shrink-0 flex-col justify-between gap-6 overflow-hidden border-b border-ink-850 bg-[radial-gradient(120%_70%_at_0%_100%,color-mix(in_oklab,var(--color-brand-500)_16%,transparent),transparent_70%)] px-6 py-6 lg:w-[38%] lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
+        <div aria-hidden className="hh-beads absolute inset-x-0 bottom-0 hidden opacity-70 lg:block" />
+        <div className="relative flex items-center gap-3 text-brand-500">
           <Mark className="h-11 w-11" />
           <div>
             <div className="eyebrow text-[0.65rem] text-brand-500">Herbal Holland till</div>
             <div className="font-display text-lg font-semibold leading-tight text-white">{session.store.name}</div>
           </div>
         </div>
-        <div className="hidden lg:block">
-          <div className="font-display text-7xl font-light tracking-tight text-white tnum" suppressHydrationWarning>
+        <div className="relative hidden lg:block">
+          <div className="text-sm font-medium text-brand-500" suppressHydrationWarning>
+            {now ? now.toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Johannesburg" }) : "\u00a0"}
+          </div>
+          <div className="mt-1 font-display text-8xl font-light tracking-tight text-white tnum" suppressHydrationWarning>
             {now ? fmtTime(now) : "--:--"}
           </div>
           <div className="mt-2 text-ink-400">
             {session.store.suburb}, {session.store.city} · {session.device.name} ({session.store.code}-{session.device.prefix})
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
+        <div className="relative flex flex-wrap items-center gap-2 pb-3 text-sm">
           {online ? (
             <Chip tone="green" icon={<Wifi className="h-3.5 w-3.5" />}>
               Online
@@ -122,7 +126,7 @@ export function LockScreen({
             </Chip>
           )}
           {queued > 0 && <Chip tone="amber">{queued} sale{queued === 1 ? "" : "s"} waiting to sync</Chip>}
-          <span className="text-ink-500 lg:hidden">
+          <span className="text-ink-450 lg:hidden">
             {session.device.name} · {session.store.code}-{session.device.prefix}
           </span>
         </div>
@@ -155,11 +159,11 @@ export function LockScreen({
                     disabled={!ok}
                     onClick={() => (setPicked(s), setCode(""), setError(null))}
                     className={cn(
-                      "group flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl bg-ink-900 p-4 text-center ring-1 ring-ink-800 transition hover:bg-ink-850 hover:ring-brand-500/60 active:scale-[0.98]",
+                      "group flex min-h-44 flex-col items-center justify-start gap-3 rounded-3xl bg-gradient-to-b from-ink-900 to-ink-950 p-5 text-center shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] ring-1 ring-ink-800 transition duration-200 hover:-translate-y-0.5 hover:ring-brand-500/60 active:scale-[0.98]",
                       !ok && "opacity-35",
                     )}
                   >
-                    <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-500 font-display text-xl font-semibold text-ink-950">{initials(s.name)}</span>
+                    <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-500 font-display text-xl font-semibold text-ink-950 ring-4 ring-brand-500/15 transition group-hover:ring-brand-500/30">{initials(s.name)}</span>
                     <span>
                       <span className="block font-semibold text-white">{s.name}</span>
                       <span className="mt-0.5 block text-[0.8rem] text-ink-400">{ROLE[s.role] ?? s.role}</span>
