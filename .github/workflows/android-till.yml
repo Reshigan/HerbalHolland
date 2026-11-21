@@ -45,7 +45,7 @@ jobs:
           CODE=$(( ${{ github.run_number }} + 1 ))   # 1 is the first APK, built by hand
           NAME="1.0.$CODE"
           gradle --no-daemon assembleRelease -PversionCode=$CODE -PversionName=$NAME
-          "$ANDROID_HOME"/build-tools/*/apksigner verify app/build/outputs/apk/release/app-release.apk
+          "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"/apksigner verify app/build/outputs/apk/release/app-release.apk
           cp app/build/outputs/apk/release/app-release.apk ../../public/apps/hh-till.apk
           printf '{ "versionCode": %s, "versionName": "%s", "url": "/apps/hh-till.apk" }\n' "$CODE" "$NAME" > ../../public/apps/hh-till.json
           echo "NAME=$NAME" >> "$GITHUB_ENV"
