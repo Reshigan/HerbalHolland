@@ -1,18 +1,27 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.herbalholland.till",
-      "sha256_cert_fingerprints": ["8D:06:E3:D6:4D:64:6E:DF:A0:7C:7B:DB:56:DB:AB:1B:9B:DB:1D:C8:C3:2F:B8:0C:EC:52:C7:FE:98:8D:C6:57"]
+      "sha256_cert_fingerprints": [
+        "8D:06:E3:D6:4D:64:6E:DF:A0:7C:7B:DB:56:DB:AB:1B:9B:DB:1D:C8:C3:2F:B8:0C:EC:52:C7:FE:98:8D:C6:57"
+      ]
     }
   },
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.herbalholland.app",
-      "sha256_cert_fingerprints": ["7F:12:7C:C4:F5:F4:4F:0B:65:CB:9D:EC:42:22:D6:61:8C:1F:4B:95:41:EB:A3:64:80:B4:E7:EA:52:B7:36:9A"]
+      "sha256_cert_fingerprints": [
+        "C8:4A:A7:6B:47:56:3A:FB:66:A5:97:5F:5A:94:CD:42:F4:EE:27:47:56:50:C7:B5:4D:ED:3D:4C:55:92:D3:E7",
+        "7F:12:7C:C4:F5:F4:4F:0B:65:CB:9D:EC:42:22:D6:61:8C:1F:4B:95:41:EB:A3:64:80:B4:E7:EA:52:B7:36:9A"
+      ]
     }
   }
 ]
