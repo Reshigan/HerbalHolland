@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # start the shop deploy: a push made with GITHUB_TOKEN triggers no workflows
 
 concurrency:
   group: android-till
@@ -56,3 +57,6 @@ jobs:
           git add public/apps/hh-till.apk public/apps/hh-till.json
           git commit -m "Till APK $NAME"
           git push
+          gh workflow run deploy-shop.yml --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}
