@@ -10,11 +10,11 @@ def name = project.findProperty("versionName") ?: "1.0.0"
 
 android {
     namespace "com.herbalholland.app"
-    compileSdk 35
+    compileSdk 36
     defaultConfig {
         applicationId "com.herbalholland.app"
         minSdk 24
-        targetSdk 35
+        targetSdk 36
         versionCode code
         versionName name
         manifestPlaceholders = [host: host, launchUrl: "https://" + host + "/api/app?src=play"]
