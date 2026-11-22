@@ -607,6 +607,23 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .scene--range { padding-block: clamp(5rem, 10vw, 9rem); }
 .range__note { align-items: flex-start; gap: .6rem; max-width: 36rem; margin-top: 2rem; font-size: .9rem; }
 .range__note .ico { flex: none; margin-top: .2rem; color: var(--brand-500); }
+/* The world story and our genetics, on the dusk scene. */
+.timeline, .pillars { display: grid; gap: 1.5rem clamp(1.25rem, 2.5vw, 2rem); margin-top: clamp(2rem, 4vw, 3rem); }
+@media (min-width: 720px) { .timeline, .pillars { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .timeline { grid-template-columns: repeat(5, 1fr); } .pillars { grid-template-columns: repeat(4, 1fr); } }
+.timeline__i, .pillar { display: grid; align-content: start; gap: .5rem; padding-top: 1.1rem; border-top: 2px solid var(--brand-700); }
+.pillar__n { color: var(--brand-500); }
+.pillar__t { color: var(--ink-50); }
+.pillar__b { font-size: .95rem; color: var(--ink-300); }
+.genetics__lr { display: grid; gap: 1.5rem clamp(2rem, 5vw, 4rem); margin-top: clamp(3rem, 6vw, 5rem); align-items: start; }
+@media (min-width: 900px) { .genetics__lr { grid-template-columns: .8fr 1.2fr; } }
+.genetics__lr > :first-child { display: grid; gap: .8rem; }
+.genetics__lr .h3 { color: var(--ink-50); }
+.landraces--world { grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.genetics__h { margin-top: clamp(3rem, 6vw, 5rem); color: var(--ink-50); }
+.effects { display: grid; gap: .9rem; max-width: 42rem; margin-top: clamp(3rem, 6vw, 5rem); color: var(--ink-300); }
+.effects .h3 { color: var(--ink-50); }
+.genetics__break { height: 1px; margin-block: clamp(4rem, 9vw, 7rem); background: var(--hair); }
 
 /* The marquee: five words drifting between dusk and night, edged with beadwork. */
 .marquee { position: relative; z-index: 1; overflow: hidden; padding-block: calc(clamp(1rem, 3vw, 2.5rem) + 12px); }
@@ -624,7 +641,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 /* Scene 5: night. Founding Members and the sign-up under the Southern Cross. */
 .scene--night { padding-block: clamp(6rem, 12vw, 10rem) clamp(5rem, 10vw, 8rem); }
 .night__in { display: grid; gap: clamp(2.5rem, 5vw, 4.5rem); align-items: start; }
-@media (min-width: 960px) { .night__in { grid-template-columns: .95fr 1.05fr; } .night__copy { position: sticky; top: calc(var(--hh) + 2.5rem); } }
+.night__in { max-width: 44rem; }
 .night__join { margin-top: 1.5rem; font-size: .95rem; }
 .fcard { width: min(100%, 26rem); margin-top: 2.25rem; }
 [data-tilt] { --rx: 0deg; --ry: 0deg; --gx: 50%; --gy: 0%; }

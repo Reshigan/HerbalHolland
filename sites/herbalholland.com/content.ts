@@ -114,23 +114,26 @@ export const HOME = {
       both: "Open now in {open}, and opening in {next} on {opening}. More stores to be announced.",
       open: "Open in {open}, with more stores to be announced.",
     },
+    story: "Our story",
+    stores: "Find a store",
     cue: "Scroll",
   },
   // Towns in running text: listed by name up to four, then counted ("12 towns in Gauteng and KwaZulu-Natal").
   towns: "{n} towns in {provinces}",
   // Scene 2: across the sea. The windmill flies the great circle from Amsterdam to the hills.
   journey: {
-    eyebrow: "Amsterdam to the hills",
+    eyebrow: "Durban to Holland, and back",
     unit: "km",
     title: "from Amsterdam to the hills",
     sr: "{km} km from Amsterdam to {city}, one of our new stores in the hills",
     readout: { lat: "Latitude", lon: "Longitude", dist: "Distance" },
     caption: "A globe showing the great circle from Amsterdam ({from}) to {city} ({to}), one of our new stores: {km} km, with a pin for each Herbal Holland store.",
     chapters: [
-      { key: "tradition", label: "The tradition", title: "A warm welcome, and knowing what we offer", body: "Amsterdam's coffee shops made one idea famous: a warm welcome at the door, and someone who can tell you exactly what's on offer." },
-      { key: "soil", label: "The soil", title: "Rooted in Southern Africa", body: "Southern Africa's landraces were shaped on its hillsides over generations, long before Amsterdam knew their names. African soil is the bigger half of who we are." },
+      { key: "hills", label: "The hills, before the 1970s", title: "Grown in the hills behind Durban", body: "For generations, farmers in the hills of KwaZulu-Natal kept their own seed, season after season. One of those landraces would later travel the world as Durban Poison." },
+      { key: "away", label: "The 1970s", title: "Carried to America, then to Holland", body: "In the 1970s, travellers took seeds from those hills to America. By the 1980s they had reached Amsterdam, where breeders kept them, studied them and made Durban Poison a reference line in seed banks worldwide." },
+      { key: "holland", label: "Amsterdam", title: "Where selection became a craft", body: "Dutch breeders made patience a method: grow out, select, stabilise, repeat. Amsterdam's coffee shops added the other half: a warm welcome, and someone who can tell you exactly what's on offer." },
       // The hero's line, as it stands.
-      { key: "welcome", label: "The welcome", title: "Welkom. Sawubona.", body: "" },
+      { key: "welcome", label: "Back home", title: "Home again. Welkom. Sawubona.", body: "" },
     ],
   },
   // Scene 3: the hills. The new stores (the next opening day's: for now Hillcrest and Hilton), then every store.
@@ -149,24 +152,64 @@ export const HOME = {
     all: "All our stores",
     // Read after a store's name by screen readers.
     page: "store page",
-    // Beneath the stores: the shop, for everyone not near one.
-    shop: "Not near a store? Our online shop delivers nationwide.",
   },
-  // Scene 4: what's in store, as dusk deepens. Categories only (no product names, prices or anything a product does).
-  range: {
-    eyebrow: "What's in store",
-    title: "Wellness, clearly labelled",
-    intro: "CBD wellness, coffee and food, accessories, apparel and grow, for members aged 18 and over.",
-    items: [
-      { key: "cbd", title: "CBD wellness", body: "Within Schedule 0 limits." },
-      { key: "food", title: "CBD coffee & food", body: "Ingredients and allergens on every pack." },
-      { key: "accessories", title: "Accessories", body: "Storage, tools and everyday extras." },
-      { key: "apparel", title: "Apparel", body: "Wear the windmill." },
-      { key: "grow", title: "Grow", body: "Soil, pots and tools." },
-    ] satisfies Item[],
-    // Each frame's link ("Shop", then the category's name for screen readers).
-    shop: "Shop",
-    note: "Licensed medicines are a separate pharmacist service, only for registered patients with a SAHPRA authorisation.",
+  // Scene 4, first half: cannabis and the world. History, landraces and types in plain English; no health claims.
+  world: {
+    eyebrow: "Cannabis and the world",
+    title: "One plant, many homes",
+    intro: "Cannabis is one of the oldest crops people have grown. Wherever it travelled, farmers kept the seed that suited their land, and those local lines became landraces.",
+    timeline: [
+      { when: "Thousands of years ago", where: "Central Asia", body: "Cannabis was first grown in Central and East Asia, for fibre, seed and resin." },
+      { when: "Along the trade routes", where: "India, Persia and Arabia", body: "Traders carried seed west and south, over land and by sea." },
+      { when: "Centuries ago", where: "Africa", body: "Indian Ocean trade brought it to Africa's east coast, and it spread south. In Southern Africa it became part of life in the hills." },
+      { when: "1500s to 1900s", where: "The Americas", body: "Sailing ships carried it across the Atlantic. Mexico, Colombia and Jamaica grew lines of their own." },
+      { when: "1970s and 1980s", where: "Amsterdam", body: "Dutch breeders gathered landraces from every continent, then crossed and stabilised them. The modern seed bank was born." },
+    ],
+    landracesTitle: "Landraces of the world",
+    landraces: [
+      { name: "Hindu Kush", origin: "Afghanistan and Pakistan", note: "Short, sturdy mountain plants with dense, resinous flowers." },
+      { name: "Thai", origin: "Thailand", note: "Tall, slender plants from the tropics, slow to flower." },
+      { name: "Acapulco Gold", origin: "Mexico", note: "A Pacific-coast line with golden flowers." },
+      { name: "Colombian Gold", origin: "Santa Marta, Colombia", note: "Grown on the slopes of the Sierra Nevada de Santa Marta." },
+      { name: "Lamb's Bread", origin: "Jamaica", note: "A bright green island line." },
+      { name: "Durban Poison", origin: "KwaZulu-Natal", note: "From the hills behind Durban to seed banks worldwide." },
+    ],
+    modernTitle: "The new genetics",
+    modernIntro: "From the 1970s, breeders crossed landraces from different continents. The lines they made are the parents of almost everything grown today.",
+    modern: [
+      { name: "Skunk #1", when: "1970s, California", note: "An Afghan, Mexican and Colombian cross. One of the first hybrids bred to grow true from seed." },
+      { name: "Haze", when: "1970s, California", note: "Built from tropical landraces from Mexico, Colombia, Thailand and India. Tall and slow, with a famous aroma." },
+      { name: "Northern Lights", when: "1980s, then Holland", note: "An Afghan-based line, compact and quick to flower, refined by Dutch breeders." },
+      { name: "White Widow", when: "1990s, Amsterdam", note: "A Dutch hybrid known for its heavy coat of resin." },
+      { name: "Feminised and autoflowering seed", when: "1990s and 2000s", note: "Seed that grows only flowering female plants, and plants that flower by age, not by day length." },
+      { name: "Lab-led breeding", when: "Today", note: "Genetic testing, clean clones from tissue culture, and a lab result for every batch." },
+    ],
+    typesTitle: "Types, without the myths",
+    types: [
+      { key: "shape", title: "Indica, sativa, hybrid", body: "Old names for plant shape: short, broad-leaf mountain plants, or tall, narrow-leaf tropical ones. Almost everything grown today is a hybrid, and the label says little about how it feels." },
+      { key: "chemo", title: "Chemotypes", body: "A clearer way to sort cannabis is by what it contains: THC-dominant, balanced THC and CBD, or CBD-dominant. The lab result for each batch shows which." },
+      { key: "cannabinoids", title: "THC and CBD", body: "THC is the compound that makes people feel high. CBD doesn't intoxicate. Hemp is cannabis with very little THC." },
+      { key: "terpenes", title: "Terpenes", body: "The aromatic oils behind a cultivar's smell: myrcene is earthy, limonene citrus, pinene pine and caryophyllene peppery." },
+    ],
+    effectsTitle: "Effects and benefits, honestly",
+    effects: [
+      "Effects differ from person to person, and with the amount, the cultivar and the setting. THC can affect coordination, memory and judgement, so never drive after using it.",
+      "On benefits, the law is strict and we agree with it: we don't make health claims. If you're thinking about cannabis for a health condition, talk to a doctor or a pharmacist.",
+    ],
+  },
+  // Scene 4: as dusk deepens, the genetics. Lines and how we keep them; no product names, prices or effects.
+  genetics: {
+    eyebrow: "Our genetics",
+    title: "The best genetics we can find, kept true",
+    intro: "Good cannabis starts long before a store: with seed that has been chosen, grown out and selected with care. We work with heritage African landraces and proven Dutch lines, and we only keep what is stable and clean.",
+    pillars: [
+      { key: "heritage", title: "Heritage landraces", body: "Lines from the hills of Southern Africa, kept as close to the plants their growers knew as we can." },
+      { key: "dutch", title: "Proven Dutch lines", body: "Selection from breeders who have spent decades on stability, not novelty." },
+      { key: "stable", title: "Selected, then stabilised", body: "We grow lines out over seasons and keep only those that come true, plant after plant." },
+      { key: "lab", title: "Tested and traceable", body: "Every batch is lab-tested, and its batch code shows where it came from and what the lab found." },
+    ],
+    landracesTitle: "Landraces of Southern Africa",
+    note: "Licensed cannabis is supplied only through lawful channels. Today that means registered patients, through a pharmacist.",
   },
   // Between dusk and night: what we stand for, in five words.
   marquee: {
@@ -178,8 +221,8 @@ export const HOME = {
     eyebrow: "Herbal Holland Rewards",
     title: "Be one of the first {cap}",
     body: "The first {cap} members of Herbal Holland Rewards become Founding Members, with a numbered card and our {tier} tier for {months} months. Joining is free for adults 18+, in our stores or on your phone, and takes about a minute.",
-    // Until Rewards opens: the early-access list is first in line.
-    soon: "The early-access list is first in line.",
+    // Until Rewards opens.
+    soon: "Rewards opens with our first store. Join at the counter on the day.",
     cta: "Join Rewards",
     card: { brand: "Rewards", label: "Founding Member", no: "No.", of: "of {cap}" },
     sky: "The Southern Cross",
