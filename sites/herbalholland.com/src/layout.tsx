@@ -4,9 +4,9 @@
 // stage), the breadcrumbs on inner pages and the footer with the giant wordmark. build.ts fills `site` (fingerprinted
 // asset names, the build date) before rendering.
 import { BRAND, CHROME, EMAIL, GATE, LEGAL } from "../content";
-import { FACTS, joinLink, shopLink } from "../facts";
+import { FACTS, joinLink } from "../facts";
 import { AgeBadge, Mark, Sprite, Stage, Wordmark, cx, type StageState } from "./art";
-import { Btn, Icon, Index, MailTo, Rich, ShopNow, Soon } from "./ui";
+import { Btn, Icon, Index, MailTo, Rich, Soon } from "./ui";
 
 export const site = {
   assets: { css: "/assets/site.css", js: "/assets/site.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", icon: "/icon.svg", concept: [] as string[], stores: {} as Record<string, string>, hero: {} as Record<string, string> },
@@ -55,7 +55,6 @@ function Brand({ className, vt }: { className?: string; vt?: boolean }) {
 }
 
 function Header({ page, nav }: { page: string; nav: string }) {
-  const shop = shopLink("/");
   return (
     <header className="hdr" data-hdr="">
       <div className="hdr__bg" aria-hidden="true" />
@@ -73,8 +72,9 @@ function Header({ page, nav }: { page: string; nav: string }) {
           </ul>
         </nav>
         <div className="hdr__end">
-          {/* "Get first access" until the online shop is live, then "Shop online". */}
-          <ShopNow page={page} label={shop ? CHROME.cta.shop : CHROME.cta.access} className="btn--sm hdr__cta" magnetic />
+          <Btn href="/stores" className="btn--sm hdr__cta" magnetic>
+            {CHROME.cta.finder}
+          </Btn>
           <button type="button" className="burger burger--js" aria-haspopup="dialog" aria-controls="menu" aria-expanded="false" data-menu-open="">
             <Icon name="menu" size={18} />
             <span>{CHROME.menu.open}</span>
@@ -118,7 +118,9 @@ function Menu({ page, nav }: { page: string; nav: string }) {
         </nav>
         <div className="wrap menu__foot">
           <div className="menu__doors">
-            <ShopNow page={page} className="btn--sm" />
+            <Btn href="/stores" className="btn--sm">
+              {CHROME.cta.finder}
+            </Btn>
             <JoinDoor />
           </div>
           <p className="menu__meta">
@@ -260,9 +262,6 @@ function Footer({ page }: { page: string }) {
           <div>
             <h2 className="ftr__h">{f.cols.members}</h2>
             <ul>
-              <li>
-                <ShopNow page={page} link />
-              </li>
               <li>
                 <JoinDoor kind="link" />
               </li>

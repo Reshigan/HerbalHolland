@@ -1,16 +1,15 @@
 // herbalholland.com/about: our story, why a windmill (the mark draws itself), our heritage, the standards we keep
 // and the way in. No partners, strains or claims beyond ./facts and the approved copy.
 import { ABOUT, fill } from "../../content";
-import { openStores, shopLink } from "../../facts";
+import { openStores } from "../../facts";
 import { Mark } from "../art";
 import { Page } from "../layout";
-import { Btn, Head, Icon, Index, ShopNow } from "../ui";
+import { Btn, Head, Icon, Index } from "../ui";
 import { towns } from "./home";
 import { PageHero } from "./parts";
 
 export function AboutPage() {
   const { story, heritage, standards, visit } = ABOUT;
-  const live = !!shopLink("/");
   const open = openStores();
   const crumbs = [{ label: ABOUT.meta.title, path: "/about" }];
   return (
@@ -102,10 +101,9 @@ export function AboutPage() {
           <h2 id="visit-h" className="h2 panel__title">
             {visit.title}
           </h2>
-          <p className="panel__body">{live || !open.length ? visit.body : fill(visit.soon, { open: towns(open) })}</p>
+          <p className="panel__body">{open.length ? fill(visit.soon, { open: towns(open) }) : visit.body}</p>
           <div className="panel__doors">
-            <ShopNow page="about" magnetic />
-            <Btn href="/stores" kind="ghost">
+            <Btn href="/stores" magnetic>
               {visit.stores}
             </Btn>
           </div>

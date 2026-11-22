@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { Fragment } from "react";
 import { CHROME, EMAIL, LEGAL } from "../content";
-import { FACTS, shopLink } from "../facts";
+import { FACTS } from "../facts";
 import { cx } from "./art";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -153,47 +153,6 @@ export function Soon({ label, className, kind = "chip" }: { label: React.ReactNo
         {FACTS.shop.opensLabel}
       </span>
     </span>
-  );
-}
-
-/** The pages with the early-access sign-up (#first-access) on them; from anywhere else, links go to the home page's. */
-const ACCESS_PAGES = new Set(["home", "stores"]);
-export const accessHref = (page?: string) => (page && ACCESS_PAGES.has(page) ? "#first-access" : "/#first-access");
-
-/**
- * "Shop online", the main way in: the online shop (or `path` in it) once it's live, and the early-access sign-up until
- * then. A button, or a plain link in running lists.
- */
-export function ShopNow({ page, path = "/", label = CHROME.cta.shop, kind = "primary", link, magnetic, className }: { page?: string; path?: string; label?: string; kind?: BtnKind; link?: boolean; magnetic?: boolean; className?: string }) {
-  const shop = shopLink(path);
-  const href = shop ?? accessHref(page);
-  if (link)
-    return (
-      <a href={href} className={cx("link", className)}>
-        {label}
-      </a>
-    );
-  return (
-    <Btn href={href} kind={kind} icon={shop ? "out" : "arrow"} magnetic={magnetic} className={className}>
-      {label}
-    </Btn>
-  );
-}
-
-/** A door to the shop: a link when the shop is live, otherwise the "opening soon" state. */
-export function ShopDoor({ path, label, kind = "chip", className, magnetic }: { path: string; label: string; kind?: "chip" | "btn" | "link"; className?: string; magnetic?: boolean }) {
-  const href = shopLink(path);
-  if (!href) return <Soon label={label} kind={kind} className={className} />;
-  if (kind === "btn")
-    return (
-      <Btn href={href} magnetic={magnetic} icon="out" className={className}>
-        {label}
-      </Btn>
-    );
-  return (
-    <a href={href} className={cx("link", className)}>
-      {label}
-    </a>
   );
 }
 

@@ -3,10 +3,10 @@
 // write about us.
 import { num } from "@/lib/format";
 import { BRAND, EMAIL, PRESS, fill, releasesOn, type Release } from "../../content";
-import { FACTS, listOf, longDate, nextOpening, openStores, openingStores, provinceNames, shopLink, storeProvinces } from "../../facts";
+import { FACTS, listOf, longDate, nextOpening, openStores, openingStores, provinceNames, storeProvinces } from "../../facts";
 import { AgeBadge, cx } from "../art";
 import { Page, abs, site } from "../layout";
-import { Btn, Head, Icon, MailTo, Soon } from "../ui";
+import { Btn, Head, Icon, MailTo } from "../ui";
 import { PageHero } from "./parts";
 
 const V = { cap: num(FACTS.founding.cap), tier: FACTS.founding.tier, months: FACTS.founding.months };
@@ -27,7 +27,6 @@ function storesLine() {
 
 function FactSheet({ id }: { id: string }) {
   const { facts } = PRESS;
-  const shop = shopLink("/");
   const c = FACTS.company;
   const rows: [string, React.ReactNode][] = [
     [facts.rows.company, c.legalName ?? BRAND.name],
@@ -41,16 +40,6 @@ function FactSheet({ id }: { id: string }) {
     [facts.rows.founding, fill(facts.values.founding, V)],
     [facts.rows.age, facts.values.age],
     [facts.rows.medicines, facts.values.medicines],
-    [
-      facts.rows.online,
-      shop ? (
-        <a className="link" href={shop}>
-          {new URL(shop).host}
-        </a>
-      ) : (
-        <Soon label={FACTS.shop.opensLabel} kind="link" className="soon--bare" />
-      ),
-    ],
     ...(c.address ? [[facts.rows.office, c.address] as [string, string]] : []),
     [facts.rows.media, <MailTo key="m" email={EMAIL.press} />],
   ];

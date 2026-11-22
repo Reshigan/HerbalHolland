@@ -423,10 +423,10 @@ export const ABOUT = {
   },
   visit: {
     eyebrow: "See for yourself",
-    title: "Come in, or shop from anywhere",
-    body: "Shop online, or find a store near you. Every Herbal Holland store is owned and run by a local franchisee.",
-    // Until the online shop is live: where the stores are open, and first access to the shop.
-    soon: "Our stores in {open} are open now, and our online shop opens soon: get first access, and we'll tell you the day it does.",
+    title: "Come in and see us",
+    body: "Find a store near you. Every Herbal Holland store is owned and run by a local franchisee.",
+    // Where the stores are open.
+    soon: "Our stores in {open} are open now. Every Herbal Holland store is owned and run by a local franchisee.",
     stores: "Find a store",
   },
 } as const;
