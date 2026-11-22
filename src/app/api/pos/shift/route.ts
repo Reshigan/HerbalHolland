@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { json, PosError, readBody, withStaff } from "@/server/pos/http";
 import { currentShift } from "@/server/pos/bootstrap";
-import { blindReport, cashMovement, closeShift, openShift, zReport } from "@/server/pos/shift";
+import { blindReport, cashMovement, closeShift, openShift, referralPayout, zReport } from "@/server/pos/shift";
 import { isTillManager } from "@/lib/pos-refund";
 import { countCash, DENOMINATIONS } from "@/components/pos/lib/rules";
 
@@ -30,6 +30,7 @@ const Body = z.discriminatedUnion("action", [
     reason: z.string().trim().min(1).max(200),
     category: z.enum(["RENT", "SALARIES", "UTILITIES", "SECURITY", "MARKETING", "SUPPLIES", "BANK_FEES", "OTHER"]).optional(),
   }),
+  z.object({ action: z.literal("referral_payout"), shiftId: z.string().min(1), customerId: z.string().min(1), amountCents: z.number().int().min(1).max(200_000) }),
 ]);
 
 export const POST = withStaff(async (req, pos) => {
@@ -45,6 +46,11 @@ export const POST = withStaff(async (req, pos) => {
     await cashMovement(pos, b.shiftId, b.kind, b.amountCents, b.reason, b.category);
     const report = await zReport(b.shiftId);
     return json({ report }, 201);
+  }
+  if (b.action === "referral_payout") {
+    if (!isTillManager(pos.user.role)) throw new PosError("A manager has to sign in to pay referral credit out in cash", 403, "MANAGER_REQUIRED");
+    const paid = await referralPayout(pos, b.shiftId, b.customerId, b.amountCents);
+    return json({ ...paid, report: await zReport(b.shiftId) }, 201);
   }
   return json({ report: await closeShift(pos, b.shiftId, b.counts, b.notes) });
 });

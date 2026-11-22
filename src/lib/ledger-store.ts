@@ -100,6 +100,22 @@ export const shiftLines = (a: { storeId: string; varianceCents: number }): Line[
 export const depositLines = (a: { storeId: string; amountCents: number }): Line[] =>
   netLines([{ key: "bank", cents: a.amountCents, storeId: a.storeId }, { key: "cash", cents: -a.amountCents, storeId: a.storeId }]);
 
+/**
+ * Referral credit paid out in cash at a till: the drawer's cash settles HQ's voucher liability. A franchisee's store
+ * pays on HQ's behalf, so HQ owes it the cash back on the current account.
+ */
+export function referralPayoutLines(a: { store: StoreRef; hqCompanyId: string; cents: number }): CompanyLines[] {
+  const { storeId, companyId, hqOwned } = a.store;
+  const line = (key: string, cents: number, partyId: string | null = null): Line => ({ key, cents, storeId, partyId });
+  if (hqOwned) return byCompany([line("vouchers", a.cents), line("cash", -a.cents)].map((l) => ({ companyId, line: l })));
+  return byCompany([
+    { companyId, line: line("hq", a.cents) },
+    { companyId, line: line("cash", -a.cents) },
+    { companyId: a.hqCompanyId, line: line("vouchers", a.cents) },
+    { companyId: a.hqCompanyId, line: line("franchisees", -a.cents, companyId) },
+  ]);
+}
+
 /** An expense paid from the bank: ex VAT plus input VAT, or the whole amount for a non-vendor (its VAT stays in the cost). */
 export function expenseLines(a: { storeId: string; category: string; amountCents: number; vatCents: number; vendor: boolean; paidFromCash?: boolean }): Line[] {
   const vat = a.vendor ? a.vatCents : 0;

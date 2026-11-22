@@ -8,7 +8,7 @@ import { shiftCash } from "../../finance";
 import { receivedValue } from "../../stock-orders";
 import { CATCH_UP_DAYS, missed } from "./catch-up";
 import {
-  DAY_STOCK_TYPES, depositLines, expenseLines, shiftLines, stockReceiveLines, stockShipLines, storeDayLines, supplierInvoiceLines, supplierPaymentLines, type StoreRef,
+  DAY_STOCK_TYPES, depositLines, expenseLines, referralPayoutLines, shiftLines, stockReceiveLines, stockShipLines, storeDayLines, supplierInvoiceLines, supplierPaymentLines, type StoreRef,
 } from "@/lib/ledger-store";
 import type { Line } from "@/lib/ledger";
 import { addDays, dayKey, rangeFromParams } from "@/lib/format";
@@ -151,7 +151,20 @@ const stockReceive: SourceHandler = async (id, t) => {
   return lines.map((c) => ({ ...c, date: dayKey(o.receivedAt!), memo, storeId: c.companyId === seller.companyId && c.companyId !== buyer.companyId ? o.sellerId : o.buyerId }));
 };
 
+/** Referral credit paid out of a till in cash: the wallet (HQ's liability) goes down, the drawer's cash with it. */
+const referralPayout: SourceHandler = async (id, t) => {
+  const [m, r] = await Promise.all([
+    t.cashMovement.findUnique({ where: { id }, select: { amountCents: true, createdAt: true, shift: { select: { storeId: true } } } }),
+    t.voucherRedemption.findUnique({ where: { id }, select: { cents: true, reversed: true } }),
+  ]);
+  if (!m || !r || r.reversed) return [];
+  const store = await storeRef(t, m.shift.storeId);
+  const memo = `Referral credit paid out in cash at ${store.label}`;
+  return referralPayoutLines({ store, hqCompanyId: await hqCompanyId(t), cents: r.cents }).map((c) => ({ ...c, date: dayKey(m.createdAt), memo, storeId: store.storeId }));
+};
+
 export const STORE_SOURCES: Record<string, SourceHandler> = {
+  "referral-payout": referralPayout,
   "store-day": storeDay,
   shift,
   deposit,
@@ -205,7 +218,7 @@ export async function storeBackfill(from: string, to: string): Promise<Source[]>
   const at = { gte: r.start, lt: r.end };
   const on = { gte: r.fromDate, lte: r.toDate };
   const id = { select: { id: true } } as const;
-  const [days, shifts, deposits, expenses, invoices, paid, shipped, received] = await Promise.all([
+  const [days, shifts, deposits, expenses, invoices, paid, shipped, received, payouts] = await Promise.all([
     storeDays(from, to),
     db.shift.findMany({ where: { closedAt: at, countedCashCents: { not: null } }, ...id }),
     db.cashDeposit.findMany({ where: { bankedOn: on }, ...id }),
@@ -214,10 +227,11 @@ export async function storeBackfill(from: string, to: string): Promise<Source[]>
     db.supplierInvoice.findMany({ where: { onStatement: false, status: "PAID", paidAt: at }, ...id }),
     db.stockOrder.findMany({ where: { shippedAt: at }, ...id }),
     db.stockOrder.findMany({ where: { status: "RECEIVED", receivedAt: at }, ...id }),
+    db.cashMovement.findMany({ where: { kind: "PAID_OUT", expenseId: null, createdAt: at }, ...id }),
   ]);
   const of = (source: string, rows: { id: string }[]) => rows.map((x) => ({ source, sourceId: x.id }));
   return [
     ...days, ...of("shift", shifts), ...of("deposit", deposits), ...of("expense", expenses), ...of("supplier-invoice", invoices),
-    ...of("supplier-payment", paid), ...of("stock-ship", shipped), ...of("stock-receive", received),
+    ...of("supplier-payment", paid), ...of("stock-ship", shipped), ...of("stock-receive", received), ...of("referral-payout", payouts),
   ];
 }

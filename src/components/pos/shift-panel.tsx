@@ -19,7 +19,7 @@ import { InviteTile } from "./invite-tile";
 import { DisplayCard, PrinterCard, TrainingCard } from "./hardware-panel";
 import { TrainingShiftCard } from "./training";
 import { Alert, Confirm, EmptyPanel, Field, PosButton, Segmented, SelectInput, Spinner, TextArea, TextInput } from "./ui";
-import type { BootShift, ZReport } from "@/server/pos/types";
+import type { BootShift, CustomerDetail, CustomerHit, ZReport } from "@/server/pos/types";
 
 const FLOATS = [50000, 100000, 150000, 200000];
 // Phones: the primary action rides at the bottom of the screen (thumb reach) while counting.
@@ -65,6 +65,7 @@ export function ShiftPanel() {
           <CommissionTile />
           {!pos.training && <InviteTile />}
           {shift && x && !closed && !pos.training && isTillManager(pos.me.role) && pos.online && <CashMovements shiftId={shift.id} x={x} onDone={setX} />}
+          {shift && x && !closed && !pos.training && isTillManager(pos.me.role) && pos.online && <ReferralPayout shiftId={shift.id} onDone={setX} />}
           {shift && x && !closed && !pos.training && <XReportCard x={x} onRefresh={loadX} onPrint={() => pos.print({ kind: "z", report: x })} />}
           {!shift && !closed && !pos.training && <LastShift />}
           <DeviceCard />
@@ -412,6 +413,92 @@ function CashMovements({ shiftId, x, onDone }: { shiftId: string; x: ZReport; on
             </li>
           ))}
         </ul>
+      )}
+    </section>
+  );
+}
+
+// Manager only: a member's referral credit paid out of the drawer in cash. The server checks the balance, the cash in
+// the drawer and the R2,000 cap, books it, audits it and raises a loss alert if it goes to the manager's own card.
+function ReferralPayout({ shiftId, onDone }: { shiftId: string; onDone: (r: ZReport) => void }) {
+  const pos = usePos();
+  const [memberNo, setMemberNo] = useState("");
+  const [member, setMember] = useState<CustomerDetail | null>(null);
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const credit = member?.referralCredit?.balanceCents ?? 0;
+  const cents = parseRand(amount);
+  const ready = !!member && !!cents && cents > 0 && cents <= credit && !busy;
+
+  async function find() {
+    if (!memberNo.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    setMember(null);
+    try {
+      const r = await api<{ customers: CustomerHit[] }>(`/api/pos/customers?q=${encodeURIComponent(memberNo.trim())}`);
+      if (!r.customers.length) return setError("No member with that card number or phone");
+      const d = await api<{ customer: CustomerDetail }>(`/api/pos/customers/${r.customers[0].id}`);
+      setMember(d.customer);
+      setAmount(d.customer.referralCredit ? (d.customer.referralCredit.balanceCents / 100).toFixed(2) : "");
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pay() {
+    if (!ready || !member) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api<{ report: ZReport; balanceCents: number }>("/api/pos/shift", { body: { action: "referral_payout", shiftId, customerId: member.id, amountCents: cents } });
+      onDone(r.report);
+      pos.toast(`Paid ${zar(cents!)} referral credit to ${member.firstName}. ${zar(r.balanceCents)} left`);
+      setMember(null);
+      setMemberNo("");
+      setAmount("");
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-3xl bg-ink-900 p-5 ring-1 ring-ink-800" aria-labelledby="ref-payout">
+      <h2 id="ref-payout" className="font-display text-lg font-semibold text-white">
+        Referral credit in cash
+      </h2>
+      <p className="mt-2 text-[0.8rem] text-ink-400">Pay a member their referral credit from the drawer (up to R2,000 at a time). To spend it on products instead, ring up a sale and tender it as a voucher.</p>
+      {error && <Alert className="mt-3">{error}</Alert>}
+      <div className="mt-3 flex gap-2">
+        <Field label="Card number or phone" htmlFor="ref-member" className="flex-1">
+          <TextInput id="ref-member" value={memberNo} onChange={(e) => setMemberNo(e.target.value)} onKeyDown={(e) => e.key === "Enter" && find()} placeholder="HH0100001" data-testid="ref-member" />
+        </Field>
+        <PosButton variant="outline" size="lg" className="self-end" disabled={!memberNo.trim() || busy} onClick={find} data-testid="ref-find">
+          Find
+        </PosButton>
+      </div>
+      {member && (
+        <div className="mt-3 rounded-2xl bg-ink-850 p-4" data-testid="ref-member-card">
+          <div className="font-semibold text-white">
+            {member.firstName} {member.lastName ?? ""} · {member.memberNo}
+          </div>
+          <div className="text-sm text-ink-400">{credit ? `Referral credit ${zar(credit)}` : "No referral credit to pay out"}</div>
+          {!!credit && (
+            <>
+              <Field label="Amount to pay out" htmlFor="ref-amount" className="mt-3">
+                <TextInput id="ref-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} data-testid="ref-amount" />
+              </Field>
+              <PosButton variant="primary" size="lg" className="mt-3 w-full" disabled={!ready} onClick={pay} data-testid="ref-pay">
+                {busy ? <Spinner /> : `Pay out ${cents ? zar(cents) : ""} in cash`}
+              </PosButton>
+            </>
+          )}
+        </div>
       )}
     </section>
   );

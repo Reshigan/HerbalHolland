@@ -33,6 +33,7 @@ export const RULES = {
   AFTER_HOURS: "Sales outside trading hours",
   COMPLIANCE: "Compliance exception",
   OFFLINE_VARIANCE: "Offline sale off price or tender",
+  REFERRAL_PAYOUT: "Referral credit paid out to own card",
 } as const;
 export type Rule = keyof typeof RULES;
 
