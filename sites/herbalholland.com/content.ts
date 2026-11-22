@@ -194,7 +194,7 @@ export const HOME = {
     types: [
       { key: "shape", title: "Indica, sativa, hybrid", body: "Old names for plant shape: short, broad-leaf mountain plants, or tall, narrow-leaf tropical ones. Almost everything grown today is a hybrid, and the label says little about how it feels." },
       { key: "chemo", title: "Chemotypes", body: "A clearer way to sort cannabis is by what it contains: THC-dominant, balanced THC and CBD, or CBD-dominant. The lab result for each batch shows which." },
-      { key: "cannabinoids", title: "THC and CBD", body: "THC is the compound that makes people feel high. CBD doesn't intoxicate. Hemp is cannabis with very little THC." },
+      { key: "cannabinoids", title: "THC and CBD", body: "THC is the compound that intoxicates. CBD doesn't intoxicate. Hemp is cannabis with very little THC." },
       { key: "terpenes", title: "Terpenes", body: "The aromatic oils behind a cultivar's smell: myrcene is earthy, limonene citrus, pinene pine and caryophyllene peppery." },
     ],
     effectsTitle: "Effects and benefits, honestly",
@@ -207,10 +207,10 @@ export const HOME = {
   genetics: {
     eyebrow: "Our genetics",
     title: "The best genetics we can find, kept true",
-    intro: "Good cannabis starts long before a store: with seed that has been chosen, grown out and selected with care. We work with heritage African landraces and proven Dutch lines, and we only keep what is stable and clean.",
+    intro: "Good cannabis starts long before a store: with seed that has been chosen, grown out and selected with care. We work with heritage African landraces and established Dutch lines, and we only keep what is stable and clean.",
     pillars: [
       { key: "heritage", title: "Heritage landraces", body: "Lines from the hills of Southern Africa, kept as close to the plants their growers knew as we can." },
-      { key: "dutch", title: "Proven Dutch lines", body: "Selection from breeders who have spent decades on stability, not novelty." },
+      { key: "dutch", title: "Established Dutch lines", body: "Selection from breeders who have spent decades on stability, not novelty." },
       { key: "stable", title: "Selected, then stabilised", body: "We grow lines out over seasons and keep only those that come true, plant after plant." },
       { key: "lab", title: "Tested and traceable", body: "Every batch is lab-tested, and its batch code shows where it came from and what the lab found." },
     ],
