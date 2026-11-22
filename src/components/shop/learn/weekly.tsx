@@ -7,7 +7,7 @@ import { zarWhole } from "@/lib/money";
 import { H2, P } from "./bodies";
 import type { ArticleMeta } from "./articles"; // type-only, avoids a cycle
 
-const week = (slug: string, published: string, minutes: number, kicker: string, regClass: string, title: string, dek: string): ArticleMeta => ({
+const week = (slug: string, published: string, minutes: number, kicker: string, image: string, title: string, dek: string): ArticleMeta => ({
   slug,
   title,
   dek,
@@ -15,22 +15,22 @@ const week = (slug: string, published: string, minutes: number, kicker: string, 
   minutes,
   published,
   updated: published,
-  art: { slug, regClass },
+  image,
 });
 
 export const WEEKLY: ArticleMeta[] = [
-  week("install-the-app", "2026-11-09", 2, "The app", "ACCESSORY", "How to install the app", "Your card, points and orders, one tap away. Here is how to put the app on an Android phone or an iPhone."),
-  week("founding-members-list", "2026-11-16", 1, "Rewards", "APPAREL", "The Founding Members list, explained", "The list closes on 31 December, and the first 2,026 places get a numbered card. Here is how your place works."),
-  week("rewards-card-at-the-till", "2026-11-23", 2, "Rewards", "ACCESSORY", "Your Rewards card at the till", "We serve members only, so the till starts with your QR code. What to have ready when you come in."),
-  week("how-we-check-age", "2026-11-30", 1, "Responsible use", "GROW", "How we check your age, once", "Every member is an adult 18+. Here are the two ways to confirm it, and what we keep afterwards."),
-  week("gift-vouchers", "2026-12-07", 2, "Rewards", "APPAREL", "How gift vouchers work", "Bought in the app, sent by email and good for three years. What to know before you give one."),
-  week("tiers-and-moving-up", "2026-12-14", 2, "Rewards", "APPAREL", "Tiers, and how you move up", "Seed, Sprout, Bloom and Harvest: what each one takes, what it adds, and when it changes."),
-  week("bringing-a-friend", "2026-12-21", 2, "Rewards", "ACCESSORY", "Bringing a friend", "Your invite link, when a referral counts, and what happens at three friends and at ten."),
-  week("storing-products-safely", "2026-12-28", 1, "Care", "ACCESSORY", "Storing your products safely", "Where things should live at home, and which habits keep them in good condition and out of reach."),
-  week("batch-number-and-batch-page", "2027-01-04", 2, "Quality", "CBD", "Your batch number and batch page", "Every batch has its own page. How to open yours and what each part of it tells you."),
-  week("wishlist-and-reorder-reminders", "2027-01-11", 2, "The app", "HEMP", "Your wishlist and reorder reminders", "Save what you want for later, and get a nudge when the things you use every day are due."),
-  week("privacy-and-message-choices", "2027-01-18", 2, "The app", "GROW", "Your privacy and message choices", "How to turn messages off, what stays on, and what we do with your information."),
-  week("returns-and-refunds", "2027-01-25", 2, "Rewards", "HEMP", "Returns and refunds, plainly", "What to do when something arrives faulty or you change your mind, and where the money and points go."),
+  week("install-the-app", "2026-11-09", 2, "The app", "products/windmill-cap", "How to install the app", "Your card, points and orders, one tap away. Here is how to put the app on an Android phone or an iPhone."),
+  week("founding-members-list", "2026-11-16", 1, "Rewards", "products/harrington-jacket", "The Founding Members list, explained", "The list closes on 31 December, and the first 2,026 places get a numbered card. Here is how your place works."),
+  week("rewards-card-at-the-till", "2026-11-23", 2, "Rewards", "products/starter-kit", "Your Rewards card at the till", "We serve members only, so the till starts with your QR code. What to have ready when you come in."),
+  week("how-we-check-age", "2026-11-30", 1, "Responsible use", "products/smell-proof-pouch", "How we check your age, once", "Every member is an adult 18+. Here are the two ways to confirm it, and what we keep afterwards."),
+  week("gift-vouchers", "2026-12-07", 2, "Rewards", "products/heritage-crewneck", "How gift vouchers work", "Bought in the app, sent by email and good for three years. What to know before you give one."),
+  week("tiers-and-moving-up", "2026-12-14", 2, "Rewards", "products/sunset-hoodie", "Tiers, and how you move up", "Seed, Sprout, Bloom and Harvest: what each one takes, what it adds, and when it changes."),
+  week("bringing-a-friend", "2026-12-21", 2, "Rewards", "products/windmill-tee", "Bringing a friend", "Your invite link, when a referral counts, and what happens at three friends and at ten."),
+  week("storing-products-safely", "2026-12-28", 1, "Care", "products/mylar-bag-small", "Storing your products safely", "Where things should live at home, and which habits keep them in good condition and out of reach."),
+  week("batch-number-and-batch-page", "2027-01-04", 2, "Quality", "products/cbd-softgels", "Your batch number and batch page", "Every batch has its own page. How to open yours and what each part of it tells you."),
+  week("wishlist-and-reorder-reminders", "2027-01-11", 2, "The app", "products/windmill-rolling-tray", "Your wishlist and reorder reminders", "Save what you want for later, and get a nudge when the things you use every day are due."),
+  week("privacy-and-message-choices", "2027-01-18", 2, "The app", "products/black-grinder", "Your privacy and message choices", "How to turn messages off, what stays on, and what we do with your information."),
+  week("returns-and-refunds", "2027-01-25", 2, "Rewards", "products/sunset-bucket-hat", "Returns and refunds, plainly", "What to do when something arrives faulty or you change your mind, and where the money and points go."),
 ];
 
 function To({ href, children }: { href: string; children: ReactNode }) {

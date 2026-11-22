@@ -21,7 +21,8 @@ export type ArticleMeta = {
   minutes: number;
   published: string;
   updated: string;
-  art: { slug: string; regClass: string; strain?: string };
+  /** A studio render under /catalogue, without the extension, e.g. "products/windmill-tote". Each article has its own. */
+  image: string;
 };
 
 const GUIDES: ArticleMeta[] = [
@@ -34,7 +35,7 @@ const GUIDES: ArticleMeta[] = [
     minutes: 2,
     published: "2026-09-28",
     updated: "2026-10-07",
-    art: { slug: "heritage-landraces-story", regClass: "THC", strain: "SATIVA" },
+    image: "products/heritage-seed-pack",
   },
   {
     slug: "reading-lab-results",
@@ -45,7 +46,7 @@ const GUIDES: ArticleMeta[] = [
     minutes: 5,
     published: "2026-09-28",
     updated: "2026-09-28",
-    art: { slug: "coa-lab-results", regClass: "HEMP" },
+    image: "products/durban-poison",
   },
   {
     slug: "cbd-schedule-0",
@@ -56,7 +57,7 @@ const GUIDES: ArticleMeta[] = [
     minutes: 4,
     published: "2026-09-28",
     updated: "2026-09-28",
-    art: { slug: "cbd-schedule-zero", regClass: "CBD", strain: "CBD" },
+    image: "products/calm-cbd-oil-600",
   },
   {
     slug: "section-21",
@@ -67,7 +68,7 @@ const GUIDES: ArticleMeta[] = [
     minutes: 5,
     published: "2026-09-28",
     updated: "2026-10-07",
-    art: { slug: "section-twenty-one", regClass: "THC", strain: "INDICA" },
+    image: "categories/wellness",
   },
   {
     slug: "responsible-use",
@@ -78,7 +79,7 @@ const GUIDES: ArticleMeta[] = [
     minutes: 4,
     published: "2026-09-28",
     updated: "2026-10-07",
-    art: { slug: "responsible-use-guide", regClass: "GROW" },
+    image: "products/uv-stash-jar",
   },
   {
     slug: "points",
@@ -89,7 +90,7 @@ const GUIDES: ArticleMeta[] = [
     minutes: 3,
     published: "2026-09-28",
     updated: "2026-10-07",
-    art: { slug: "rewards-points", regClass: "APPAREL" },
+    image: "categories/apparel",
   },
   {
     slug: "caring-for-accessories",
@@ -99,7 +100,7 @@ const GUIDES: ArticleMeta[] = [
     minutes: 3,
     published: "2026-10-24",
     updated: "2026-10-24",
-    art: { slug: "caring-for-accessories", regClass: "ACCESSORY" },
+    image: "categories/accessories",
   },
   {
     slug: "is-cannabis-legal-in-south-africa",
@@ -110,7 +111,7 @@ const GUIDES: ArticleMeta[] = [
     minutes: 5,
     published: "2026-10-27",
     updated: "2026-10-27",
-    art: { slug: "cannabis-law-south-africa", regClass: "HEMP" },
+    image: "products/living-soil",
   },
   {
     slug: "kwazulu-natal-stores",
@@ -121,7 +122,7 @@ const GUIDES: ArticleMeta[] = [
     minutes: 3,
     published: "2026-10-27",
     updated: "2026-11-06",
-    art: { slug: "kwazulu-natal-stores", regClass: "APPAREL" },
+    image: "products/windmill-tote",
   },
 ];
 
@@ -143,3 +144,6 @@ export function resolveArticle(slug: string, today = dayKey(new Date())): { arti
   const aliased = live.find((a) => a.aliases?.includes(slug));
   return aliased ? { article: aliased, alias: true } : null;
 }
+
+/** The article's picture, a real studio render (no stock photos). */
+export const articleImage = (a: Pick<ArticleMeta, "image">) => `/catalogue/${a.image}.webp`;

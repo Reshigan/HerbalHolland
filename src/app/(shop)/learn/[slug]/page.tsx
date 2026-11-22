@@ -7,11 +7,11 @@ import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { completeQuestAction } from "./actions";
-import { ProductArt } from "@/components/product/art";
+import { ArticlePicture } from "@/components/shop/learn/picture";
 import { Container } from "@/components/shop/ui";
 import { JsonLd } from "@/components/shop/json-ld";
 import { QuestQuiz } from "@/components/shop/quest-quiz";
-import { liveArticles, resolveArticle } from "@/components/shop/learn/articles";
+import { articleImage, liveArticles, resolveArticle } from "@/components/shop/learn/articles";
 import { ArticleBody } from "@/components/shop/learn/bodies";
 import { fmtDate } from "@/lib/format";
 import { publicQuest } from "@/lib/quests";
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: pageTitle(a.title),
     description: metaDescription(a.dek, `A plain-English guide from ${SITE_NAME}. Adults 18+.`),
     alternates: { canonical: path },
-    openGraph: { title: a.title, description: a.dek, type: "article", url: path, siteName: SITE_NAME, locale: LOCALE, publishedTime: a.published, modifiedTime: a.updated, authors: [SITE_NAME] },
+    openGraph: { title: a.title, description: a.dek, type: "article", url: path, siteName: SITE_NAME, locale: LOCALE, publishedTime: a.published, modifiedTime: a.updated, authors: [SITE_NAME], images: [{ url: articleImage(a), alt: a.title }] },
   };
 }
 
@@ -64,14 +64,13 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
   return (
     <article>
       <JsonLd data={jsonLd} />
-      <div className="relative overflow-hidden border-b border-ink-850">
-        <ProductArt slug={a.art.slug} strain={a.art.strain} regClass={a.art.regClass} label="" className="absolute inset-0 h-full w-full opacity-40" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/80 to-ink-950/30" />
-        <Container className="relative pb-14 pt-10 sm:pb-20 sm:pt-16">
-          <Link href="/learn" className="inline-flex items-center gap-1.5 text-sm text-ink-300 hover:text-white">
+      <div className="border-b border-ink-850">
+        <Container className="pb-12 pt-10 sm:pb-16 sm:pt-14">
+          <Link href="/learn" className="inline-flex min-h-11 items-center gap-1.5 text-sm text-ink-300 hover:text-white">
             <ArrowLeft className="h-4 w-4" /> Learn
           </Link>
-          <div className="mt-8 max-w-3xl">
+          <div className="mt-6 grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-16">
+          <div>
             <div className="eyebrow text-brand-500">{a.kicker}</div>
             <h1 className="mt-3 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl">{a.title}</h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-200">{a.dek}</p>
@@ -88,6 +87,8 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
                 </span>
               </p>
             )}
+          </div>
+          <ArticlePicture a={a} eager className="order-first aspect-[16/10] rounded-[2rem] border border-ink-800 lg:order-none lg:aspect-[4/3]" />
           </div>
         </Container>
       </div>
@@ -107,8 +108,9 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
                 action={completeQuestAction.bind(null, a.slug)}
               />
             )}
-            <Link href={`/learn/${next.slug}`} className="group mt-16 flex items-center justify-between gap-6 rounded-3xl border border-ink-800 bg-ink-900/60 p-6 transition hover:border-brand-500/60">
-              <div>
+            <Link href={`/learn/${next.slug}`} className="group mt-16 flex items-center gap-5 overflow-hidden rounded-3xl border border-ink-800 bg-ink-900/60 p-4 pr-6 transition hover:border-brand-500/60">
+              <ArticlePicture a={next} className="h-20 w-20 shrink-0 rounded-2xl sm:h-24 sm:w-32" />
+              <div className="min-w-0 flex-1">
                 <div className="eyebrow text-ink-400">Next</div>
                 <div className="mt-1 font-display text-xl font-semibold text-white group-hover:text-brand-100">{next.title}</div>
               </div>
@@ -120,7 +122,7 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
               <div className="eyebrow text-ink-400">More guides</div>
               {more.map((m) => (
                 <Link key={m.slug} href={`/learn/${m.slug}`} className="group flex items-center gap-3 rounded-2xl border border-ink-800 p-3 transition hover:border-ink-600">
-                  <ProductArt slug={m.art.slug} strain={m.art.strain} regClass={m.art.regClass} label="" className="h-14 w-14 shrink-0 rounded-xl" />
+                  <ArticlePicture a={m} className="h-16 w-16 shrink-0 rounded-xl" />
                   <span className="text-sm font-semibold leading-snug text-ink-100 group-hover:text-white">{m.title}</span>
                 </Link>
               ))}
