@@ -187,7 +187,7 @@ export const HOME = {
     launchTitle: "Our exclusive launch strains",
     launchIntro: "Two cultivars you'll find only at Herbal Holland, ready for our opening.",
     launch: [
-      { name: "Herbal Holland Indoor Durban Poison", when: "Indica · a first", note: "The landrace from the hills behind Durban, grown indoors by us for the first time ever." },
+      { name: "Herbal Holland Indoor Durban Poison", when: "Sativa · a first", note: "The landrace from the hills behind Durban, grown indoors by us for the first time ever." },
       { name: "Herbal Holland Passion Poison", when: "Sativa", note: "A sativa with a bright passion-fruit aroma." },
     ],
     typesTitle: "Types, without the myths",
