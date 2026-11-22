@@ -9,7 +9,7 @@ import { AgeBadge, Mark, Sprite, Stage, Wordmark, cx, type StageState } from "./
 import { Btn, Icon, Index, MailTo, Rich, ShopNow, Soon } from "./ui";
 
 export const site = {
-  assets: { css: "/assets/site.css", js: "/assets/site.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", icon: "/icon.svg", concept: [] as string[], stores: {} as Record<string, string> },
+  assets: { css: "/assets/site.css", js: "/assets/site.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", icon: "/icon.svg", concept: [] as string[], stores: {} as Record<string, string>, hero: {} as Record<string, string> },
   /** Placeholders the build fills once every page is rendered: the page's critical CSS (inlined) and the head script. */
   critical: "__CRITICAL__",
   boot: "__BOOT__",

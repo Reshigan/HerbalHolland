@@ -11,6 +11,7 @@ import { FACTS, joinLink, listOf, longDate, newStores, nextOpening, openStores, 
 import { EarlyAccess } from "../access";
 import { CatArt, Globe, Mark, Still, Storefront, cx } from "../art";
 import { JoinDoor, Page, site } from "../layout";
+import { Plate } from "./parts";
 import { Head, Icon, Index, Keep, Reel, ShopNow, Words } from "../ui";
 
 const dms = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}° ${v >= 0 ? pos : neg}`;
@@ -50,6 +51,7 @@ function Hero() {
   const h = HOME.hero;
   return (
     <section className="scene scene--hero" id="hero" data-sp="exit" data-mill="" aria-labelledby="hero-title">
+      <Plate name="polder" />
       <div className="wrap hero__in">
         <p className="eyebrow" data-in="1">
           {h.eyebrow}
