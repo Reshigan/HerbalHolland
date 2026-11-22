@@ -2,15 +2,15 @@
 // wind ("Holland, meet South Africa."), crosses the sea along the 9,475 km great circle, arrives in the KwaZulu-Natal
 // hills as the sun drops ("Holland, meet the Hills."), passes the stores, shows what's in store as dusk deepens, and
 // ends at night under the Southern Cross with Founding Members and the one early-access sign-up. The landscape is the
-// Stage (../art) behind the page; each scene here is what scrolls over it, and each carries a Still of its own for
+// Stage (../art) behind the page; each scene here is what scrolls over it, and each carries a Backdrop of its own for
 // readers without motion. Every count, date, place and pin comes from the stores list in ../../facts.
 import { num } from "@/lib/format";
 import { PROVINCES } from "@/lib/sa";
 import { ABOUT, BRAND, EMAIL, HOME, STORES, fill } from "../../content";
 import { FACTS, joinLink, listOf, longDate, newStores, nextOpening, openStores, openingStores, provinceNames, storeProvinces, type Store } from "../../facts";
-import { Globe, Mark, Still, Storefront, cx } from "../art";
+import { Globe, Mark, cx } from "../art";
 import { JoinDoor, Page, site } from "../layout";
-import { Plate } from "./parts";
+import { Backdrop, Plate } from "./parts";
 import { Btn, Head, Icon, Index, Keep, Reel, Words } from "../ui";
 
 const dms = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}° ${v >= 0 ? pos : neg}`;
@@ -39,10 +39,10 @@ export const OpeningLine = ({ t }: { t: Line }) => <Keep text={openingLine(t)} n
 /** A store's status line: "Open now" or "Opening Tuesday 1 December 2026". */
 export const storeStatus = (s: Store, t: { open: string; opens: string }) => (s.status === "open" || !s.opens ? t.open : fill(t.opens, { opening: longDate(s.opens) }));
 
-/** A store's picture: the owner's photograph once there is one, the drawn storefront until then. */
+/** A store's picture: the owner's photograph once there is one, a store concept render until then. */
 export function StorePicture({ store, n, alt }: { store: Store; n: number; alt: string }) {
   const photo = store.photo && site.assets.stores[store.key];
-  return photo ? <img src={photo} alt={alt} width="800" height="600" loading="lazy" decoding="async" /> : <Storefront n={n} />;
+  return photo ? <img src={photo} alt={alt} width="800" height="600" loading="lazy" decoding="async" /> : <img src={site.assets.concept[n % site.assets.concept.length]} alt={alt} width="594" height="608" loading="lazy" decoding="async" />;
 }
 
 // ── Scene 1: the polder ──────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ function Journey() {
   const here = coords(first).split(" · ");
   return (
     <section className="scene scene--sea story" id="journey" data-scene="1" data-mill="" data-story="" aria-labelledby="story-title">
-      <Still kind="sea" />
+      <Backdrop name="sea" />
       <div className="story__pin">
         <div className="wrap story__grid">
           <div className="story__head">
@@ -174,7 +174,7 @@ function Hills() {
   const all = [...openStores(), ...openingStores()];
   return (
     <section className="scene scene--hills" id="hills" data-scene="2" data-mill="" aria-labelledby="hills-title">
-      <Still kind="dusk" />
+      <Backdrop name="hills" />
       <div className="wrap hills__in">
         <Head id="hills-title" eyebrow={f.eyebrow} title={<Words text={f.title} accent />} intro={lede && <Keep text={lede} names={FACTS.stores.map((st) => st.name)} />} />
       </div>
@@ -217,7 +217,7 @@ function Genetics() {
   const w = HOME.world;
   return (
     <section className="scene scene--range" id="genetics" data-scene="3" data-mill="" aria-labelledby="world-title">
-      <Still kind="late" />
+      <Backdrop name="canal" />
       <div className="wrap">
         <Head id="world-title" eyebrow={w.eyebrow} title={w.title} intro={w.intro} />
         <ol className="timeline" data-rs="">
@@ -249,6 +249,22 @@ function Genetics() {
           </div>
           <dl className="landraces landraces--world" data-rs="">
             {w.modern.map((l) => (
+              <div key={l.name} className="landrace" data-r="">
+                <dt>
+                  {l.name} <span>{l.when}</span>
+                </dt>
+                <dd>{l.note}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div className="genetics__lr">
+          <div data-r="">
+            <h3 className="h3">{w.launchTitle}</h3>
+            <p className="muted">{w.launchIntro}</p>
+          </div>
+          <dl className="landraces landraces--world" data-rs="">
+            {w.launch.map((l) => (
               <div key={l.name} className="landrace" data-r="">
                 <dt>
                   {l.name} <span>{l.when}</span>
@@ -345,7 +361,7 @@ function Night() {
   const join = joinLink();
   return (
     <section className="scene scene--night" id="night" data-scene="4" data-mill="" aria-labelledby="founding-title">
-      <Still kind="night" />
+      <Backdrop name="night" />
       <div className="wrap night__in">
         <div className="night__copy">
           <Head id="founding-title" eyebrow={f.eyebrow} title={fill(f.title, v)} intro={fill(f.body, v)} />

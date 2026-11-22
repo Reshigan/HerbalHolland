@@ -184,6 +184,12 @@ export const HOME = {
       { name: "Feminised and autoflowering seed", when: "1990s and 2000s", note: "Seed that grows only flowering female plants, and plants that flower by age, not by day length." },
       { name: "Lab-led breeding", when: "Today", note: "Genetic testing, clean clones from tissue culture, and a lab result for every batch." },
     ],
+    launchTitle: "Our exclusive launch strains",
+    launchIntro: "Two cultivars you'll find only at Herbal Holland, ready for our opening.",
+    launch: [
+      { name: "Herbal Holland Indoor Durban Poison", when: "Indica · a first", note: "The landrace from the hills behind Durban, grown indoors by us for the first time ever." },
+      { name: "Herbal Holland Passion Poison", when: "Sativa", note: "A sativa with a bright passion-fruit aroma." },
+    ],
     typesTitle: "Types, without the myths",
     types: [
       { key: "shape", title: "Indica, sativa, hybrid", body: "Old names for plant shape: short, broad-leaf mountain plants, or tall, narrow-leaf tropical ones. Almost everything grown today is a hybrid, and the label says little about how it feels." },

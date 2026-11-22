@@ -44,3 +44,15 @@ export function PageHero({ kind, eyebrow, title, lede, crumbs, children }: { kin
     </section>
   );
 }
+
+/** A scene's photograph (static/hero), held still behind a long scene while its words scroll over it. */
+export function Backdrop({ name }: { name: string }) {
+  const big = site.assets.hero[name];
+  if (!big) return null;
+  const sm = site.assets.hero[`${name}-sm`];
+  return (
+    <div className={`backdrop backdrop--${name}`} aria-hidden="true">
+      <img src={big} srcSet={sm ? `${sm} 960w, ${big} 1344w` : undefined} sizes="100vw" alt="" width="1344" height="752" loading="lazy" decoding="async" />
+    </div>
+  );
+}
