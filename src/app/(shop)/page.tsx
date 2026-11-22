@@ -27,6 +27,7 @@ import { StoreCard } from "@/components/shop/store-card";
 import { Container, Panel, SectionHead } from "@/components/shop/ui";
 import { Countdown } from "@/components/shop/countdown";
 import { DropCardView, EventCardView, fmtWhen } from "@/components/shop/launch-cards";
+import { ArticlePicture } from "@/components/shop/learn/picture";
 import { liveArticles } from "@/components/shop/learn/articles";
 import { LANDRACES, MOODS as MOOD_COPY } from "@/components/shop/home-copy";
 import { TIERS, fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
@@ -507,7 +508,7 @@ export default async function Home() {
         <Reveal stagger className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {liveArticles().slice(0, 3).map((a) => (
             <Link key={a.slug} href={`/learn/${a.slug}`} className="hh-lift hh-press group overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 hover:border-brand-500/60">
-              <ProductArt slug={a.art.slug} strain={a.art.strain} regClass={a.art.regClass} label="" className="aspect-[16/9] w-full" />
+              <ArticlePicture a={a} className="aspect-[16/10]" />
               <div className="p-5">
                 <div className="eyebrow text-brand-500">{a.kicker}</div>
                 <h3 className="mt-2 font-display text-xl font-semibold leading-snug text-white group-hover:text-brand-200">{a.title}</h3>
