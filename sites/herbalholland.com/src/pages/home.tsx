@@ -2,16 +2,16 @@
 // wind ("Holland, meet South Africa."), crosses the sea along the 9,475 km great circle, arrives in the KwaZulu-Natal
 // hills as the sun drops ("Holland, meet the Hills."), passes the stores, shows what's in store as dusk deepens, and
 // ends at night under the Southern Cross with Founding Members and the one early-access sign-up. The landscape is the
-// Stage (../art) behind the page; each scene here is what scrolls over it, and each carries a Still of its own for
+// Stage (../art) behind the page; each scene here is what scrolls over it, and each carries a Backdrop of its own for
 // readers without motion. Every count, date, place and pin comes from the stores list in ../../facts.
 import { num } from "@/lib/format";
 import { PROVINCES } from "@/lib/sa";
-import { BRAND, CHROME, EMAIL, HOME, STORES, fill } from "../../content";
-import { FACTS, joinLink, listOf, longDate, newStores, nextOpening, openStores, openingStores, provinceNames, shopLink, storeProvinces, type Store } from "../../facts";
-import { EarlyAccess } from "../access";
-import { CatArt, Globe, Mark, Still, Storefront, cx } from "../art";
+import { ABOUT, BRAND, EMAIL, HOME, STORES, fill } from "../../content";
+import { FACTS, joinLink, listOf, longDate, newStores, nextOpening, openStores, openingStores, provinceNames, storeProvinces, type Store } from "../../facts";
+import { Globe, Mark, cx } from "../art";
 import { JoinDoor, Page, site } from "../layout";
-import { Head, Icon, Index, Keep, Reel, ShopNow, Words } from "../ui";
+import { Backdrop, Plate } from "./parts";
+import { Btn, Head, Icon, Index, Keep, Reel, Words } from "../ui";
 
 const dms = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}° ${v >= 0 ? pos : neg}`;
 export const coords = (p: { lat: number; lon: number }) => `${dms(p.lat, "N", "S")} · ${dms(p.lon, "E", "W")}`;
@@ -39,10 +39,10 @@ export const OpeningLine = ({ t }: { t: Line }) => <Keep text={openingLine(t)} n
 /** A store's status line: "Open now" or "Opening Tuesday 1 December 2026". */
 export const storeStatus = (s: Store, t: { open: string; opens: string }) => (s.status === "open" || !s.opens ? t.open : fill(t.opens, { opening: longDate(s.opens) }));
 
-/** A store's picture: the owner's photograph once there is one, the drawn storefront until then. */
+/** A store's picture: the owner's photograph once there is one, a store concept render until then. */
 export function StorePicture({ store, n, alt }: { store: Store; n: number; alt: string }) {
   const photo = store.photo && site.assets.stores[store.key];
-  return photo ? <img src={photo} alt={alt} width="800" height="600" loading="lazy" decoding="async" /> : <Storefront n={n} />;
+  return photo ? <img src={photo} alt={alt} width="800" height="600" loading="lazy" decoding="async" /> : <img src={site.assets.concept[n % site.assets.concept.length]} alt={alt} width="594" height="608" loading="lazy" decoding="async" />;
 }
 
 // ── Scene 1: the polder ──────────────────────────────────────────────────────
@@ -50,6 +50,7 @@ function Hero() {
   const h = HOME.hero;
   return (
     <section className="scene scene--hero" id="hero" data-sp="exit" data-mill="" aria-labelledby="hero-title">
+      <Plate name="polder" />
       <div className="wrap hero__in">
         <p className="eyebrow" data-in="1">
           {h.eyebrow}
@@ -63,7 +64,12 @@ function Hero() {
           </span>
         </p>
         <div className="ctas" data-in="3">
-          <ShopNow page="home" magnetic />
+          <Btn href="#journey" magnetic>
+            {HOME.hero.story}
+          </Btn>
+          <Btn href="/stores" kind="ghost">
+            {HOME.hero.stores}
+          </Btn>
         </div>
       </div>
       <p className="cue" data-in="4" aria-hidden="true">
@@ -95,7 +101,7 @@ function Journey() {
   const here = coords(first).split(" · ");
   return (
     <section className="scene scene--sea story" id="journey" data-scene="1" data-mill="" data-story="" aria-labelledby="story-title">
-      <Still kind="sea" />
+      <Backdrop name="sea" />
       <div className="story__pin">
         <div className="wrap story__grid">
           <div className="story__head">
@@ -161,15 +167,17 @@ function Hills() {
   const f = HOME.hills;
   const s = HOME.stores;
   const fresh = newStores();
-  const opening = fresh[0]?.opens ? longDate(fresh[0].opens) : "";
+  const later = fresh.filter((st) => st.status !== "open");
+  const names = (list: readonly Store[]) => listOf(list.map((st) => st.name));
+  const opening = later[0]?.opens ? longDate(later[0].opens) : "";
+  const text = !later.length ? f.ledeOpen : later.length === fresh.length ? f.lede : f.ledeMixed;
   const lede = fresh.length
-    ? fill(fresh.every((st) => st.status === "open") ? f.ledeOpen : f.lede, { count: f.count[fresh.length] ?? num(fresh.length), names: listOf(fresh.map((st) => st.name)), opening })
+    ? fill(text, { count: f.count[fresh.length] ?? num(fresh.length), names: names(fresh), open: names(fresh.filter((st) => st.status === "open")), later: names(later), opening })
     : undefined;
   const all = [...openStores(), ...openingStores()];
-  const shop = shopLink("/");
   return (
     <section className="scene scene--hills" id="hills" data-scene="2" data-mill="" aria-labelledby="hills-title">
-      <Still kind="dusk" />
+      <Backdrop name="hills" />
       <div className="wrap hills__in">
         <Head id="hills-title" eyebrow={f.eyebrow} title={<Words text={f.title} accent />} intro={lede && <Keep text={lede} names={FACTS.stores.map((st) => st.name)} />} />
       </div>
@@ -201,49 +209,120 @@ function Hills() {
             </li>
           ))}
         </ul>
-        <div className="stores__foot" data-r="">
-          <p className="stores__shop muted">
-            {s.shop}{" "}
-            <a className="link" href={shop ?? "#first-access"}>
-              {shop ? CHROME.cta.shop : CHROME.cta.access}
-            </a>
-          </p>
-        </div>
       </div>
     </section>
   );
 }
 
-// ── Scene 4: what's in store ─────────────────────────────────────────────────
-function Range() {
-  const r = HOME.range;
+// ── Scene 4: the genetics ────────────────────────────────────────────────────
+function Genetics() {
+  const g = HOME.genetics;
+  const w = HOME.world;
   return (
-    <section className="scene scene--range" id="range" data-scene="3" data-mill="" aria-labelledby="range-title">
-      <Still kind="late" />
+    <section className="scene scene--range" id="genetics" data-scene="3" data-mill="" aria-labelledby="world-title">
+      <Backdrop name="canal" />
       <div className="wrap">
-        <Head id="range-title" eyebrow={r.eyebrow} title={r.title} intro={r.intro} />
-        <ul className="frames frames--cats" data-rs="">
-          {r.items.map((it) => {
-            const live = shopLink(FACTS.shelf[it.key] ?? "/shop");
-            return (
-              <li key={it.key} className="frame frame--cat frame--link" data-r="">
-                <div className="frame__media">
-                  <CatArt kind={it.key} />
-                </div>
-                <div className="frame__copy">
-                  <h3 className="frame__t">{it.title}</h3>
-                  <p className="frame__s">{it.body}</p>
-                  <a className={cx("frame__go stretch", live && "frame__go--out")} href={live ?? "#first-access"}>
-                    {r.shop}
-                    <span className="sr-only"> {it.title}</span>
-                  </a>
-                </div>
-              </li>
-            );
-          })}
+        <Head id="world-title" eyebrow={w.eyebrow} title={w.title} intro={w.intro} />
+        <ol className="timeline" data-rs="">
+          {w.timeline.map((t) => (
+            <li key={t.where} className="timeline__i" data-r="">
+              <span className="eyebrow">{t.when}</span>
+              <h3 className="h3 pillar__t">{t.where}</h3>
+              <p className="pillar__b">{t.body}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="genetics__lr">
+          <h3 className="h3" data-r="">{w.landracesTitle}</h3>
+          <dl className="landraces landraces--world" data-rs="">
+            {w.landraces.map((l) => (
+              <div key={l.name} className="landrace" data-r="">
+                <dt>
+                  {l.name} <span>{l.origin}</span>
+                </dt>
+                <dd>{l.note}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div className="genetics__lr">
+          <div data-r="">
+            <h3 className="h3">{w.modernTitle}</h3>
+            <p className="muted">{w.modernIntro}</p>
+          </div>
+          <dl className="landraces landraces--world" data-rs="">
+            {w.modern.map((l) => (
+              <div key={l.name} className="landrace" data-r="">
+                <dt>
+                  {l.name} <span>{l.when}</span>
+                </dt>
+                <dd>{l.note}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div className="genetics__lr">
+          <div data-r="">
+            <h3 className="h3">{w.launchTitle}</h3>
+            <p className="muted">{w.launchIntro}</p>
+          </div>
+          <dl className="landraces landraces--world" data-rs="">
+            {w.launch.map((l) => (
+              <div key={l.name} className="landrace" data-r="">
+                <dt>
+                  {l.name} <span>{l.when}</span>
+                </dt>
+                <dd>{l.note}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <h3 className="h3 genetics__h" data-r="">{w.typesTitle}</h3>
+        <ul className="pillars" data-rs="">
+          {w.types.map((t) => (
+            <li key={t.key} className="pillar" data-r="">
+              <h4 className="h3 pillar__t">{t.title}</h4>
+              <p className="pillar__b">{t.body}</p>
+            </li>
+          ))}
         </ul>
+        <div className="effects" data-r="">
+          <h3 className="h3">{w.effectsTitle}</h3>
+          {w.effects.map((e) => (
+            <p key={e}>{e}</p>
+          ))}
+        </div>
+        <div className="genetics__break" />
+        <Head id="genetics-title" eyebrow={g.eyebrow} title={g.title} intro={g.intro} />
+        <ol className="pillars" data-rs="">
+          {g.pillars.map((p, i) => (
+            <li key={p.key} className="pillar" data-r="">
+              <Index n={i + 1} className="pillar__n" />
+              <h3 className="h3 pillar__t">{p.title}</h3>
+              <p className="pillar__b">{p.body}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="genetics__lr">
+          <blockquote className="quote" data-r="">
+            <p>{ABOUT.heritage.quote}</p>
+          </blockquote>
+          <div>
+            <h3 className="eyebrow" data-r="">{g.landracesTitle}</h3>
+            <dl className="landraces" data-rs="">
+              {ABOUT.heritage.landraces.map((l) => (
+                <div key={l.name} className="landrace" data-r="">
+                  <dt>
+                    {l.name} <span>{l.origin}</span>
+                  </dt>
+                  <dd>{l.note}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
         <p className="range__note muted" data-r="">
-          <Icon name="medicines" size={16} /> {r.note}
+          <Icon name="medicines" size={16} /> {g.note}
         </p>
       </div>
     </section>
@@ -285,7 +364,7 @@ function Night() {
   const join = joinLink();
   return (
     <section className="scene scene--night" id="night" data-scene="4" data-mill="" aria-labelledby="founding-title">
-      <Still kind="night" />
+      <Backdrop name="night" />
       <div className="wrap night__in">
         <div className="night__copy">
           <Head id="founding-title" eyebrow={f.eyebrow} title={fill(f.title, v)} intro={fill(f.body, v)} />
@@ -318,14 +397,12 @@ function Night() {
             </div>
           </div>
         </div>
-        <EarlyAccess box />
       </div>
     </section>
   );
 }
 
 export function HomePage() {
-  const shop = shopLink("/");
   const org = {
     "@type": "Organization",
     "@id": `${FACTS.origin}/#organization`,
@@ -334,7 +411,7 @@ export function HomePage() {
     logo: `${FACTS.origin}/press/herbal-holland-logo.png`,
     slogan: BRAND.line,
     email: EMAIL.hello,
-    ...(FACTS.social.length || shop ? { sameAs: [...FACTS.social, ...(shop ? [shop] : [])] } : {}),
+    ...(FACTS.social.length ? { sameAs: [...FACTS.social] } : {}),
     contactPoint: (["hello", "press", "careers"] as const).map((k) => ({
       "@type": "ContactPoint",
       contactType: HOME.org[k],
@@ -357,7 +434,7 @@ export function HomePage() {
       <Hero />
       <Journey />
       <Hills />
-      <Range />
+      <Genetics />
       <Marquee />
       <Night />
     </Page>

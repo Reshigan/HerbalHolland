@@ -118,7 +118,7 @@ const GUIDES: ArticleMeta[] = [
     aliases: ["herbal-holland-kzn"],
     kicker: "Our stores",
     title: "Herbal Holland in KwaZulu-Natal",
-    dek: "Pietermaritzburg and the Bluff today; Hillcrest and Hilton from 1 December. Where we are, what's on the shelves, and how members shop in store or in the app.",
+    dek: "Pietermaritzburg, the Bluff and Hillcrest today; Hilton from 1 December. Where we are, what's on the shelves, and how members shop in store or in the app.",
     minutes: 3,
     published: "2026-10-27",
     updated: "2026-11-06",

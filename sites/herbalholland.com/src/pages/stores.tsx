@@ -4,13 +4,12 @@
 // store's own page (Store structured data), with only what ../../facts knows: the town, the province, its status and,
 // once we have them, its address, phone and hours.
 import { PROVINCES } from "@/lib/sa";
-import { CHROME, HOME, STORES, fill, plural } from "../../content";
+import { HOME, STORES, fill, plural } from "../../content";
 import { FACTS, longDate, openStores, openingStores, shopLink, type Store } from "../../facts";
-import { EarlyAccess } from "../access";
 import { cx } from "../art";
 import { Page, abs, site } from "../layout";
 import { ZaMap } from "../map";
-import { Btn, Head, ShopNow } from "../ui";
+import { Btn, Head } from "../ui";
 import { OpeningLine, StorePicture, openingLine, storeStatus } from "./home";
 import { PageHero } from "./parts";
 
@@ -53,10 +52,6 @@ export function StoresPage() {
   return (
     <Page page="stores" stage="dusk" meta={{ path: "/stores", title: s.meta.title, description: openingLine(s.meta.description, { weekday: false }), crumbs }}>
       <PageHero kind="stores" eyebrow={s.hero.eyebrow} title={s.hero.title} lede={<OpeningLine t={HOME.hero.line} />} crumbs={crumbs}>
-        <div className="ctas">
-          <ShopNow page="stores" magnetic />
-        </div>
-        <p className="phero__note">{s.hero.shopNote}</p>
       </PageHero>
 
       <section className="sheet sec" aria-labelledby="list-h">
@@ -108,8 +103,6 @@ export function StoresPage() {
           </div>
         </div>
       </section>
-
-      <EarlyAccess />
     </Page>
   );
 }
@@ -147,8 +140,7 @@ export function StorePage({ store }: { store: Store }) {
     <Page page="store" nav="stores" stage="dusk" meta={{ path: `/stores/${store.key}`, title: fill(s.meta.title, { name: store.name }), description: fill(s.meta.description, { name: store.name, province, status }), crumbs }} jsonLd={schema}>
       <PageHero kind="store" eyebrow={fill(s.eyebrow, { province })} title={store.name} lede={lede} crumbs={crumbs}>
         <div className="ctas">
-          <ShopNow page="store" magnetic />
-          <Btn href="/stores" kind="ghost" icon={null}>
+          <Btn href="/stores" magnetic>
             {s.nearby.all}
           </Btn>
         </div>
@@ -197,12 +189,6 @@ export function StorePage({ store }: { store: Store }) {
           </div>
           <div className="nation__map">
             <ZaMap id="map-store" here={store.key} />
-            <div className="nation__side" data-r="">
-              <p className="eyebrow">{fill(s.shop.title, { town: store.city })}</p>
-              <h3 className="h3">{CHROME.cta.shop}</h3>
-              <p>{s.shop.body}</p>
-              <ShopNow page="store" />
-            </div>
           </div>
         </div>
       </section>

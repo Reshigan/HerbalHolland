@@ -180,7 +180,9 @@ async function main() {
     outfit: emit("outfit", "woff2", readFileSync(FONTS.outfit)),
     inter: emit("inter", "woff2", readFileSync(FONTS.inter)),
   };
-  const cssSource = readFileSync(join(ROOT, "styles/site.css"), "utf8").replace("__OUTFIT__", fonts.outfit).replace("__INTER__", fonts.inter).replace("__PATTERN__", patternUrl());
+  const hero = images("hero");
+  if (!hero.metal) throw new Error("static/hero/metal.webp is missing (the founding card's brushed metal)");
+  const cssSource = readFileSync(join(ROOT, "styles/site.css"), "utf8").replace("__OUTFIT__", fonts.outfit).replace("__INTER__", fonts.inter).replace("__PATTERN__", patternUrl()).replace("__NIGHTSM__", hero["night-sm"]).replaceAll("__NIGHT__", hero.night).replace("__METAL__", hero.metal);
   // The first screen's CSS and the rest, split at the marker (tokens are shortened across both, so they agree).
   const whole = shortenTokens(precomputeColors(cssSource));
   const mark = whole.indexOf("/* @@rest");
@@ -199,7 +201,7 @@ async function main() {
   for (const s of FACTS.stores) if (s.photo && !stores[s.key]) throw new Error(`facts.ts: ${s.name} has a photo, but static/stores/${s.key}.webp (or .jpg) is missing`);
   const iconSvg = readFileSync(join(STATIC, "icon.svg"), "utf8").replace(/\s+/g, " ").trim();
   const icon = `data:image/svg+xml,${iconSvg.replace(/[<>#"%{}]/g, encodeURIComponent)}`;
-  site.assets = { css: CSS_HREF, js: emit("site", "js", js), ...fonts, icon, concept, stores };
+  site.assets = { css: CSS_HREF, js: emit("site", "js", js), ...fonts, icon, concept, stores, hero };
   site.day = day;
   site.year = Number(day.slice(0, 4));
 

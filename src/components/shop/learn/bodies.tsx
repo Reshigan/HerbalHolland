@@ -390,7 +390,7 @@ function KznStores() {
         rows={[
           [<A key="p" href="/stores/pietermaritzburg">Pietermaritzburg</A>, "575 Chota Motala Road, Raisethorpe", "Trading now"],
           [<A key="b" href="/stores/bluff">Bluff, Durban</A>, "208 Tara Road, Bluff", "Trading now"],
-          [<A key="hc" href="/stores/hillcrest">Hillcrest</A>, "Shop 10B, Christians Village Shopping Centre, cnr Old Main Road and Inanda Road", "Opens 1 December 2026"],
+          [<A key="hc" href="/stores/hillcrest">Hillcrest</A>, "Shop 10B, Christians Village Shopping Centre, cnr Old Main Road and Inanda Road", "Trading now"],
           [<A key="ht" href="/stores/hilton">Hilton</A>, "Shop 14, Hilton Village Centre, Hilton Avenue", "Opens 1 December 2026"],
         ]}
       />
