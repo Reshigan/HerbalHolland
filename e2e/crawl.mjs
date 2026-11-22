@@ -178,7 +178,10 @@ for (const role of ROLES.filter((r) => !only || r.name === only)) {
     if (status >= 400) issue(`page ${status}`, key);
     if (await page.locator("text=/Something went wrong|Application error/").count()) issue("error boundary", key);
 
-    for (const a of await page.locator("a[href]").evaluateAll((els) => els.map((e) => e.href))) {
+    // A client-side redirect after load destroys the context mid-read: wait for the new page and read again.
+    const hrefs = () => page.locator("a[href]").evaluateAll((els) => els.map((e) => e.href));
+    const links = await hrefs().catch(() => page.waitForLoadState("load").then(hrefs)).catch(() => []);
+    for (const a of links) {
       const l = new URL(a, BASE);
       if (l.origin !== new URL(BASE).origin || NEVER.test(l.pathname) || !role.scope.test(l.pathname)) continue;
       l.hash = "";
