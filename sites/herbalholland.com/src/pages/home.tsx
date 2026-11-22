@@ -167,9 +167,12 @@ function Hills() {
   const f = HOME.hills;
   const s = HOME.stores;
   const fresh = newStores();
-  const opening = fresh[0]?.opens ? longDate(fresh[0].opens) : "";
+  const later = fresh.filter((st) => st.status !== "open");
+  const names = (list: readonly Store[]) => listOf(list.map((st) => st.name));
+  const opening = later[0]?.opens ? longDate(later[0].opens) : "";
+  const text = !later.length ? f.ledeOpen : later.length === fresh.length ? f.lede : f.ledeMixed;
   const lede = fresh.length
-    ? fill(fresh.every((st) => st.status === "open") ? f.ledeOpen : f.lede, { count: f.count[fresh.length] ?? num(fresh.length), names: listOf(fresh.map((st) => st.name)), opening })
+    ? fill(text, { count: f.count[fresh.length] ?? num(fresh.length), names: names(fresh), open: names(fresh.filter((st) => st.status === "open")), later: names(later), opening })
     : undefined;
   const all = [...openStores(), ...openingStores()];
   return (

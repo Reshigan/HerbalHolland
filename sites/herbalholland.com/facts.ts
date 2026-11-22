@@ -67,15 +67,15 @@ export const FACTS = {
 
   /**
    * Every store, in the order the site lists them. Pietermaritzburg and the Bluff (Durban) are open (we have no opening dates,
-   * addresses or hours for them, so none are shown); Hillcrest and Hilton, two new stores in the KwaZulu-Natal hills,
-   * open on the same day. The open stores' points are their towns' own (OpenStreetMap: Pietermaritzburg, and the
+   * addresses or hours for them, so none are shown); Hillcrest, in the KwaZulu-Natal hills, opened on
+   * 22 November 2026, and Hilton follows on 1 December. The open stores' points are their towns' own (OpenStreetMap: Pietermaritzburg, and the
    * Bluff, Durban), as is Hilton's, which gives the published 9,438 km from Amsterdam and 51 km from Hillcrest. Adding a store
    * is one line here; its address, phone, hours and photo appear on the site as soon as they're filled in.
    */
   stores: [
     { key: "pietermaritzburg", name: "Pietermaritzburg", city: "Pietermaritzburg", province: "KZN", lat: -29.6, lon: 30.3789, status: "open" },
     { key: "bluff", name: "Bluff", city: "Durban", province: "KZN", lat: -29.9303, lon: 31.0145, status: "open" },
-    { key: "hillcrest", name: "Hillcrest", city: "Hillcrest", province: "KZN", lat: -29.781, lon: 30.7596, opens: "2026-12-01", status: "opening" },
+    { key: "hillcrest", name: "Hillcrest", city: "Hillcrest", province: "KZN", lat: -29.781, lon: 30.7596, opens: "2026-11-22", status: "open", address: "Shop 10B, Christians Village Shopping Centre, cnr Old Main Road and Inanda Road, Hillcrest" },
     { key: "hilton", name: "Hilton", city: "Hilton", province: "KZN", lat: -29.5522, lon: 30.3017, opens: "2026-12-01", status: "opening" },
   ] as Store[],
 
@@ -148,13 +148,15 @@ export const openingStores = () => FACTS.stores.filter((s) => s.status === "open
 export const nextOpening = () => openingStores()[0]?.opens ?? null;
 
 /**
- * The new stores: the ones opening on the next opening day (Hillcrest and Hilton, in the hills) or, once every store
- * is open, the ones that opened last. The home page's "Holland, meet the Hills." chapter and the km story are theirs.
+ * The new stores: the launch wave around the next opening day (Hillcrest and Hilton, in the hills) or, once every
+ * store is open, the wave that opened last. The home page's "Holland, meet the Hills." chapter and the km story are theirs.
  */
 export const newStores = () => {
-  const next = nextOpening();
-  const day = next ?? [...FACTS.stores].filter((s) => s.opens).sort(byDay).at(-1)?.opens;
-  return FACTS.stores.filter((s) => s.opens && s.opens === day);
+  const day = nextOpening() ?? [...FACTS.stores].filter((s) => s.opens).sort(byDay).at(-1)?.opens;
+  if (!day) return [];
+  // One launch wave: stores that open within 30 days of that day (Hillcrest on 22 November, Hilton on 1 December).
+  const t = Date.parse(day);
+  return FACTS.stores.filter((s) => s.opens && Math.abs(Date.parse(s.opens) - t) <= 30 * 86_400_000);
 };
 
 /** Provinces with a store, in the order they first appear in the list. */

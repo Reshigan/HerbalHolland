@@ -142,6 +142,7 @@ export const HOME = {
     title: ["Holland, meet", "the Hills."],
     lede: "Holland is famously flat. Our {count} new stores are in hill towns: {names}, opening on {opening}.",
     ledeOpen: "Holland is famously flat. Our {count} newest stores are in hill towns: {names}.",
+    ledeMixed: "Holland is famously flat. Our {count} new stores are in hill towns: {open}, open now, and {later}, opening on {opening}.",
     // How the lede says how many.
     count: ["no", "one", "two", "three", "four", "five", "six"],
   },
@@ -459,14 +460,14 @@ export const PRESS = {
       {
         slug: "kwazulu-natal-stores-open",
         date: null,
-        title: "Herbal Holland opens in KwaZulu-Natal, with stores in Pietermaritzburg and on the Bluff",
+        title: "Herbal Holland opens in KwaZulu-Natal, with stores in Pietermaritzburg, on the Bluff and in Hillcrest",
         pageTitle: "Herbal Holland opens in KwaZulu-Natal",
-        description: "Herbal Holland's first stores are open in Pietermaritzburg and on the Bluff in Durban, for members aged 18+; Hillcrest and Hilton follow on 1 December 2026.",
+        description: "Herbal Holland's stores are open in Pietermaritzburg, on the Bluff in Durban and in Hillcrest, for members aged 18+; Hilton follows on 1 December 2026.",
         summary:
-          "Herbal Holland, a South African network of members-only cannabis wellness stores for adults 18+, has opened its first two stores in KwaZulu-Natal, in Pietermaritzburg and on the Bluff in Durban. Two more, in Hillcrest and Hilton, open on Tuesday 1 December 2026.",
+          "Herbal Holland, a South African network of members-only cannabis wellness stores for adults 18+, has opened three stores in KwaZulu-Natal, in Pietermaritzburg, on the Bluff in Durban and in Hillcrest. A fourth, in Hilton, opens on Tuesday 1 December 2026.",
         body: [
-          "Herbal Holland's stores in Pietermaritzburg and on the Bluff in Durban are open, for members aged 18 and over. Joining Herbal Holland Rewards is free, takes about a minute in store or on a phone, and gives members their member price from the first visit.",
-          "Two more stores, in Hillcrest and Hilton, open on Tuesday 1 December 2026. Every Herbal Holland store is owned and run by a local franchisee, on one shared platform for the till, stock and membership.",
+          "Herbal Holland's stores in Pietermaritzburg, on the Bluff in Durban and in Hillcrest are open, for members aged 18 and over. Joining Herbal Holland Rewards is free, takes about a minute in store or on a phone, and gives members their member price from the first visit.",
+          "A fourth store, in Hilton, opens on Tuesday 1 December 2026. Every Herbal Holland store is owned and run by a local franchisee, on one shared platform for the till, stock and membership.",
           "The name nods to Amsterdam, where many of Southern Africa's landraces became famous; the roots are here. The stores carry CBD wellness, accessories, grow gear and Herbal Holland apparel.",
           "ID is checked at the till. Licensed medicines are supplied only to registered patients with a SAHPRA authorisation, through a pharmacist, and are never advertised.",
         ],
@@ -477,13 +478,13 @@ export const PRESS = {
         date: null,
         title: "Herbal Holland opens online for adults 18+ across South Africa",
         pageTitle: "Online shop opens for adults 18+",
-        description: "Herbal Holland's online shop opens nationwide for adults 18+, with its Founding Members list; two new stores open in Hillcrest and Hilton on 1 December 2026.",
+        description: "Herbal Holland's online shop opens nationwide for adults 18+, with its Founding Members list; its Hilton store opens on 1 December 2026.",
         summary:
-          "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first {cap} people on the list get a numbered Founding Member card. Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining its stores already open in Pietermaritzburg and on the Bluff in Durban.",
+          "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first {cap} people on the list get a numbered Founding Member card. Its Hilton store in KwaZulu-Natal opens on Tuesday 1 December 2026, joining its stores already open in Pietermaritzburg, on the Bluff in Durban and in Hillcrest.",
         body: [
           "Herbal Holland's online shop opens across South Africa today, delivering nationwide to members aged 18 and over, with ID checked at every delivery.",
           "Joining Herbal Holland Rewards is free. The first {cap} members become Founding Members, with a numbered card and the {tier} tier for {months} months.",
-          "Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining the stores already open in Pietermaritzburg and on the Bluff in Durban. Every Herbal Holland store is owned and run by a local franchisee.",
+          "Herbal Holland Hilton, in KwaZulu-Natal, opens on Tuesday 1 December 2026, joining the stores already open in Pietermaritzburg, on the Bluff in Durban and in Hillcrest. Every Herbal Holland store is owned and run by a local franchisee.",
           "Licensed medicines are supplied only to registered patients with a SAHPRA authorisation, through a pharmacist, and are never advertised.",
         ],
       },
