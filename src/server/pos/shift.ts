@@ -13,6 +13,8 @@ import type { CashMovementKind, ExpenseCategory } from "@/generated/prisma/clien
 import { getSettings } from "@/server/settings";
 import { checkShifts, raiseAlerts } from "@/server/loss";
 import { queuePosting } from "@/server/ledger/core";
+import { referralPayoutProblem } from "@/lib/vouchers";
+import { zar } from "@/lib/money";
 
 const actor = (pos: PosStaff): Actor => ({ type: "USER", id: pos.user.id, name: pos.user.name });
 
@@ -68,6 +70,44 @@ export async function cashMovement(pos: PosStaff, shiftId: string, kind: CashMov
   const action = { PAID_OUT: "cash.paid_out", DROP: "cash.drop", CASH_IN: "cash.cash_in" }[kind];
   await audit(db, actor(pos), action, { storeId: shift.storeId, entity: "Shift", entityId: shift.id, data: { amountCents, reason: why, movementId: move.id, ...(move.expenseId && { expenseId: move.expenseId, category }) } });
   return move;
+}
+
+/**
+ * Pays a member's referral credit out of the drawer in cash, by a till manager. One D1 batch records the paid-out
+ * movement and the wallet redemption under the same id (the "referral-payout" posting reads both), after the wallet
+ * balance is taken down with a guard, so two tills can't pay the same rand twice. Paying out on the staff member's own
+ * card raises a high alert.
+ */
+export async function referralPayout(pos: PosStaff, shiftId: string, customerId: string, amountCents: number) {
+  const shift = await openShiftOnTill(pos, shiftId);
+  const wallet = await db.giftVoucher.findUnique({ where: { affiliateOfId: customerId } });
+  if (!wallet) throw new PosError("This member has no referral credit", 404);
+  const cash = await shiftCash(shift.id);
+  const problem = referralPayoutProblem({ cents: amountCents, balanceCents: wallet.balanceCents, inDrawerCents: cash.expectedCents - cash.droppedCents, status: wallet.status, expiresAt: wallet.expiresAt });
+  if (problem) throw new PosError(problem, 422);
+  const taken = await db.giftVoucher.updateMany({ where: { id: wallet.id, status: "ACTIVE", balanceCents: { gte: amountCents } }, data: { balanceCents: { decrement: amountCents } } });
+  if (!taken.count) throw new PosError("The member's referral credit just changed. Look them up again", 409);
+  const id = crypto.randomUUID();
+  const by = pos.user.id;
+  try {
+    await db.$transaction([
+      db.cashMovement.create({ data: { id, shiftId: shift.id, kind: "PAID_OUT", amountCents, reason: "Referral credit paid out", byId: by } }),
+      db.voucherRedemption.create({ data: { id, voucherId: wallet.id, cents: amountCents } }),
+    ]);
+  } catch (e) {
+    // The batch didn't land: give the credit back so the member loses nothing.
+    await db.giftVoucher.update({ where: { id: wallet.id }, data: { balanceCents: { increment: amountCents } } });
+    throw e;
+  }
+  await queuePosting(db, "referral-payout", id);
+  await audit(db, actor(pos), "referral.cash_payout", { storeId: shift.storeId, entity: "Shift", entityId: shift.id, data: { amountCents, customerId, voucherId: wallet.id, movementId: id } });
+  if (pos.user.memberId === customerId)
+    await raiseAlerts([{
+      key: `REFERRAL_PAYOUT:${id}`, rule: "REFERRAL_PAYOUT", severity: "HIGH", storeId: shift.storeId, userId: by, amountCents,
+      title: `${pos.user.name} paid referral credit out to their own card`, detail: `${zar(amountCents)} in cash from the drawer, from the referral credit on the staff member's own Rewards card.`,
+      evidence: [{ label: `Cash movement ${id.slice(0, 8)}` }],
+    }]);
+  return { id, balanceCents: wallet.balanceCents - amountCents };
 }
 
 export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<string, number>, notes?: string) {

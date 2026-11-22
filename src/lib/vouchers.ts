@@ -110,3 +110,16 @@ export function referralCreditProblem(a: { ownerId: string; customerId?: string 
   if (a.cents > a.eligibleCents) return `Referral credit can pay up to ${(Math.max(0, a.eligibleCents) / 100).toFixed(2)} on this sale (not on medicines)`;
   return null;
 }
+
+/** Most referral credit a till pays out in cash at once (cents). */
+export const REFERRAL_PAYOUT_MAX_CENTS = 200_000;
+
+/** Why a cash payout of referral credit can't go ahead, or null. */
+export function referralPayoutProblem(a: { cents: number; balanceCents: number; inDrawerCents: number; status: string; expiresAt?: Date | null; now?: Date }): string | null {
+  if (!Number.isInteger(a.cents) || a.cents <= 0) return "Enter an amount to pay out";
+  if (a.status !== "ACTIVE" || (a.expiresAt && a.expiresAt <= (a.now ?? new Date()))) return "This member's referral credit isn't active";
+  if (a.cents > a.balanceCents) return `The member has only ${(a.balanceCents / 100).toFixed(2)} referral credit`;
+  if (a.cents > REFERRAL_PAYOUT_MAX_CENTS) return `A till pays out at most ${(REFERRAL_PAYOUT_MAX_CENTS / 100).toFixed(2)} at a time`;
+  if (a.cents > a.inDrawerCents) return "That's more cash than the drawer should hold";
+  return null;
+}
