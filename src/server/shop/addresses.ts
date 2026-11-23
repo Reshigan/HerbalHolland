@@ -31,7 +31,8 @@ export async function saveAddress(customerId: string, input: AddressInput, id?: 
   const current = id ? mine.find((a) => a.id === id) : null;
   if (id && !current) throw new AddressError("That address isn't on your account");
   if (!current && mine.length >= ADDRESS_MAX) throw new AddressError(`You can keep up to ${ADDRESS_MAX} addresses, so remove one first`);
-  const isDefault = !!input.isDefault || mine.length === 0 || (!!current?.isDefault && input.isDefault !== false);
+  // The default stays the default until another address takes over, so the account never ends up without one.
+  const isDefault = !!input.isDefault || mine.length === 0 || !!current?.isDefault;
   return db.$transaction(async (t) => {
     if (isDefault) await t.address.updateMany({ where: { customerId, isDefault: true }, data: { isDefault: false } });
     return current ? t.address.update({ where: { id: current.id }, data: { ...data, isDefault } }) : t.address.create({ data: { ...data, customerId, isDefault } });
