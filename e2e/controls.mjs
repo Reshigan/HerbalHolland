@@ -103,9 +103,10 @@ for (const role of ROLES.filter((r) => !only || r.name === only)) {
       };
       try { await open(); } catch { continue; } // the crawl reports pages that fail to load
       // Canary: a button that does nothing, on the first page of each role and size. The probe must flag it, or it is blind.
+      // First in the DOM, so it is clicked before any control that navigates and reloads the page without it.
       if (!n && !canaries.has(`${role.name} ${vp.name}`)) {
         canaries.add(`${role.name} ${vp.name}`);
-        await page.evaluate(() => { const b = document.createElement("button"); b.type = "button"; b.textContent = "Probe canary"; b.style.cssText = "position:fixed;top:0;left:0;z-index:2147483647;width:80px;height:40px"; document.body.append(b); }).catch(() => {});
+        await page.evaluate(() => { const b = document.createElement("button"); b.type = "button"; b.textContent = "Probe canary"; b.style.cssText = "position:fixed;top:0;left:0;z-index:2147483647;width:80px;height:40px"; document.body.prepend(b); }).catch(() => {});
       }
       const controls = await page.evaluate(TAG, RISKY.source).catch(() => []);
       for (const c of controls) {
