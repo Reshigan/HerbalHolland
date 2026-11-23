@@ -160,7 +160,8 @@ try {
   await hydrated(page.getByRole("button", { name: "Remove Home address" }));
   await page.getByRole("button", { name: "Remove Home address" }).click();
   assert(await until(async () => (await rows()).length === 4), "four left");
-  const d = await defaults();
+  // The delete and the hand-over are two writes (D1 has no transactions), so wait for the second.
+  const d = (await until(async () => ((await defaults()).length === 1 ? defaults() : null))) ?? (await defaults());
   assert(d.length === 1 && d[0] !== "16 Jacaranda Street", `exactly one default remains (${d[0]})`);
   await page.getByRole("heading", { name: "Add an address" }).waitFor();
   ok("the add form is back under five");

@@ -44,10 +44,12 @@ async function until(fn, ms = 20_000) {
   }
 }
 
-// The newest showing review with a headline, on a product that shows reviews (not a licensed medicine).
+// The newest showing review whose headline no other showing review on that product shares (the seed reuses headlines,
+// so a twin would stay on the page), on a product that shows reviews (not a licensed medicine) and all of them (≤ 60).
 const review = await one(`SELECT r.id, r.title, p.slug FROM "Review" r JOIN "Product" p ON p.id = r."productId"
-  WHERE r.hidden = 0 AND r.title IS NOT NULL AND p."regClass" <> 'THC' AND p.status = 'ACTIVE'
-  AND r."createdAt" = (SELECT MAX(x."createdAt") FROM "Review" x WHERE x."productId" = r."productId" AND x.hidden = 0)
+  WHERE r.hidden = 0 AND r.verified = 1 AND r.title IS NOT NULL AND p."regClass" <> 'THC' AND p.status = 'ACTIVE'
+  AND NOT EXISTS (SELECT 1 FROM "Review" y WHERE y."productId" = r."productId" AND y.title = r.title AND y.id <> r.id AND y.hidden = 0 AND y.verified = 1)
+  AND (SELECT COUNT(*) FROM "Review" x WHERE x."productId" = r."productId" AND x.hidden = 0 AND x.verified = 1) <= 60
   ORDER BY r."createdAt" DESC LIMIT 1`);
 if (!review) fail("no showing review: seed the demo data");
 const row = () => one(`SELECT hidden, "hiddenReason", "moderatedById" FROM "Review" WHERE id = $1`, [review.id]);
