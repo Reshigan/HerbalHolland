@@ -170,7 +170,7 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
                 </div>
               )}
               <Link
-                href={customer ? "/club/settings" : "/club"}
+                href={customer ? "/club/settings" : "/club/join?next=/club"}
                 className="flex h-11 shrink-0 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3"
                 aria-label={customer ? `Your profile: ${customer.firstName}` : "Sign in to Herbal Holland Rewards"}
               >
@@ -217,7 +217,7 @@ export async function ShopChrome({ children, compact = false }: { children: Reac
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-400">
                 CBD wellness, accessories and gear for adults 18+{footprint.trading ? `, in ${plural(footprint.trading, "store")} across ${plural(footprint.provinces.length, "province")}${canBuyOnline(phase) ? " and online" : ""}.` : canBuyOnline(phase) ? ", online." : "."}
               </p>
-              <Link href={customer ? "/club" : "/club/join"} className={buttonClass("outline-dark", "md", "mt-6")}>
+              <Link href={customer ? "/club" : "/club/join?next=/club"} className={buttonClass("outline-dark", "md", "mt-6")}>
                 {customer ? "Your Rewards card" : "Join Herbal Holland Rewards"}
               </Link>
             </div>
