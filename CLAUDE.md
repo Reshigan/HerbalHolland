@@ -4,7 +4,7 @@
 
 Commerce platform for a multi-owner (franchise) cannabis retail network in South Africa, built to scale to ~1,000 stores:
 POS, inventory control, purchasing, finance, e-commerce (click & collect + delivery), Herbal Holland Rewards loyalty, marketing, HQ console, reports.
-Single Next.js 16 app (App Router) + Prisma 7 + Cloudflare D1 on Workers (OpenNext; R2 for files, Browser Rendering for PDFs, Cron Triggers for jobs: `docs/CLOUDFLARE.md`), served at shop.herbalholland.com (`APP_URL`; herbalholland.co.za redirects there). Modular monolith: domain logic lives in `src/server/*` and pure rules in `src/lib/*`.
+Single Next.js 16 app (App Router) + Prisma 7 + Cloudflare D1 on Workers (OpenNext; R2 for files, Browser Rendering for PDFs, Cron Triggers for jobs: `docs/CLOUDFLARE.md`), served at shop.herbalholland.com (`APP_URL`). Modular monolith: domain logic lives in `src/server/*` and pure rules in `src/lib/*`.
 
 ## Run it
 

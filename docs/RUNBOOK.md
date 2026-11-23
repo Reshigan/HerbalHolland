@@ -101,9 +101,7 @@ buckets the first time, migrates, deploys and checks `/api/health`. Once, in thi
 6. **DNS.** `shop.herbalholland.com` needs no hand-made record: the deploy's custom domain made it (the Worker →
    Settings → Domains & Routes lists it). Keep the zone on SSL "Full (strict)", WAF managed rules on; both
    herbalholland.com and the shop are only ever served over HTTPS, and herbalholland.com's HSTS covers its
-   subdomains. `herbalholland.co.za` (and www) is a Cloudflare zone whose redirect rule sends every request to
-   `https://shop.herbalholland.com` with its path and query (301), so anything printed or shared with .co.za still
-   lands in the right place: check it with `curl -sI https://herbalholland.co.za/shop | grep -i location`. Social
+   subdomains. Herbal Holland's only domain is herbalholland.com. Social
    posts go straight from the Worker to the networks: no other host.
 7. **Smoke checks**, with `CRON_SECRET` in the shell:
    - `curl -fsS https://shop.herbalholland.com/api/health` → `{"ok":true,"db":"up",…}`;
