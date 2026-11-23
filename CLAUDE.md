@@ -21,8 +21,9 @@ npm run deploy         # build and deploy to Cloudflare (docs/RUNBOOK.md → Rel
 ```
 
 User journeys (Playwright + DB checks, DEMO_MODE=true, seeded data; CI runs them against a production build):
-`BASE_URL=http://localhost:3000 node e2e/<checkout|pos|backoffice|hq|shop|trade|accounting>.mjs`, and `node e2e/crawl.mjs` visits every
-page as every role (fails on broken links, server errors and crashes; prints server and paint timings).
+`BASE_URL=http://localhost:3000 node e2e/<checkout|pos|backoffice|hq|shop|trade|accounting|returns|password-reset|addresses|gift|reviews|trade-account|supplier-invoices|hq-partners|hq-franchise>.mjs`, and `node e2e/crawl.mjs` visits every
+page as every role (fails on broken links, dead links that land back where they were, server errors and crashes; prints server and paint timings),
+then `node e2e/controls.mjs` clicks every button on those pages at desktop and phone size and fails on any that does nothing.
 
 Schema changes: edit `prisma/schema.prisma`, `npm run generate`, `npm run db:diff > migrations/NNNN_name.sql`, review the
 SQL (SQLite rewrites a table to change a column), then `npm run db:migrate`; commit the file (deploys run `npm run db:migrate:prod`).

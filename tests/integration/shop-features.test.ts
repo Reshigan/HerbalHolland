@@ -51,6 +51,8 @@ describe("saved addresses", () => {
     expect((await listAddresses(c)).map((a) => [a.label, a.isDefault])).toEqual([["Work", true], ["Home", false]]);
     await setDefaultAddress(c, home.id);
     expect((await db.address.findUniqueOrThrow({ where: { id: work.id } })).isDefault).toBe(false);
+    // Unticking "default" while editing the default keeps it: only another address can take over.
+    expect((await saveAddress(c, { label: "Home", line: "14 Jacaranda Street", suburb: "Hatfield", city: "Pretoria", province: "GP", postalCode: "0083", isDefault: false }, home.id)).isDefault).toBe(true);
     // The same street address and postal code updates rather than duplicates; a new one is added.
     await rememberAddress(c, { addressLine: "14 jacaranda street", suburb: "Hatfield", city: "Pretoria", province: "GP", postalCode: "0083", notes: "Gate code 1234" });
     expect(await db.address.count({ where: { customerId: c } })).toBe(2);

@@ -14,6 +14,12 @@ export type Details = { name: string; legalName: string; kind: string; regNumber
 export function DetailsForm({ details }: { details: Details }) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState<DetailsState, FormData>(updateDetailsAction, {});
+  const [savedAt, setSavedAt] = useState(state.at);
+  // A successful save closes the form so "Saved" shows next to Edit details.
+  if (state.ok && state.at !== savedAt) {
+    setSavedAt(state.at);
+    setOpen(false);
+  }
   const v = { ...details, ...(state.values ?? {}) };
   if (!open)
     return (

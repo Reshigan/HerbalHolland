@@ -11,6 +11,7 @@ export function TabLinks({ tabs, current, className }: { tabs: { href: string; l
           <Link
             key={t.href}
             href={t.href}
+            aria-current={active ? "page" : undefined}
             className={cn(
               "relative -mb-px inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
               active ? "border-brand-500 text-ink-950" : "border-transparent text-ink-500 hover:text-ink-800",

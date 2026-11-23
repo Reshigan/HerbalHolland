@@ -4,6 +4,7 @@
 //   BASE_URL=http://127.0.0.1:3000 DATABASE_FILE=<the local D1 file> node e2e/crawl.mjs [outdir] [only-role]
 import { chromium } from "@playwright/test";
 import { createDb } from "./_db.mjs";
+import { makeRoles } from "./_roles.mjs";
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 
 const [, , outdir = "test-results/e2e-crawl", only] = process.argv;
@@ -31,66 +32,7 @@ const NEVER = /^\/(logout|pos|api\/(auth|pos|cron|push)|unsubscribe|api\/unsubsc
 const PER_TEMPLATE = 5; // distinct URLs per route template (query variants included)
 const SLOW_MS = 1500;
 
-const staff = (email) => async (page) => {
-  await page.goto(`${BASE}/api/auth/demo?email=${encodeURIComponent(email)}`);
-};
-async function member(page) {
-  // A member with online orders and till sales, so their Rewards pages have history.
-  const m = (await db.query(`select c.phone from "Customer" c where exists (select 1 from "Order" o where o."customerId" = c.id and o."paymentStatus" = 'PAID')
-    and exists (select 1 from "Sale" s where s."customerId" = c.id) order by c."memberNo" limit 1`)).rows[0];
-  await page.goto(`${BASE}/club/join?next=/club`);
-  await page.getByLabel("Mobile number").fill(`0${m.phone.slice(3)}`);
-  await page.getByRole("button", { name: /Send my code/ }).click();
-  await page.getByRole("button", { name: "Fill it in" }).click();
-  await page.getByRole("button", { name: "Verify" }).click();
-  await page.waitForURL((u) => u.pathname === "/club", { timeout: 30_000 });
-}
-
-/** The trade portal: a throwaway approved account (on account, every trade range, licences verified) signs in with the demo code. */
-let tradeAccountId = null;
-async function trade(page) {
-  const email = `crawl.${Date.now().toString(36)}@example.co.za`;
-  const row = (await db.query(
-    `insert into "TradeAccount" (id, number, name, "legalName", kind, "regNumber", email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, "paymentDays", "creditLimitCents", classes, "adultAttestedAt", "termsVersion", "termsAcceptedAt", "approvedAt", "updatedAt")
-     values (gen_random_uuid()::text, $1, 'Crawl Trade Co', 'Crawl Trade Co (Pty) Ltd', 'RETAILER', '2020/000001/07', $2, '+27123456789', '1 Crawl Street', 'Hatfield', 'Pretoria', 'GP', '0083', 'APPROVED', 'ACCOUNT', 30, 2000000,
-       array['CBD','CBD_FOOD','CBD_TOPICAL','HEMP','SUPPLEMENT','ACCESSORY','APPAREL','GROW']::"RegClass"[], now(), 'trade-1', now(), now(), now()) returning id`,
-    [`TA-9${String(Date.now() % 100000).padStart(5, "0")}`, email],
-  )).rows[0];
-  tradeAccountId = row.id;
-  // What a retailer buying every range needs, verified; the document is a seeded one (the account page links to it).
-  await db.query(
-    `insert into "TradeLicence" (id, "tradeAccountId", kind, number, "uploadId", status, "reviewedAt")
-     select gen_random_uuid()::text, $1, k::"TradeLicenceKind", 'E2E/' || k, (select "uploadId" from "TradeLicence" order by "createdAt" limit 1), 'VERIFIED', now() from unnest($2::text[]) k`,
-    [row.id, ["CIPC_REGISTRATION", "FOOD_COA"]],
-  );
-  await db.query(`insert into "TradeBuyer" (id, "tradeAccountId", name, email, role) values (gen_random_uuid()::text, $1, 'Crawl Buyer', $2, 'OWNER')`, [row.id, email]);
-  await page.goto(`${BASE}/trade/login`);
-  await page.getByLabel("Email address").fill(email);
-  await page.getByRole("button", { name: "Send my code" }).click();
-  await page.getByRole("button", { name: "Fill it in" }).click();
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await page.waitForURL((u) => u.pathname === "/trade/range", { timeout: 30_000 });
-}
-async function tradeCleanup() {
-  if (!tradeAccountId) return;
-  await db.query(`delete from "AuditLog" where "entityId" = $1 or "actorId" in (select id from "TradeBuyer" where "tradeAccountId" = $1)`, [tradeAccountId]);
-  await db.query(`delete from "MessageLog" where "to" in (select email from "TradeBuyer" where "tradeAccountId" = $1)`, [tradeAccountId]);
-  await db.query(`delete from "Otp" where email in (select email from "TradeBuyer" where "tradeAccountId" = $1)`, [tradeAccountId]);
-  await db.query(`delete from "TradeAccount" where id = $1`, [tradeAccountId]); // buyers and sessions go with it
-  tradeAccountId = null;
-}
-
-const SHOP = /^\/(?!(hq|store|account|menu|brand)(\/|$))/;
-const ROLES = [
-  { name: "shopper", scope: SHOP, start: ["/", "/shop", "/stores", "/learn", "/drops", "/dispensary", "/club/join", "/cart", "/checkout", "/login", "/legal/terms", "/trade", "/trade/apply", "/trade/login", "/trade/terms"] },
-  { name: "member", login: member, scope: SHOP, start: ["/club", "/club/orders", "/club/points", "/club/invoices", "/club/settings"] },
-  { name: "manager", login: staff("manager.pta01@herbalholland.com"), scope: /^\/(store|account|menu|invoice|labels)(\/|$)/, start: ["/store/PTA01", "/labels/PTA01", "/labels/PTA01?size=talker"] },
-  { name: "owner", login: staff("thabo@mokoenaretail.co.za"), scope: /^\/(store|account|books)(\/|$)/, start: ["/store"] },
-  { name: "area", login: staff("area.gpn@herbalholland.com"), scope: /^\/(hq|store|books|insights)(\/|$)/, start: ["/hq"] },
-  { name: "hq", login: staff("hq@herbalholland.com"), scope: /^\/(hq|store|menu|invoice|brand|books|insights)(\/|$)/, start: ["/hq"] },
-  { name: "trade", login: trade, cleanup: tradeCleanup, scope: /^\/(trade|invoice)(\/|$)/, start: ["/trade/range", "/trade/cart", "/trade/checkout", "/trade/orders", "/trade/account", "/trade/statements"] },
-  { name: "accountant", login: staff("books@mokoenaretail.co.za"), scope: /^\/(books|account)(\/|$)/, start: ["/books"] },
-];
+const ROLES = makeRoles(db);
 
 const METRICS = () =>
   new Promise((done) => {
@@ -110,6 +52,7 @@ ROLES[2].start.push("/store/PTA01/finance/statement"); // statement emails link 
 ROLES[5].start.push("/brand");
 const results = [];
 const problems = [];
+const pageLinks = []; // every page's links, to find the ones that go nowhere once every target's landing page is known
 
 for (const role of ROLES.filter((r) => !only || r.name === only)) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -179,9 +122,19 @@ for (const role of ROLES.filter((r) => !only || r.name === only)) {
     if (await page.locator("text=/Something went wrong|Application error/").count()) issue("error boundary", key);
 
     // A client-side redirect after load destroys the context mid-read: wait for the new page and read again.
-    const hrefs = () => page.locator("a[href]").evaluateAll((els) => els.map((e) => e.href));
+    const hrefs = () =>
+      page.locator("a[href]").evaluateAll((els) =>
+        els.map((e) => ({
+          href: e.href,
+          hash: e.getAttribute("href").includes("#"),
+          // A link to the page you are on is fine when it says so (the active tab, the current page number).
+          current: e.hasAttribute("aria-current") || e.getAttribute("aria-selected") === "true",
+          text: (e.innerText || e.getAttribute("aria-label") || "").trim().replace(/\s+/g, " ").slice(0, 60),
+        })),
+      );
     const links = await hrefs().catch(() => page.waitForLoadState("load").then(hrefs)).catch(() => []);
-    for (const a of links) {
+    pageLinks.push({ role: role.name, at: final.pathname + final.search, from: key, links: links.filter((a) => !a.current && !a.hash) });
+    for (const { href: a } of links) {
       const l = new URL(a, BASE);
       if (l.origin !== new URL(BASE).origin || NEVER.test(l.pathname) || !role.scope.test(l.pathname)) continue;
       l.hash = "";
@@ -194,6 +147,23 @@ for (const role of ROLES.filter((r) => !only || r.name === only)) {
 }
 await browser.close();
 await db.end();
+
+// Dead links: a link to somewhere else that lands back on the page it sits on (like a Sign in that opened /club and was
+// sent straight back to the home page). Clicking it does nothing you can see. A link to the page itself (the header or
+// footer entry for the page you are on) is not one: it says where it goes.
+const landing = new Map(results.filter((r) => r.final).map((r) => [`${r.role} ${r.url}`, r.final]));
+const dead = new Set();
+for (const p of pageLinks)
+  for (const a of p.links) {
+    const l = new URL(a.href, BASE);
+    if (l.origin !== new URL(BASE).origin) continue;
+    const to = landing.get(`${p.role} ${l.pathname + l.search}`);
+    const id = `${p.role} ${p.at} ${a.text} ${l.pathname + l.search}`;
+    if (to === p.at && l.pathname + l.search !== p.at && !dead.has(id)) {
+      dead.add(id);
+      problems.push({ role: p.role, url: p.from, kind: "dead link", detail: `"${a.text}" → ${l.pathname + l.search} lands back on ${p.at}` });
+    }
+  }
 
 writeFileSync(`${outdir}/crawl.json`, JSON.stringify({ results, problems }, null, 2));
 const pages = results.filter((r) => r.lcp !== undefined);

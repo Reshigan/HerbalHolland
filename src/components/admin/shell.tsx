@@ -51,7 +51,7 @@ export function AdminShell({
         <Logo />
         <span className="rounded-full border border-brand-500/40 px-2 py-0.5 text-xs font-semibold text-brand-400">{area === "hq" ? "HQ" : area === "books" ? "Books" : "Store"}</span>
       </Link>
-      <PaletteButton className="mb-5" />
+      {area !== "books" && <PaletteButton className="mb-5" />}
       {store && (
         <div className="mb-5 space-y-2 px-1">
           <div className="px-2">
