@@ -10,6 +10,7 @@ import { Callout, Container, Pager } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
 import { pageParam } from "@/components/ui/pagination";
 import { fmtPoints, type TierKey } from "@/lib/loyalty-rules";
+import { Scene } from "@/components/brand/scene";
 
 export const metadata: Metadata = {
   title: "Drops",
@@ -26,6 +27,8 @@ export default async function DropsPage({ searchParams }: { searchParams: Promis
   const none = !live.length && !upcoming.length && !pastTotal;
 
   return (
+    <div className="relative isolate overflow-hidden">
+      <Scene src="/scenes/drops" eager position="object-center" className="bottom-auto h-[30rem]" scrim="bg-gradient-to-b from-ink-950/75 via-ink-950/85 to-ink-950" />
     <Container className="pt-10 sm:pt-14">
       <div className="max-w-2xl">
         <div className="eyebrow text-brand-500">Drops</div>
@@ -111,5 +114,6 @@ export default async function DropsPage({ searchParams }: { searchParams: Promis
         </section>
       )}
     </Container>
+    </div>
   );
 }

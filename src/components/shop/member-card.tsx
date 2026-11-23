@@ -1,12 +1,16 @@
 // The digital Rewards card: member number as a scannable QR for the till, tier colour, points. The motion (foil sheen,
 // points count-up, the burst of dots when points land) lives in client children; the card stays a server component.
 import { Mark, Wordmark } from "@/components/brand/logo";
+import { Scene } from "@/components/brand/scene";
 import { QrCode } from "./qr";
 import { CardSheen } from "./card-sheen";
 import { CountUp } from "./motion";
 import { foundingLabel } from "@/server/shop/launch-rules";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
+
+/** Per tier: the photo under the card wash (public/club/tier-*.webp). */
+const TIER_PHOTO = ["seed", "sprout", "bloom", "harvest"];
 
 /** Per tier (SEED, SPROUT, BLOOM, HARVEST): the card wash, the tier pill, the ring and the thin accent line, in the tier's colour (the same mapping as the header's tier dot). */
 export const TIER_STYLE: Record<number, { card: string; chip: string; ring: string; line: string }> = {
@@ -29,6 +33,7 @@ export function MemberCard({ name, memberNo, tierName, tierIndex, points, foundi
       role="group"
       aria-label={`${tierName} Rewards card for ${name}${founding ? `, Founding Member ${foundingLabel(founding)}` : ""}`}
     >
+      <Scene src={`/club/tier-${TIER_PHOTO[tierIndex] ?? TIER_PHOTO[0]}`} eager widths={[640, 960]} sizes="(min-width: 640px) 28rem, 100vw" scrim={cn("bg-gradient-to-br opacity-[0.86]", s.card)} />
       <Mark aria-hidden className="pointer-events-none absolute -right-10 -top-12 -z-10 h-56 w-56 text-white/[0.06]" />
       <span aria-hidden className={cn("pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent to-transparent", s.line)} />
       <CardSheen />

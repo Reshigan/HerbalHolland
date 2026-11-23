@@ -13,6 +13,7 @@ import { plural } from "@/lib/plural";
 import { distanceKm } from "@/lib/routing";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { asList } from "@/lib/json-list";
+import { Scene } from "@/components/brand/scene";
 
 export const metadata: Metadata = {
   title: "Store finder",
@@ -75,6 +76,8 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
   const params = (n: number) => `/stores?${new URLSearchParams({ ...(q ? { q } : {}), ...(sp.near && here ? { near: sp.near } : {}), page: String(n) })}`;
 
   return (
+    <div className="relative isolate overflow-hidden">
+      <Scene src="/scenes/stores" eager position="object-center" className="bottom-auto h-[30rem]" scrim="bg-gradient-to-b from-ink-950/75 via-ink-950/85 to-ink-950" />
     <Container className="pt-10 sm:pt-14">
       <div className="max-w-2xl">
         <div className="eyebrow text-brand-500">Store finder</div>
@@ -200,5 +203,6 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
         , with ID (18+) checked on delivery.
       </p>}
     </Container>
+    </div>
   );
 }

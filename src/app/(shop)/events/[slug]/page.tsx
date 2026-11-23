@@ -15,6 +15,7 @@ import { ButtonLink, buttonClass } from "@/components/ui/button";
 import { fmtTime } from "@/lib/format";
 import { APP_URL } from "@/server/invoices";
 import { ShareLink } from "@/components/shop/club-client";
+import { Scene } from "@/components/brand/scene";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const e = await db.storeEvent.findUnique({ where: { slug: (await params).slug }, select: { title: true, blurb: true, slug: true, store: { select: { name: true } } } });
@@ -35,6 +36,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const next = `/events/${e.slug}`;
 
   return (
+    <div className="relative isolate overflow-hidden">
+      <Scene src="/scenes/events" eager position="object-center" className="bottom-auto h-[30rem]" scrim="bg-gradient-to-b from-ink-950/75 via-ink-950/85 to-ink-950" />
     <Container className="pt-6">
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-ink-400">
         <Link href="/stores" className="hover:text-white">
@@ -159,6 +162,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
     </Container>
+    </div>
   );
 }
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Lockup } from "@/components/brand/logo";
+import { Scene } from "@/components/brand/scene";
 import { DEMO_PASSWORD } from "@/lib/password";
 import { LoginForm, DemoLogin } from "./login-form";
 
@@ -18,7 +19,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const demo = process.env.DEMO_MODE === "true";
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
-      <section className="relative hidden overflow-hidden bg-ink-950 p-12 text-ink-100 lg:flex lg:flex-col lg:justify-between">
+      <section className="relative isolate hidden overflow-hidden bg-ink-950 p-12 text-ink-100 lg:flex lg:flex-col lg:justify-between">
+        <Scene src="/scenes/login" eager widths={[720, 1200]} sizes="55vw" scrim="bg-gradient-to-b from-ink-950/75 via-ink-950/55 to-ink-950/90" />
         <div className="eyebrow text-brand-500">Herbal Holland platform</div>
         <div className="hh-frame mx-auto flex aspect-[4/5] w-full max-w-md items-center justify-center rounded-md p-10">
           <Lockup spin className="h-full w-full text-[2.6rem] [&>svg]:h-[52%]" />

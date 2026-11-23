@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Nfc, Sparkles } from "lucide-react";
 import { Lockup, Mark } from "@/components/brand/logo";
+import { Scene } from "@/components/brand/scene";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtPoints } from "@/lib/loyalty-rules";
@@ -101,11 +102,18 @@ export function DisplayScreen({ deviceId, feedKey }: { deviceId: string | null; 
   const training = !!s?.training;
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-ink-950 text-ink-100 select-none" onClick={fullscreen} data-testid="display" data-state={state}>
+    <div className="fixed inset-0 isolate flex flex-col overflow-hidden bg-ink-950 text-ink-100 select-none" onClick={fullscreen} data-testid="display" data-state={state}>
       {training && (
         <div className="shrink-0 bg-brand-500 px-6 py-2 text-center font-display text-lg font-semibold text-ink-950" data-testid="display-training">
           Training: nothing is real
         </div>
+      )}
+      {state === "idle" && (
+        <Scene
+          src="/pos/display"
+          eager
+          scrim="bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--color-ink-950)_82%,transparent),color-mix(in_oklab,var(--color-ink-950)_55%,transparent))]"
+        />
       )}
       <Beadwork size={16} />
       <header className="flex shrink-0 items-center justify-between px-8 pt-5 sm:px-12">
