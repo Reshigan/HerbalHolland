@@ -411,7 +411,7 @@ export function HomePage() {
     logo: `${FACTS.origin}/press/herbal-holland-logo.png`,
     slogan: BRAND.line,
     email: EMAIL.hello,
-    ...(FACTS.social.length ? { sameAs: [...FACTS.social] } : {}),
+    ...(FACTS.social.length ? { sameAs: FACTS.social.map((x) => x.url) } : {}),
     contactPoint: (["hello", "press", "careers"] as const).map((k) => ({
       "@type": "ContactPoint",
       contactType: HOME.org[k],

@@ -270,6 +270,13 @@ function Footer({ page }: { page: string }) {
                   {CHROME.cta.finder}
                 </a>
               </li>
+              {FACTS.social.map((x) => (
+                <li key={x.url}>
+                  <a className="link" href={x.url} rel="noopener me" target="_blank">
+                    {x.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
           <div>
