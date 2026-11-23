@@ -98,7 +98,7 @@ export async function TradeChrome({ children }: { children: React.ReactNode }) {
               </p>
             </div>
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
-              <FooterCol title="Trade" links={[["Apply for an account", "/trade/apply"], ["Sign in", "/trade/login"], ["Trade terms", "/trade/terms"], ["Email the trade team", `mailto:${tradeEmail()}`]]} />
+              <FooterCol title="Trade" links={[...(buyer ? [["Your account", "/trade/account"] as [string, string]] : [["Apply for an account", "/trade/apply"], ["Sign in", "/trade/login"]] as [string, string][]), ["Trade terms", "/trade/terms"], ["Email the trade team", `mailto:${tradeEmail()}`]]} />
               <FooterCol title="Legal" links={[["Privacy notice (POPIA)", "/legal/privacy"], ["Membership terms", "/legal/terms"], ["Delivery", "/legal/delivery"]]} />
               <FooterCol title="Herbal Holland" links={[["The shop", "/"], ["Store finder", "/stores"], ["Learn", "/learn"]]} />
             </div>

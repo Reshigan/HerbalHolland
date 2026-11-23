@@ -109,8 +109,21 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:3000
           DATABASE_FILE: ${{ env.D1_FILE }}
+      - run: node e2e/returns.mjs test-results/e2e-returns
+        env:
+          BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
+      - run: node e2e/password-reset.mjs test-results/e2e-password-reset
+        env:
+          BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
       - name: Crawl every page as every role (broken links, server errors, crashes, timings)
         run: node e2e/crawl.mjs test-results/e2e-crawl
+        env:
+          BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
+      - name: Click every button on every page as every role, desktop and phone (dead controls)
+        run: node e2e/controls.mjs test-results/e2e-controls
         env:
           BASE_URL: http://127.0.0.1:3000
           DATABASE_FILE: ${{ env.D1_FILE }}
