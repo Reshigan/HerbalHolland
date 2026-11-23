@@ -134,15 +134,22 @@ async function requestReturn(order, reasonLabel, note) {
 
 try {
   step("Setup: two completed PTA01 click & collect orders inside the return windows, with no open returns");
+  // Picked by what they are, not by code, so any seed works: completed and paid in the last 150 days (inside the
+  // six-month defect window), with lines, never returned before, from two different members with phones. The refund
+  // order was not paid online, so it is refunded by hand. Each has its online sale, never refunded, so a credit note posts.
   const orders = await q(
-    `SELECT o.id, o.code, o.payMethod, c.phone FROM "Order" o JOIN "Customer" c ON c.id = o.customerId JOIN "Store" s ON s.id = o.storeId
-     WHERE o.code IN ('7X4KS2', '2C6MNE') AND s.code = $1 AND o.status = 'COMPLETED'`, [CODE]);
-  const refundOrder = orders.find((o) => o.code === "7X4KS2");
-  const declineOrder = orders.find((o) => o.code === "2C6MNE");
-  assert(refundOrder && declineOrder && refundOrder.phone && declineOrder.phone, "both seeded orders are there, with the members' phones");
-  const stale = await q(`SELECT id FROM "ReturnRequest" WHERE orderId IN ($1, $2)`, [refundOrder.id, declineOrder.id]);
-  for (const s of stale) { await q(`DELETE FROM "AuditLog" WHERE entityId = $1`, [s.id]); await q(`DELETE FROM "ReturnRequest" WHERE id = $1`, [s.id]); }
-  if (stale.length) ok(`cleared ${stale.length} return(s) left by an earlier run`);
+    `SELECT o.id, o.code, o.payMethod, o.paymentRef, o.customerId, c.phone FROM "Order" o JOIN "Customer" c ON c.id = o.customerId JOIN "Store" s ON s.id = o.storeId
+     WHERE s.code = $1 AND o.status = 'COMPLETED' AND o.paymentStatus = 'PAID' AND o.fulfilment = 'COLLECT' AND c.phone IS NOT NULL
+       AND o.completedAt > datetime('now', '-150 days')
+       AND EXISTS (SELECT 1 FROM "OrderLine" l WHERE l.orderId = o.id)
+       AND NOT EXISTS (SELECT 1 FROM "ReturnRequest" r WHERE r.orderId = o.id)
+       AND NOT EXISTS (SELECT 1 FROM "GiftVoucher" g WHERE g.purchaseOrderId = o.id)
+       AND EXISTS (SELECT 1 FROM "Sale" s1 WHERE s1.orderId = o.id)
+       AND NOT EXISTS (SELECT 1 FROM "Sale" s1 JOIN "Sale" x ON x.refundOfId = s1.id WHERE s1.orderId = o.id)
+     ORDER BY o.completedAt DESC LIMIT 200`, [CODE]);
+  const refundOrder = orders.find((o) => o.payMethod !== "ONLINE");
+  const declineOrder = refundOrder && orders.find((o) => o.customerId !== refundOrder.customerId);
+  assert(refundOrder && declineOrder, `two unreturned orders from two members (${refundOrder?.code} ${refundOrder?.payMethod}, ${declineOrder?.code})`);
 
   step("Signed out, the return page sends the member to sign in first");
   {
