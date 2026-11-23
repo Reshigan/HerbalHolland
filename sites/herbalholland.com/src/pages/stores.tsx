@@ -123,7 +123,7 @@ export function StorePage({ store }: { store: Store }) {
     { label: store.name, path: `/stores/${store.key}` },
   ];
   const schema = {
-    "@type": "Store",
+    "@type": ["Store", "HealthAndBeautyBusiness"],
     "@id": `${abs(`/stores/${store.key}`)}#store`,
     name: `${FACTS.brand} ${store.name}`,
     url: abs(`/stores/${store.key}`),
