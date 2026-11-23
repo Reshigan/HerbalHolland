@@ -8,6 +8,7 @@ import { ArticlePicture as Picture } from "@/components/shop/learn/picture";
 import { Tag } from "@/components/shop/ui";
 import { publicQuest } from "@/lib/quests";
 import { cn } from "@/lib/cn";
+import { Scene } from "@/components/brand/scene";
 
 export const metadata: Metadata = {
   title: "Learn: plain-English guides",
@@ -36,6 +37,8 @@ export default async function LearnIndex({ searchParams }: { searchParams: Promi
   const [lead, ...rest] = list;
 
   return (
+    <div className="relative isolate overflow-hidden">
+      <Scene src="/scenes/learn" eager position="object-center" className="bottom-auto h-[30rem]" scrim="bg-gradient-to-b from-ink-950/75 via-ink-950/85 to-ink-950" />
     <Container className="pt-10 sm:pt-14">
       <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
@@ -109,6 +112,7 @@ export default async function LearnIndex({ searchParams }: { searchParams: Promi
         </Reveal>
       )}
     </Container>
+    </div>
   );
 }
 

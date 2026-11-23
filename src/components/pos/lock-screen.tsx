@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, CloudOff, Delete, ShieldCheck, Wifi } from "lucide-react";
 import { Mark } from "@/components/brand/logo";
+import { Scene } from "@/components/brand/scene";
 import { cn } from "@/lib/cn";
 import { fmtTime } from "@/lib/format";
 import { isTillManager } from "@/lib/pos-refund";
@@ -95,7 +96,8 @@ export function LockScreen({
   return (
     <div className="fixed inset-0 z-[55] flex flex-col overflow-y-auto bg-ink-950 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] text-ink-100 print:hidden lg:flex-row">
       {/* Brand + store panel */}
-      <section className="relative flex shrink-0 flex-col justify-between gap-6 overflow-hidden border-b border-ink-850 bg-[radial-gradient(120%_70%_at_0%_100%,color-mix(in_oklab,var(--color-brand-500)_16%,transparent),transparent_70%)] px-6 py-6 lg:w-[38%] lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
+      <section className="relative isolate flex shrink-0 flex-col justify-between gap-6 overflow-hidden border-b border-ink-850 bg-[radial-gradient(120%_70%_at_0%_100%,color-mix(in_oklab,var(--color-brand-500)_16%,transparent),transparent_70%)] px-6 py-6 lg:w-[38%] lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
+        <Scene src="/pos/lock" eager widths={[720, 1200]} sizes="(min-width: 1024px) 38vw, 100vw" scrim="bg-gradient-to-b from-ink-950/85 via-ink-950/70 to-ink-950/90" />
         <div aria-hidden className="hh-beads absolute inset-x-0 bottom-0 hidden opacity-70 lg:block" />
         <div className="relative flex items-center gap-3 text-brand-500">
           <Mark className="h-11 w-11" />

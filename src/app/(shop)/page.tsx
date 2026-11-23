@@ -36,6 +36,7 @@ import { plural } from "@/lib/plural";
 import { zarWhole } from "@/lib/money";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { cn } from "@/lib/cn";
+import { Scene } from "@/components/brand/scene";
 
 export const metadata: Metadata = {
   title: { absolute: "Herbal Holland · Dutch heritage. African soil." },
@@ -426,7 +427,8 @@ export default async function Home() {
       {/* ── Rewards ─────────────────────────────────────────── */}
       <Suspense>
       <Container className="pt-24">
-        <div className="relative overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900 p-6 sm:p-10 lg:p-14">
+        <div className="relative isolate overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900 p-6 sm:p-10 lg:p-14">
+          <Scene src="/scenes/rewards" widths={[800, 1600]} sizes="(min-width: 1280px) 80rem, 100vw" scrim="bg-gradient-to-r from-ink-900 via-ink-900/85 to-ink-900/55" />
           <Mark aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 h-80 w-80 text-brand-500/[0.07]" />
           <div className="relative grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
             <div>

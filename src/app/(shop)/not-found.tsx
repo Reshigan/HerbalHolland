@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { Mark } from "@/components/brand/logo";
+import { Scene } from "@/components/brand/scene";
 import { Container } from "@/components/shop/ui";
 import { buttonClass } from "@/components/ui/button";
 
 // Shown inside the shop chrome when a product, store, article or order can't be found.
 export default function ShopNotFound() {
   return (
+    <div className="relative isolate overflow-hidden">
+      <Scene src="/scenes/not-found" eager scrim="bg-gradient-to-b from-ink-950/85 via-ink-950/75 to-ink-950" />
     <Container className="flex flex-col items-center py-24 text-center">
       <Mark className="h-20 w-20 text-brand-500" />
       <p className="eyebrow mt-8 text-brand-500">Not found</p>
@@ -20,5 +23,6 @@ export default function ShopNotFound() {
         </Link>
       </div>
     </Container>
+    </div>
   );
 }

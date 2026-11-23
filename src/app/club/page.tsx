@@ -13,6 +13,7 @@ import { getPreferredStore, getRetailStores, homeStoreOptions } from "@/server/s
 import { canBuyOnline } from "@/lib/launch-phase";
 import { memberDeals, memberTickets, upcomingEvents, welcomeGifts } from "@/server/shop/launch";
 import { MemberCard } from "@/components/shop/member-card";
+import { Scene } from "@/components/brand/scene";
 import { WalletButtons } from "@/components/shop/wallet-buttons";
 import { ClubMore } from "@/components/shop/club-more";
 import { ReorderButton } from "@/components/shop/reorder-button";
@@ -441,7 +442,9 @@ async function Landing() {
   const places = launch.preLaunch && launch.at ? foundingPlaces({ cap: launch.foundingCap, taken, firstYearMonths: launch.firstYearMonths, tierName: tierInfo(launch.foundingTier).name, closes: fmtDate(launch.at) }) : null;
   const trading = stores.filter((s) => s.status === "ACTIVE");
   return (
-    <Container className="pt-5 max-sm:flex max-sm:flex-col max-sm:pb-40 sm:pt-16">
+    <div className="relative isolate overflow-hidden">
+      <Scene src="/club/hero" eager className="bottom-auto h-[44rem]" scrim="bg-gradient-to-b from-ink-950/80 via-ink-950/85 to-ink-950" />
+      <Container className="pt-5 max-sm:flex max-sm:flex-col max-sm:pb-40 sm:pt-16">
       {places && (
         <Tag tone="orange" icon={<Sparkles className="h-3.5 w-3.5" aria-hidden />} className="mb-5 gap-1.5 self-start px-3 py-1 text-xs sm:hidden">
           {places.chip}
@@ -492,6 +495,7 @@ async function Landing() {
           <PhoneAuth turnstileSiteKey={turnstileSiteKey()} next="/club" stores={homeStoreOptions(stores)} defaultStoreId={store?.id} consentWording={CONSENT_WORDING} appScreen />
         </Panel>
       </div>
-    </Container>
+      </Container>
+    </div>
   );
 }

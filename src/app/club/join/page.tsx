@@ -12,6 +12,7 @@ import { PhoneAuth } from "@/components/shop/phone-auth";
 import { Container, Panel, Tag } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
 import { Mark } from "@/components/brand/logo";
+import { Scene } from "@/components/brand/scene";
 import { fmtPoints, tierInfo } from "@/lib/loyalty-rules";
 import { fmtDate, num } from "@/lib/format";
 import { safePath } from "@/lib/safe-path";
@@ -100,7 +101,9 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
   );
 
   return (
-    <Container className="pt-5 max-sm:pb-40 sm:pt-16">
+    <div className="relative isolate overflow-hidden">
+      <Scene src="/club/join" eager widths={[800, 1600]} className="bottom-auto h-[40rem]" scrim="bg-gradient-to-b from-ink-950/80 via-ink-950/85 to-ink-950" />
+      <Container className="pt-5 max-sm:pb-40 sm:pt-16">
       {/* Phones get an app screen: a one-line title, the form with its button pinned to the bottom, the detail folded away. Desktop keeps the two columns. */}
       <div className="grid grid-cols-1 gap-5 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_30rem] lg:grid-rows-[auto_1fr] lg:gap-x-16 lg:gap-y-0">
         <div className="lg:col-start-1 lg:pt-6">
@@ -160,6 +163,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
           />
         </Panel>
       </div>
-    </Container>
+      </Container>
+    </div>
   );
 }

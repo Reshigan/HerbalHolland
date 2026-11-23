@@ -5,7 +5,7 @@
  * falls back to the last good copy. API calls (/api/*) are never cached here — the app
  * caches its own data (bootstrap, outbox) and knows when it is offline.
  */
-const CACHE = "hh-till-v2";
+const CACHE = "hh-till-v3";
 const SHELL = ["/pos", "/pos/display", "/pos/manifest.webmanifest", "/pos/app-icon"];
 
 self.addEventListener("install", (event) => {
@@ -49,7 +49,7 @@ function cacheable(url) {
   if (url.origin !== self.location.origin) return false;
   if (url.pathname.startsWith("/api/")) return false;
   if (url.pathname.includes("webpack-hmr") || url.pathname.includes("__nextjs") || url.pathname.includes("/_next/turbopack")) return false;
-  return url.pathname === "/pos" || url.pathname.startsWith("/pos/") || url.pathname.startsWith("/_next/") || /\.(?:js|css|woff2?|svg|png|ico)$/.test(url.pathname);
+  return url.pathname === "/pos" || url.pathname.startsWith("/pos/") || url.pathname.startsWith("/_next/") || /\.(?:js|css|woff2?|svg|png|webp|ico)$/.test(url.pathname);
 }
 
 self.addEventListener("fetch", (event) => {

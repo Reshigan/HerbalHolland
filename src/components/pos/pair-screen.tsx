@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, CheckCircle2, MonitorSmartphone, Store as StoreIcon } from "lucide-react";
 import { Mark, Wordmark } from "@/components/brand/logo";
+import { Scene } from "@/components/brand/scene";
 import { InstallPrompt } from "@/components/ui/install-prompt";
 import { ServiceWorker } from "@/components/ui/service-worker";
 import { cn } from "@/lib/cn";
@@ -60,7 +61,8 @@ export function PairScreen({
   }
 
   return (
-    <main className="min-h-dvh bg-ink-950 px-5 py-8 text-ink-100 sm:py-14">
+    <main className="relative isolate min-h-dvh overflow-hidden bg-ink-950 px-5 py-8 text-ink-100 sm:py-14">
+      <Scene src="/pos/pair" eager className="bottom-auto h-[26rem]" scrim="bg-gradient-to-b from-ink-950/70 via-ink-950/80 to-ink-950" />
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center gap-3 text-brand-500">
           <Mark className="h-12 w-12" />

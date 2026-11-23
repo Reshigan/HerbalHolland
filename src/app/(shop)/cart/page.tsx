@@ -33,6 +33,7 @@ import { fmtPoints, pointsFor, type TierKey } from "@/lib/loyalty-rules";
 import { zar } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import { asList } from "@/lib/json-list";
+import { Scene } from "@/components/brand/scene";
 
 export const metadata: Metadata = { title: "Your bag", robots: { index: false } };
 
@@ -44,7 +45,8 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
   if (!q.lines.length)
     return (
       <Container className="pt-16">
-        <div className="mx-auto max-w-lg rounded-3xl border border-dashed border-ink-800 px-6 py-20 text-center">
+        <div className="relative isolate mx-auto max-w-lg overflow-hidden rounded-3xl border border-ink-800 px-6 py-20 text-center">
+          <Scene src="/scenes/empty" eager widths={[560, 960]} sizes="32rem" scrim="bg-gradient-to-b from-ink-950/70 via-ink-950/85 to-ink-950/95" />
           <ShoppingBag className="mx-auto h-10 w-10 text-brand-500" strokeWidth={1.5} />
           <h1 className="mt-5 font-display text-3xl font-semibold text-white">Your bag is empty</h1>
           <p className="mx-auto mt-3 max-w-sm text-ink-400">Find something you love, then collect it in store or have it delivered anywhere in South Africa.</p>

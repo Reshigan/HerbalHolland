@@ -5,6 +5,7 @@ import { CircleHelp } from "lucide-react";
 import { getTradeBuyer } from "@/server/trade/auth";
 import { TradeLogin } from "@/components/trade/login-form";
 import { Container, Panel } from "@/components/shop/ui";
+import { Scene } from "@/components/brand/scene";
 import { LOGIN } from "@/components/trade/copy";
 import { safeTradeNext } from "../_lib/context";
 import { isEmail } from "@/lib/email";
@@ -18,6 +19,8 @@ export default async function TradeLoginPage({ searchParams }: { searchParams: P
   if (buyer) redirect(next ?? "/trade/range");
   const email = sp.email && isEmail(sp.email) ? sp.email : null;
   return (
+    <div className="relative isolate overflow-hidden">
+      <Scene src="/scenes/trade" eager widths={[800, 1600]} className="bottom-auto h-[34rem]" scrim="bg-gradient-to-b from-ink-950/80 via-ink-950/85 to-ink-950" />
     <Container className="grid grid-cols-1 gap-10 pt-10 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
       <div>
         <div className="eyebrow text-brand-500">Herbal Holland Trade</div>
@@ -47,5 +50,6 @@ export default async function TradeLoginPage({ searchParams }: { searchParams: P
         <p className="mt-4 text-xs text-ink-400">Sessions last 12 hours. Adults 18+ only.</p>
       </aside>
     </Container>
+    </div>
   );
 }
