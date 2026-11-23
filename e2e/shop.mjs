@@ -243,7 +243,8 @@ try {
   // ── 3. Existing member signs in by phone ────────────────────────────────────────────────────────────
   step(`Member ${member.memberNo} (${member.firstName}) signs in with their mobile number`);
   await page.getByRole("link", { name: "Sign in to Herbal Holland Rewards" }).click();
-  await page.getByRole("heading", { name: "Sign in or join" }).waitFor();
+  await page.waitForURL(/\/club\/join/); // the header link must leave /club, or a click on /club does nothing
+  await page.getByRole("heading", { name: "Your mobile number" }).waitFor();
   await phoneCode(page, localPhone(member.phone), "Member sign-in");
   await timed("Member sign-in: verify → card", () => page.getByRole("button", { name: "Verify" }).click(), () => page.getByRole("heading", { level: 1, name: `Hi ${member.firstName}` }).waitFor());
   const session = await one(`select id from "Session" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]);
