@@ -190,7 +190,7 @@ describe("JSON-LD builders", () => {
     ]);
     const ld = storeJsonLd({ base, slug: "hillcrest", name: "Hillcrest", addressLine: "12 Old Main Rd", suburb: "Hillcrest", city: "Durban", province: "KwaZulu-Natal", postalCode: "3610", lat: -29.781, lng: 30.7596, phone: "+27 31 000 0000", email: null, hours });
     expect(ld).toMatchObject({
-      "@type": "Store",
+      "@type": ["Store", "HealthAndBeautyBusiness"],
       name: "Herbal Holland Hillcrest",
       url: `${base}/stores/hillcrest`,
       address: { "@type": "PostalAddress", streetAddress: "12 Old Main Rd, Hillcrest", addressLocality: "Durban", addressRegion: "KwaZulu-Natal", postalCode: "3610", addressCountry: "ZA" },

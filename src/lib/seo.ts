@@ -306,7 +306,7 @@ export function storeJsonLd(s: StoreInput): Ld {
   const hours = openingHoursSpecification(s.hours);
   return {
     "@context": "https://schema.org",
-    "@type": "Store",
+    "@type": ["Store", "HealthAndBeautyBusiness"],
     "@id": `${url}#store`,
     name: `${SITE_NAME} ${s.name}`,
     url,
