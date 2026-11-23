@@ -95,7 +95,7 @@ export const CHROME = {
 export const HOME = {
   meta: {
     title: "Herbal Holland: Dutch heritage. African soil.",
-    updated: "2026-10-07",
+    updated: "2026-11-23",
     // The page description, in the same three states as the hero's line (below); {opening} is the day without its weekday.
     description: {
       soon: "Herbal Holland: members-only cannabis wellness stores for adults 18+. Opening {opening} in {next}, with more towns to come.",
@@ -296,7 +296,7 @@ export const MAP = {
 export const STORES = {
   meta: {
     title: "Stores",
-    updated: "2026-10-07",
+    updated: "2026-11-23",
     // In the same three states as the home page's line; {opening} is the day without its weekday.
     description: {
       soon: "Every Herbal Holland store: opening in {next} on {opening}, with more towns to come. Members only, adults 18+.",
