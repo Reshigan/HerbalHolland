@@ -134,17 +134,28 @@ function images(folder: string) {
   return out;
 }
 
-/** The latest Instagram posts, for the home page's grid. Read from the Graph API with META_IG_USER_ID and META_PAGE_TOKEN
+/** The latest Instagram posts, for the home page's grid. Read from the Graph API with META_PAGE_TOKEN (and META_IG_USER_ID, optional)
  *  (set in CI from repository secrets, never in the repo). Each picture is downloaded, resized to WebP and fingerprinted
- *  into dist/assets, because the CSP allows images from this site only. Without the two, or if Instagram fails, the
+ *  into dist/assets, because the CSP allows images from this site only. Without the token, or if Instagram fails, the
  *  build goes on with no posts and the home page leaves the section out. */
 async function instagram(): Promise<Gram[]> {
-  const user = process.env.META_IG_USER_ID, token = process.env.META_PAGE_TOKEN;
-  if (!user || !token) {
-    console.warn("  ⚠ META_IG_USER_ID / META_PAGE_TOKEN not set: the home page shows no Instagram posts.");
+  const token = process.env.META_PAGE_TOKEN;
+  if (!token) {
+    console.warn("  ⚠ META_PAGE_TOKEN not set: the home page shows no Instagram posts.");
     return [];
   }
   try {
+    // META_IG_USER_ID is optional: a Page token can name the Page's own Instagram account.
+    let user = process.env.META_IG_USER_ID;
+    if (!user) {
+      const me = await fetch("https://graph.facebook.com/v21.0/me?fields=instagram_business_account", {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!me.ok) throw new Error(`Facebook answered ${me.status}`);
+      user = ((await me.json()) as { instagram_business_account?: { id: string } }).instagram_business_account?.id;
+      if (!user) throw new Error("the Page has no linked Instagram business account");
+    }
     const fields = "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp";
     const r = await fetch(`https://graph.facebook.com/v21.0/${encodeURIComponent(user)}/media?fields=${fields}&limit=12`, {
       headers: { Authorization: `Bearer ${token}` },
