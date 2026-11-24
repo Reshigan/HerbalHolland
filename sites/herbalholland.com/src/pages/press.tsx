@@ -30,6 +30,7 @@ function FactSheet({ id }: { id: string }) {
   const c = FACTS.company;
   const rows: [string, React.ReactNode][] = [
     [facts.rows.company, c.legalName ?? BRAND.name],
+    [facts.rows.owner, facts.values.owner],
     [facts.rows.what, facts.values.what],
     [facts.rows.range, facts.values.range],
     [facts.rows.line, BRAND.line],
@@ -143,6 +144,28 @@ export function PressPage() {
           </ul>
         </div>
       </section>
+
+      {FACTS.social.length > 0 && (
+        <section className="sheet sec" aria-labelledby="social-h">
+          <div className="wrap">
+            <Head id="social-h" eyebrow={PRESS.social.eyebrow} title={PRESS.social.title} intro={PRESS.social.body} />
+            <ul className="grid3 notes" data-rs="">
+              {FACTS.social.map((x) => (
+                <li key={x.url} className="feat" data-r="">
+                  <span className="feat__ico">
+                    <Icon name="social" />
+                  </span>
+                  <h3 className="feat__t">{x.label}</h3>
+                  <p>@{new URL(x.url).pathname.split("/").filter(Boolean).pop()}</p>
+                  <a href={x.url} className="inbox__link" rel="noopener me" target="_blank">
+                    {fill(PRESS.social.follow, { label: x.label })} <Icon name="out" size={16} />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
     </Page>
   );
 }
