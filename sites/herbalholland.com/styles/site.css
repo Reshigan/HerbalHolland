@@ -345,7 +345,10 @@ html:not(.motion) .marquee { background: var(--ink-950); }
    tulips and proteas. Over the scrim, so the silhouettes melt into the page; each layer leaves at its own pace. */
 .hz { position: absolute; inset: auto 0 0; z-index: 1; height: clamp(11rem, 34vh, 20rem); overflow: clip; }
 .hz__art { position: absolute; inset: 0; width: 100%; height: 100%; }
-.hz__far { fill: color-mix(in oklab, var(--brand-600) 42%, var(--ink-950)); opacity: .8; transform: translateY(calc(var(--p) * 1.5rem)); }
+.hz__haze0, .hz__haze1 { stop-color: color-mix(in oklab, var(--brand-500) 50%, var(--ink-950)); }
+.hz__haze0 { stop-opacity: 0; }
+.hz__haze1 { stop-opacity: .5; }
+.hz__far { transform: translateY(calc(var(--p) * 1.5rem)); }
 .hz__mid { fill: color-mix(in oklab, var(--brand-900) 26%, var(--ink-950)); transform: translateY(calc(var(--p) * 3.5rem)); }
 .hz__near { fill: var(--ink-950); transform: translateY(calc(var(--p) * 6rem)); }
 .hz__sails, .hz__sway { transform-box: fill-box; transform-origin: 50% 50%; }
