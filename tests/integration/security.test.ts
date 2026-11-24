@@ -33,6 +33,7 @@ import { getSnapshot, putSnapshot } from "@/server/pos/display";
 import { validOptOut } from "@/server/messaging";
 import { readShare } from "@/server/share";
 import { authFlow, verifyAgeWithId } from "@/server/shop/actions";
+import { setPassword } from "@/app/club/actions";
 import { signPhone } from "@/server/shop/phone-token";
 import { SHOP_COOKIE } from "@/server/shop/context";
 import { login } from "@/app/login/actions";
@@ -512,5 +513,76 @@ describe("Choosing and setting passwords", () => {
     expect(await verifySecret(temp!, (await db.user.findUniqueOrThrow({ where: { id: bo.id } })).passwordHash)).toBe(true);
     expect((await db.session.findMany({ where: { userId: bo.id }, select: { id: true } })).map((s) => s.id)).toEqual(["bo-till"]);
     expect((await storeResetPassword(w.store.code, w.manager.id, {}, form({}))).error).toMatch(/no back-office login/);
+  });
+});
+
+describe("Member passwords", () => {
+  const pw = "tulips by the canal";
+  const WRONG = { step: "phone", error: "That mobile number or email and password don't match" };
+  let memberId: string;
+  beforeAll(async () => {
+    const c = await createCustomer({ phone: "+27825550777", firstName: "Pia", email: "pia@pw.example", idNumber: saId("860606", "5044"), consents: {}, source: "WEB", termsAccepted: true, homeStoreId: w.store.id }, { type: "SYSTEM" });
+    memberId = c.id;
+    await db.customer.update({ where: { id: memberId }, data: { passwordHash: legacyHash(pw) } });
+  });
+  const signIn = (identifier: string, password: string) => run(authFlow({ step: "phone" }, form({ intent: "password", identifier, password })));
+
+  it("signs in with the mobile number or the email and the right password, and upgrades an old hash", async () => {
+    fromIp("198.51.100.77");
+    jar.clear();
+    expect((await signIn("082 555 0777", pw)).state).toEqual({ step: "done" });
+    expect(jar.has(COOKIE.customer)).toBe(true);
+    expect(needsRehash((await db.customer.findUniqueOrThrow({ where: { id: memberId } })).passwordHash!)).toBe(false);
+    jar.clear();
+    expect((await signIn("PIA@pw.example", pw)).state).toEqual({ step: "done" });
+    expect(await audits("customer.sign_in", memberId)).toBe(2);
+  });
+
+  it("a wrong password, an unknown member and a member without a password get the same answer", async () => {
+    fromIp("198.51.100.78");
+    jar.clear();
+    expect((await signIn("+27825550777", "not the password")).state).toMatchObject(WRONG);
+    expect((await signIn("nobody@pw.example", pw)).state).toMatchObject(WRONG);
+    expect((await signIn(w.walkIn.phone, pw)).state).toMatchObject(WRONG);
+    expect((await signIn("", "")).state?.fields).toEqual({ identifier: "Enter your mobile number or email", password: "Enter your password" });
+    expect(jar.has(COOKIE.customer)).toBe(false);
+    await clear(`member-pw:${memberId}`);
+  });
+
+  it("eight wrong passwords lock the member, even from another connection with the right one", async () => {
+    fromIp("198.51.100.79");
+    for (let i = 0; i < 8; i++) await signIn("+27825550777", `wrong guess ${i}`);
+    fromIp("198.51.100.80");
+    expect((await signIn("+27825550777", pw)).state).toMatchObject(WRONG);
+    await clear(`member-pw:${memberId}`);
+    expect((await signIn("+27825550777", pw)).state).toEqual({ step: "done" });
+  });
+
+  it("joining: an optional password follows the policy and is stored hashed", async () => {
+    fromIp("198.51.100.81");
+    const phone = "+27825550778";
+    const join = (password: string) => {
+      jar.set(SHOP_COOKIE.phone, signPhone(phone));
+      return authFlow({ step: "register", phone }, form({ intent: "register", firstName: "Joop", lastName: "Dlamini", idType: "id", idNumber: saId("870707", "5055"), homeStoreId: w.store.id, accept: "on", password }));
+    };
+    expect((await join("short")).fields?.password).toBeTruthy();
+    expect(await db.customer.count({ where: { phone } })).toBe(0);
+    expect((await join("windmills at dusk")).step).toBe("done");
+    expect(await verifySecret("windmills at dusk", (await db.customer.findUniqueOrThrow({ where: { phone } })).passwordHash!)).toBe(true);
+  });
+
+  it("settings: a signed-in member sets, changes and removes their password", async () => {
+    await db.session.create({ data: { id: sha256("pw-member-token"), customerId: w.walkIn.id, expiresAt: new Date(Date.now() + 3_600_000) } });
+    jar.set(COOKIE.customer, "pw-member-token");
+    expect((await setPassword({}, form({ password: "short" }))).error).toBeTruthy();
+    expect(await setPassword({}, form({ password: "harbour lights at night" }))).toEqual({ ok: "set" });
+    const hash = (await db.customer.findUniqueOrThrow({ where: { id: w.walkIn.id } })).passwordHash;
+    expect(await verifySecret("harbour lights at night", hash!)).toBe(true);
+    expect(await setPassword({}, form({ remove: "1" }))).toEqual({ ok: "removed" });
+    expect((await db.customer.findUniqueOrThrow({ where: { id: w.walkIn.id } })).passwordHash).toBeNull();
+    expect(await audits("customer.password_set", w.walkIn.id)).toBe(1);
+    expect(await audits("customer.password_removed", w.walkIn.id)).toBe(1);
+    jar.clear();
+    expect(await setPassword({}, form({ password: "harbour lights at night" }))).toEqual({ error: "Please sign in again" });
   });
 });

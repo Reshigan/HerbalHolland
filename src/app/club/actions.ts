@@ -12,6 +12,8 @@ import { savePushSubscription, vapidPublicKey } from "@/server/push";
 import type { MsgChannel } from "@/generated/prisma/client";
 import { HOME_STORE_STATUSES } from "@/server/shop/context";
 import { isEmail } from "@/lib/email";
+import { passwordProblem } from "@/lib/password";
+import { hashSecret } from "@/server/crypto";
 import { sealMember } from "@/lib/partner-token";
 import { partnerKey, recordLink, shareWording } from "@/server/partners";
 
@@ -66,6 +68,30 @@ export async function updateProfile(_: ProfileState, form: FormData): Promise<Pr
   });
   refresh();
   return { ok: true };
+}
+
+export type PasswordState = { ok?: "set" | "removed"; error?: string };
+
+/**
+ * Sets, changes or removes the member's password (sign-in with mobile or email + password). No current password is
+ * asked: the session already proves who this is, and a forgotten password is reset by signing in with a code first.
+ */
+export async function setPassword(_: PasswordState, form: FormData): Promise<PasswordState> {
+  const c = await getCustomer();
+  if (!c) return { error: "Please sign in again" };
+  if (form.get("remove") === "1") {
+    await db.customer.update({ where: { id: c.id }, data: { passwordHash: null } });
+    await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "customer.password_removed", { entity: "Customer", entityId: c.id });
+    refresh();
+    return { ok: "removed" };
+  }
+  const password = String(form.get("password") ?? "");
+  const problem = passwordProblem(password, { email: c.email ?? undefined, name: [c.firstName, c.lastName].filter(Boolean).join(" ") });
+  if (problem) return { error: problem };
+  await db.customer.update({ where: { id: c.id }, data: { passwordHash: await hashSecret(password) } });
+  await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "customer.password_set", { entity: "Customer", entityId: c.id, data: { changed: !!c.passwordHash } });
+  refresh();
+  return { ok: "set" };
 }
 
 /** POPIA s69: every change is written to the consent ledger with the wording shown. */

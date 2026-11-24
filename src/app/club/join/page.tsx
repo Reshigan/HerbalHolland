@@ -70,7 +70,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
         }`
       : referrer
         ? `Join Herbal Holland Rewards free. After your first purchase you'll both get ${fmtPoints(settings.loyalty.referralBonus)}, on top of your ${fmtPoints(settings.loyalty.signupBonus)} welcome bonus.`
-        : `Free, no passwords and no plastic. Your card lives on your phone and works in ${trading.length > 1 ? `all ${trading.length} stores` : "every store"} and in the app.`;
+        : `Free, and no plastic. Your card lives on your phone and works in ${trading.length > 1 ? `all ${trading.length} stores` : "every store"} and in the app.`;
 
   const detail = (
     <>

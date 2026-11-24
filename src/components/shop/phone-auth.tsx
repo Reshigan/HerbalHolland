@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, KeyRound, Mail, MessageSquareText, Smartphone } from "lucide-react";
+import { ArrowRight, CheckCircle2, KeyRound, LockKeyhole, Mail, MessageSquareText, Smartphone, UserRound } from "lucide-react";
 import { authFlow, type AuthState } from "@/server/shop/actions";
 import { buttonClass } from "@/components/ui/button";
 import { CheckRow, FieldRow, SelectInput, TextInput } from "./ui";
@@ -34,7 +34,7 @@ export function PhoneAuth({
   defaultPhone,
   shareOffers,
   title = "Sign in or join",
-  intro = "Use your mobile number (no passwords). New here? It takes one short step.",
+  intro = "Use your mobile number, or your password if you set one. New here? It takes one short step.",
   installStep,
   appScreen,
   turnstileSiteKey,
@@ -62,6 +62,8 @@ export function PhoneAuth({
   const [state, action, pending] = useActionState<AuthState, FormData>(authFlow, { step: "phone" });
   const [byEmail, setByEmail] = useState(false);
   const viaEmail = byEmail || state.values?.by === "email";
+  const [byPassword, setByPassword] = useState<boolean | null>(null);
+  const viaPassword = byPassword ?? state.values?.by === "password";
   const [botOk, setBotOk] = useState(!turnstileSiteKey);
   const bot = turnstileSiteKey && <Turnstile siteKey={turnstileSiteKey} action="member_code" reset={state} onReady={setBotOk} />;
   useKeyboardFlag(!!appScreen);
@@ -95,7 +97,39 @@ export function PhoneAuth({
         </p>
       )}
 
-      {state.step === "phone" && (
+      {state.step === "phone" && viaPassword && (
+        <form action={action} className="space-y-4">
+          {hidden}
+          <input type="hidden" name="intent" value="password" />
+          <div>
+            <h2 className="font-display text-2xl font-semibold text-white">Sign in with your password</h2>
+            <p className="mt-1 text-sm text-ink-400">Use the mobile number or email on your membership.</p>
+          </div>
+          <FieldRow label="Mobile number or email" htmlFor="auth-identifier" error={state.fields?.identifier}>
+            <div className="relative">
+              <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+              <TextInput id="auth-identifier" name="identifier" autoComplete="username" required placeholder="082 123 4567 or you@example.com" defaultValue={state.values?.identifier ?? defaultPhone} className="pl-11" aria-invalid={!!state.fields?.identifier} autoFocus />
+            </div>
+          </FieldRow>
+          <FieldRow label="Password" htmlFor="auth-password" error={state.fields?.password}>
+            <div className="relative">
+              <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+              <TextInput id="auth-password" name="password" type="password" autoComplete="current-password" required className="pl-11" aria-invalid={!!state.fields?.password} />
+            </div>
+          </FieldRow>
+          <ActionBar pinned={appScreen}>
+            <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
+              {pending ? "Signing in…" : "Sign in"} <ArrowRight className="h-5 w-5" />
+            </button>
+          </ActionBar>
+          <button type="button" onClick={() => setByPassword(false)} className="mx-auto block h-11 px-4 text-sm font-medium text-ink-400 underline underline-offset-4 hover:text-white">
+            Forgot it, or no password yet? Get a code instead
+          </button>
+          <PasskeySignIn next={next} />
+        </form>
+      )}
+
+      {state.step === "phone" && !viaPassword && (
         <form action={action} className="space-y-4">
           {hidden}
           <input type="hidden" name="intent" value="send" />
@@ -127,6 +161,9 @@ export function PhoneAuth({
           <ActionBar pinned={appScreen}>
             <button disabled={pending || !botOk} className={buttonClass("primary", "xl", "w-full")}>
               {pending ? "Sending…" : "Send my code"} <ArrowRight className="h-5 w-5" />
+            </button>
+            <button type="button" onClick={() => setByPassword(true)} className="mx-auto mt-1 flex h-11 items-center gap-2 px-4 text-sm font-medium text-ink-400 underline underline-offset-4 hover:text-white">
+              <LockKeyhole className="h-4 w-4" /> Sign in with a password
             </button>
             {appScreen && !viaEmail && (
               <button type="button" onClick={() => setByEmail(true)} className="mx-auto mt-1 block h-11 px-4 text-sm font-medium text-ink-400 underline underline-offset-4 hover:text-white sm:hidden">
@@ -354,6 +391,9 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         </FieldRow>
         <FieldRow className="sm:col-span-2" label="Email for invoices (optional)" htmlFor="reg-email" error={state.fields?.email} hint="Tax invoices and receipts only, unless you opt in below.">
           <TextInput id="reg-email" name="email" type="email" autoComplete="email" defaultValue={v.email} aria-invalid={!!state.fields?.email} />
+        </FieldRow>
+        <FieldRow className="sm:col-span-2" label="Create a password (optional)" htmlFor="reg-password" error={state.fields?.password} hint="10 characters or more, to sign in with your number or email. Or skip it and sign in with a code or your fingerprint.">
+          <TextInput id="reg-password" name="password" type="password" autoComplete="new-password" minLength={10} maxLength={200} aria-invalid={!!state.fields?.password} />
         </FieldRow>
       </div>
 

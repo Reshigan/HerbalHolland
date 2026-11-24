@@ -103,7 +103,7 @@ export async function memberExport(customerId: string) {
     const v = variants.find((x) => x.id === variantId);
     return v ? { sku: v.sku, product: v.product.name, variant: v.name } : { sku: null, product: null, variant: null };
   };
-  const { idHash: _hash, reviews, ...profile } = c;
+  const { idHash: _hash, passwordHash: _pw, reviews, ...profile } = c;
   void _hash;
   return {
     ...profile,
@@ -140,7 +140,7 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     await t.customer.update({
       where: { id: customerId },
       data: {
-        phone: `anon-${c.id}`, email: null, firstName: ANONYMISED, lastName: null, dob: null, idHash: null, idLast4: null, referralCode: `anon-${c.id}`, interests: [],
+        phone: `anon-${c.id}`, email: null, firstName: ANONYMISED, lastName: null, dob: null, idHash: null, passwordHash: null, idLast4: null, referralCode: `anon-${c.id}`, interests: [],
         consentWhatsapp: false, consentSms: false, consentEmail: false, consentPush: false, consentAt: now, personalisedOffers: false, lastSeenAt: null, referredById: null,
       },
     });
