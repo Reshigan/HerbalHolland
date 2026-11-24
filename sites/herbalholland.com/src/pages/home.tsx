@@ -402,6 +402,35 @@ function Night() {
   );
 }
 
+// ── After night: the latest Instagram posts (pictures downloaded at build time; none, no section) ─
+function Gram() {
+  const g = HOME.gram;
+  const ig = FACTS.social.find((s) => s.label === "Instagram");
+  if (!site.gram.length || !ig) return null;
+  const handle = `@${ig.url.replace(/\/+$/, "").split("/").pop()}`;
+  return (
+    <section className="gram" id="instagram" aria-labelledby="gram-title">
+      <div className="wrap">
+        <Head id="gram-title" eyebrow={g.eyebrow} title={g.title} intro={g.body} />
+        <ul className="gram__grid" role="list">
+          {site.gram.map((p) => (
+            <li key={p.href} data-r="">
+              <a href={p.href} rel="noopener" aria-label={fill(g.post, { date: longDate(p.day) })}>
+                <img src={p.src} alt={p.alt} width={480} height={480} loading="lazy" decoding="async" />
+              </a>
+            </li>
+          ))}
+        </ul>
+        <div className="gram__more" data-r="">
+          <Btn href={ig.url} kind="ghost" external>
+            {fill(g.follow, { handle })}
+          </Btn>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function HomePage() {
   const org = {
     "@type": "Organization",
@@ -437,6 +466,7 @@ export function HomePage() {
       <Genetics />
       <Marquee />
       <Night />
+      <Gram />
     </Page>
   );
 }

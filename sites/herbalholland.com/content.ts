@@ -234,6 +234,15 @@ export const HOME = {
     card: { brand: "Rewards", label: "Founding Member", no: "No.", of: "of {cap}" },
     sky: "The Southern Cross",
   },
+  // After night: the latest posts from our Instagram (fetched at build time; left out when there are none).
+  gram: {
+    eyebrow: "Instagram",
+    title: "Follow along",
+    body: "Store openings, the people behind the counter and the road from Holland to the Hills, as it happens.",
+    follow: "Follow {handle}",
+    // The link to a post, for screen readers: "Instagram post from Monday 23 November 2026".
+    post: "Instagram post from {date}",
+  },
   // Organization structured data.
   org: { press: "media enquiries", careers: "careers", hello: "general enquiries" },
 } as const;

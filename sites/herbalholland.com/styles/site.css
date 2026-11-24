@@ -670,6 +670,15 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .night__in { max-width: 44rem; }
 .night__join { margin-top: 1.5rem; font-size: .95rem; }
 .fcard { width: min(100%, 26rem); margin-top: 2.25rem; }
+/* After night: the latest Instagram posts, three across (two on a phone). */
+.gram { position: relative; z-index: 1; padding-block: clamp(4rem, 9vw, 7rem); background: var(--ink-950); border-top: 1px solid var(--line); }
+.gram__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(.5rem, 1.2vw, 1rem); margin: 2.5rem 0 0; padding: 0; list-style: none; max-width: 60rem; }
+.gram__grid a { display: block; overflow: hidden; border-radius: 1rem; border: 1px solid var(--line); background: var(--ink-900); }
+.gram__grid img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; transition: transform .8s var(--ease), opacity .4s; }
+.gram__grid a:is(:hover, :focus-visible) img { transform: scale(1.04); opacity: .9; }
+.gram__more { margin-top: 2rem; }
+@media (max-width: 40rem) { .gram__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .gram__grid img { transition: none; } }
 [data-tilt] { --rx: 0deg; --ry: 0deg; --gx: 50%; --gy: 0%; }
 .fcard__in { position: relative; overflow: hidden; aspect-ratio: 1.586; padding: clamp(1.1rem, 2.8vw, 1.6rem); border-radius: 1.1rem; border: 1.5px solid transparent;
   background: linear-gradient(115deg, rgb(255 236 214 / .07), transparent 38%, rgb(0 0 0 / .35)) padding-box, url(__METAL__) center / cover padding-box, linear-gradient(135deg, #f7c79a, #b8652a 30%, #f1a868 52%, #7a3b14 78%, #e9a46b) border-box;

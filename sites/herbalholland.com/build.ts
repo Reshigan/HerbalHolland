@@ -26,7 +26,7 @@ import { dayKey } from "@/lib/format";
 import { ABOUT, CAREERS, CONTACT, HOME, PAIA, PRESS, PRIVACY, STORES, TERMS, releasesOn, shopOpenClaim } from "./content";
 import { FACTS, greatCircleKm, newStores } from "./facts";
 import { patternUrl } from "./src/art";
-import { SPECULATION, site } from "./src/layout";
+import { SPECULATION, site, type Gram } from "./src/layout";
 import { AppIcon, OG_CSS, OgCard } from "./src/og";
 import { classesIn, literals, mangleClasses, precomputeColors, pruneCss, shortenTokens, tighten } from "./src/optimize";
 import { AboutPage } from "./src/pages/about";
@@ -134,6 +134,46 @@ function images(folder: string) {
   return out;
 }
 
+/** The latest Instagram posts, for the home page's grid. Read from the Graph API with META_IG_USER_ID and META_PAGE_TOKEN
+ *  (set in CI from repository secrets, never in the repo). Each picture is downloaded, resized to WebP and fingerprinted
+ *  into dist/assets, because the CSP allows images from this site only. Without the two, or if Instagram fails, the
+ *  build goes on with no posts and the home page leaves the section out. */
+async function instagram(): Promise<Gram[]> {
+  const user = process.env.META_IG_USER_ID, token = process.env.META_PAGE_TOKEN;
+  if (!user || !token) {
+    console.warn("  ⚠ META_IG_USER_ID / META_PAGE_TOKEN not set: the home page shows no Instagram posts.");
+    return [];
+  }
+  try {
+    const fields = "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp";
+    const r = await fetch(`https://graph.facebook.com/v21.0/${encodeURIComponent(user)}/media?fields=${fields}&limit=12`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!r.ok) throw new Error(`Instagram answered ${r.status}`);
+    type Media = { id: string; caption?: string; media_type: string; media_url?: string; thumbnail_url?: string; permalink: string; timestamp: string };
+    const { data = [] } = (await r.json()) as { data?: Media[] };
+    const sharp = (await import("sharp")).default;
+    const out: Gram[] = [];
+    for (const m of data) {
+      if (out.length === 9) break;
+      const src = m.media_type === "VIDEO" ? m.thumbnail_url : m.media_url;
+      // Only Instagram's own picture hosts and post links.
+      if (!src || !/^https:\/\/[^/]+\.(cdninstagram\.com|fbcdn\.net)\//.test(src) || !/^https:\/\/www\.instagram\.com\//.test(m.permalink)) continue;
+      const pic = await fetch(src, { signal: AbortSignal.timeout(20_000) });
+      if (!pic.ok) continue;
+      const webp = await sharp(Buffer.from(await pic.arrayBuffer())).resize(480, 480, { fit: "cover" }).webp({ quality: 72 }).toBuffer();
+      const line = (m.caption ?? "").split("\n")[0].replace(/#\S+/g, "").replace(/\s+/g, " ").trim();
+      out.push({ src: emit(`ig-${m.id}`, "webp", webp), alt: line.length > 120 ? `${line.slice(0, 117).trimEnd()}…` : line, href: m.permalink, day: m.timestamp.slice(0, 10) });
+    }
+    console.log(`  Instagram: ${out.length} posts`);
+    return out;
+  } catch (e) {
+    console.warn(`  ⚠ Instagram posts not fetched (${(e as Error).message}): the home page shows none.`);
+    return [];
+  }
+}
+
 async function main() {
   const day = process.env.BUILD_DATE && /^\d{4}-\d{2}-\d{2}$/.test(process.env.BUILD_DATE) ? process.env.BUILD_DATE : dayKey(new Date());
 
@@ -198,10 +238,12 @@ async function main() {
   // (static/stores/{key}.webp), fingerprinted like the rest.
   const concept = Object.values(images("concept"));
   const stores = images("stores");
+  const gram = await instagram();
   for (const s of FACTS.stores) if (s.photo && !stores[s.key]) throw new Error(`facts.ts: ${s.name} has a photo, but static/stores/${s.key}.webp (or .jpg) is missing`);
   const iconSvg = readFileSync(join(STATIC, "icon.svg"), "utf8").replace(/\s+/g, " ").trim();
   const icon = `data:image/svg+xml,${iconSvg.replace(/[<>#"%{}]/g, encodeURIComponent)}`;
   site.assets = { css: CSS_HREF, js: emit("site", "js", js), ...fonts, icon, concept, stores, hero };
+  site.gram = gram;
   site.day = day;
   site.year = Number(day.slice(0, 4));
 
