@@ -83,7 +83,7 @@ export const CHROME = {
     cols: { company: "Herbal Holland", members: "Members", contact: "Talk to us" },
     contact: { hello: "General", press: "Press", careers: "Careers" },
     age: "For adults 18 and older only. Licensed medicines are supplied only to registered patients on a doctor's prescription, by an authorised dispenser. Nothing on this site is medical advice.",
-    owned: "Herbal Holland stores are independently owned and operated by franchisees.",
+    owned: "Every Herbal Holland store is owned and run by Herbal Holland, a VantaX company.",
     copy: "© {year} Herbal Holland",
     top: "Back to top",
   },
@@ -218,11 +218,6 @@ export const HOME = {
     landracesTitle: "Landraces of Southern Africa",
     note: "Licensed cannabis is supplied only through lawful channels. Today that means registered patients, through a pharmacist.",
   },
-  // Between dusk and night: what we stand for, in five words.
-  marquee: {
-    label: "What we stand for",
-    words: ["Members only", "Adults 18+", "Free to join", "Plain English", "Good neighbours"],
-  },
   // Scene 5: night under the Southern Cross. Founding Members, and the one early-access sign-up.
   founding: {
     eyebrow: "Herbal Holland Rewards",
@@ -339,7 +334,7 @@ export const STORES = {
   store: {
     meta: {
       title: "{name}",
-      description: "Herbal Holland {name}, {province}: {status}. A members-only cannabis wellness store for adults 18+, owned and run by a local franchisee.",
+      description: "Herbal Holland {name}, {province}: {status}. A members-only cannabis wellness store for adults 18+, run by Herbal Holland, a VantaX company.",
     },
     eyebrow: "Herbal Holland · {province}",
     status: { open: "open now", opens: "opening {opening}" },
@@ -441,9 +436,9 @@ export const ABOUT = {
   visit: {
     eyebrow: "See for yourself",
     title: "Come in and see us",
-    body: "Find a store near you. Every Herbal Holland store is owned and run by a local franchisee.",
+    body: "Find a store near you. Every Herbal Holland store is owned and run by Herbal Holland, a VantaX company.",
     // Where the stores are open.
-    soon: "Our stores in {open} are open now. Every Herbal Holland store is owned and run by a local franchisee.",
+    soon: "Our stores in {open} are open now. Every Herbal Holland store is owned and run by Herbal Holland, a VantaX company.",
     stores: "Find a store",
   },
 } as const;
@@ -477,7 +472,7 @@ export const PRESS = {
           "Herbal Holland, a South African network of members-only cannabis wellness stores for adults 18+, has opened three stores in KwaZulu-Natal, in Pietermaritzburg, on the Bluff in Durban and in Hillcrest. A fourth, in Hilton, opens on Tuesday 1 December 2026.",
         body: [
           "Herbal Holland's stores in Pietermaritzburg, on the Bluff in Durban and in Hillcrest are open, for members aged 18 and over. Joining Herbal Holland Rewards is free, takes about a minute in store or on a phone, and gives members their member price from the first visit.",
-          "A fourth store, in Hilton, opens on Tuesday 1 December 2026. Every Herbal Holland store is owned and run by a local franchisee, on one shared platform for the till, stock and membership.",
+          "A fourth store, in Hilton, opens on Tuesday 1 December 2026. Every Herbal Holland store is owned and run by Herbal Holland, a VantaX company, on one platform for the till, stock and membership.",
           "The name nods to Amsterdam, where many of Southern Africa's landraces became famous; the roots are here. The stores carry CBD wellness, accessories, grow gear and Herbal Holland apparel.",
           "ID is checked at the till. Licensed medicines are supplied only to registered patients on a doctor's prescription, through a pharmacist, and are never advertised.",
         ],
@@ -494,7 +489,7 @@ export const PRESS = {
         body: [
           "Herbal Holland's online shop opens across South Africa today, delivering nationwide to members aged 18 and over, with ID checked at every delivery.",
           "Joining Herbal Holland Rewards is free. The first {cap} members become Founding Members, with a numbered card and the {tier} tier for {months} months.",
-          "Herbal Holland Hilton, in KwaZulu-Natal, opens on Tuesday 1 December 2026, joining the stores already open in Pietermaritzburg, on the Bluff in Durban and in Hillcrest. Every Herbal Holland store is owned and run by a local franchisee.",
+          "Herbal Holland Hilton, in KwaZulu-Natal, opens on Tuesday 1 December 2026, joining the stores already open in Pietermaritzburg, on the Bluff in Durban and in Hillcrest. Every Herbal Holland store is owned and run by Herbal Holland, a VantaX company.",
           "Licensed medicines are supplied only to registered patients on a doctor's prescription, through a pharmacist, and are never advertised.",
         ],
       },
@@ -526,7 +521,7 @@ export const PRESS = {
       owner: "Wholly owned by VantaX.",
       what: "A South African network of cannabis wellness stores and an online shop, for members aged 18 and over.",
       range: "CBD wellness, functional coffee, accessories, grow gear and apparel.",
-      model: "Franchise: each store is independently owned and run by a local franchisee, on one shared platform.",
+      model: "Company-owned: every store is owned and run by Herbal Holland, a VantaX company, on one platform.",
       membership: "Members only. Herbal Holland Rewards is free to join and works in every store and online.",
       founding: "The first {cap} members of Herbal Holland Rewards get a numbered Founding Member card.",
       age: "Adults 18+ only, with ID checked at the till and at every collection and delivery.",
@@ -561,7 +556,7 @@ export const PRESS = {
       { key: "cbd", title: "CBD wellness", body: "Our CBD wellness range is sold under Schedule 0, with approved wording only. Please don't describe it as medicine or attach health claims to it." },
       { key: "medicines", title: "Licensed medicines", body: "Licensed medicines are only for registered patients on a doctor's prescription, supplied through a pharmacist. They aren't for sale to the public." },
       { key: "pictures", title: "Pictures", body: "No consumption imagery, please: no smoking, no smoke and no cannabis leaves. Our brand is the windmill and the orange frame, and everyone in our pictures is over 25." },
-      { key: "name", title: "Our name", body: "Herbal Holland, two words. Herbal Holland is wholly owned by VantaX. Our membership is Herbal Holland Rewards, and our stores are independently owned and run by franchisees." },
+      { key: "name", title: "Our name", body: "Herbal Holland, two words. Herbal Holland is wholly owned by VantaX. Our membership is Herbal Holland Rewards, and every store is owned and run by Herbal Holland." },
     ] satisfies Item[],
   },
 } as const;
@@ -599,7 +594,7 @@ export const CAREERS = {
       { key: "standards", title: "Standards to be proud of", body: "Members only, adults 18+, ID every time. Doing it properly is the job, not an extra." },
       { key: "training", title: "Training from day one", body: "Learn the platform, ID checks and how to explain what we do in plain English before you serve your first member." },
       { key: "tools", title: "Tools that work", body: "Tills that keep going through load-shedding, and one system for stock, orders and members." },
-      { key: "local", title: "Local, with a national brand", body: "Our stores are owned by local franchisees, so the job is close to home, with the whole network behind it." },
+      { key: "local", title: "Local, with a national brand", body: "Every store is run by Herbal Holland, so the job is close to home, with the whole network behind it." },
     ] satisfies Item[],
   },
   roles: {
@@ -607,7 +602,7 @@ export const CAREERS = {
     title: "In our stores, and at HQ",
     stores: {
       title: "In our stores",
-      note: "Store roles are with the franchisee who owns that store.",
+      note: "Store roles are with Herbal Holland, which owns and runs every store.",
       items: [
         { key: "advisor", title: "Member advisors", aka: "Sometimes called budtenders", body: "The first person a member meets: a warm welcome, an ID check, and clear, plain-English answers to their questions." },
         { key: "manager", title: "Store managers", aka: "", body: "Run the store and the team: rosters, stock, cash-ups, the neighbours and the standards." },
@@ -616,7 +611,7 @@ export const CAREERS = {
     hq: {
       title: "At HQ",
       note: "HQ roles are with Herbal Holland itself.",
-      items: [{ key: "hq", title: "HQ teams", aka: "", body: "Buying and supply, distribution, marketing, finance, technology, compliance and franchise support." }],
+      items: [{ key: "hq", title: "HQ teams", aka: "", body: "Buying and supply, distribution, marketing, finance, technology, compliance and store support." }],
     },
   },
   apply: {
@@ -633,7 +628,7 @@ export const CAREERS = {
     },
     popia: {
       title: "Your application and POPIA",
-      body: "We use your application only to consider you for work with Herbal Holland and, for store roles, with the franchisee who owns the store. We keep applications for 12 months and then delete them, sooner if you ask.",
+      body: "We use your application only to consider you for work with Herbal Holland, in our stores or at head office. We keep applications for 12 months and then delete them, sooner if you ask.",
       ask: "To see what we hold about you, or to have it deleted sooner, write to us at",
       link: "Privacy notice",
     },
@@ -670,8 +665,8 @@ export const CONTACT = {
     title: "Who we are",
     intro: "Our details, as section 43 of the Electronic Communications and Transactions Act requires.",
     rows: { legalName: "Registered name", regNumber: "Registration number", vatNumber: "VAT number", address: "Address", phone: "Telephone", email: "Email", name: "Name" },
-    franchisees: "Herbal Holland stores are independently owned and operated by franchisees. Each store's own details are on the store finder.",
-    franchiseesSoon: "Herbal Holland stores are independently owned and operated by franchisees. Each store's own details are on its store page.",
+    ownership: "Every Herbal Holland store is owned and run by Herbal Holland, a VantaX company. Each store's own details are on the store finder.",
+    ownershipSoon: "Every Herbal Holland store is owned and run by Herbal Holland, a VantaX company. Each store's own details are on its store page.",
     stores: "Store finder",
     legal: { title: "Legal" },
   },
@@ -761,7 +756,7 @@ export const PRIVACY = {
       key: "why",
       title: "Why we use it, and on what basis",
       body: [
-        ["To reply to you.", "You send us your details so that we can answer your enquiry or email, and you consent to us using them for that (POPIA section 11(1)(a)). If your enquiry goes further, we use them to take your franchise application forward with you, as steps you've asked for before any agreement (section 11(1)(b))."],
+        ["To reply to you.", "You send us your details so that we can answer your enquiry or email, and you consent to us using them for that (POPIA section 11(1)(a))."],
         ["To tell you when our online shop opens.", "If you ask for first access, we use your details to tell you when our online shop opens and about its launch, because you've consented to that (section 11(1)(a)). Those messages are electronic direct marketing, which POPIA allows only with your consent (section 69), so we send them only because you ticked the box, and every one of them lets you unsubscribe."],
         ["To keep the site secure.", "We use the scrambled connection code and the security logs because we have a legitimate interest in protecting the site, and the people who use it, from abuse (section 11(1)(f))."],
         ["It's your choice.", "Giving us your details is voluntary. Without them we can't reply to you or tell you about the launch, and nothing else happens."],
@@ -772,9 +767,8 @@ export const PRIVACY = {
       key: "sharing",
       title: "Who sees it",
       body: [
-        ["Our head-office team.", "The people at Herbal Holland's head office who answer franchise enquiries and emails, and who send launch news to people who've asked for first access."],
+        ["Our head-office team.", "The people at Herbal Holland's head office who answer enquiries and emails, and who send launch news to people who've asked for first access."],
         ["Operators who process it for us.", "Cloudflare, which hosts the site, stores enquiries and sign-ups and routes our email; our email provider; and the messaging service that sends launch messages, if you gave us a mobile number. Under POPIA (sections 20 and 21) they may process it only on our instructions, and must keep it secure."],
-        ["Our franchise system.", "Once it's live, enquiries that go further move into the system our head office uses to manage franchise applications."],
         ["No one else.", "Early-access sign-ups are never shared beyond us and our operators. We never sell your details, and we disclose them to anyone else only when the law requires us to."],
       ],
     },
@@ -791,7 +785,7 @@ export const PRIVACY = {
       key: "keep",
       title: "How long we keep it",
       body: [
-        ["Enquiries.", "If an enquiry doesn't go ahead, we delete it within 12 months. Once an enquiry moves into our franchise system, we delete the website's copy within 30 days."],
+        ["Enquiries.", "If an enquiry doesn't go ahead, we delete it within 12 months."],
         ["Early-access sign-ups.", "We keep them until our online shop opens, and for 12 months at most, then delete them. If you ask us to remove you sooner, we do."],
         ["The scrambled connection code.", "It's deleted together with the enquiry or sign-up it belongs to."],
         ["Emails.", "We keep emails only as long as we need them for the reason you wrote to us."],
@@ -884,7 +878,7 @@ export const TERMS = {
     {
       key: "careers",
       title: "Careers",
-      body: ["The roles on our careers page show the kind of people we hire. They don't mean a position is open.", "Applying doesn't create employment or a promise of it. Store roles are with the franchisee who owns the store."],
+      body: ["The roles on our careers page show the kind of people we hire. They don't mean a position is open.", "Applying doesn't create employment or a promise of it. Store roles are with Herbal Holland, which owns and runs every store."],
     },
     {
       key: "ip",
@@ -967,7 +961,7 @@ export const PAIA = {
       "Some records are open to everyone. For the rest, send the prescribed form to our Information Officer, {officer}, at {email}.",
       "There's no request fee when you ask for your own personal information.",
       "We decide within 30 days. If we refuse, we tell you why, and you can complain to the Information Regulator.",
-      "Stores are owned by franchisees, who keep their own records: ask the store.",
+      "Every store is owned and run by Herbal Holland, so we hold the store records too: ask us.",
     ],
   },
   sections: [
@@ -978,7 +972,7 @@ export const PAIA = {
         "Section 51 of the Promotion of Access to Information Act 2 of 2000 (PAIA) asks every private body to publish a manual like this one. It explains what records we hold, which of them anyone can see without asking, and how to request the rest.",
         "It also sets out how we handle personal information, as the Protection of Personal Information Act 4 of 2013 (POPIA) requires, and how to use your rights under it.",
         ["Who it covers.", "{legalName}, which owns and runs Herbal Holland's online business: this website, the online shop and Herbal Holland Rewards."],
-        ["Stores.", "Herbal Holland stores are owned and run by franchisees: separate businesses that keep their own records. To request a store's records, contact the store. If you're not sure who holds a record, write to us and we'll point you to the right place."],
+        ["Stores.", "Every Herbal Holland store is owned and run by Herbal Holland, a VantaX company, so we hold the store records. To request a store's records, write to us."],
       ],
     },
     {
@@ -1013,7 +1007,7 @@ export const PAIA = {
         ["Basic Conditions of Employment Act 75 of 1997, Labour Relations Act 66 of 1995 and Employment Equity Act 55 of 1998:", "employment contracts, pay, working time and leave, and employment equity records."],
         ["Unemployment Insurance Act 63 of 2001, Skills Development Levies Act 9 of 1999 and Compensation for Occupational Injuries and Diseases Act 130 of 1993:", "contributions, levies and claims."],
         ["Occupational Health and Safety Act 85 of 1993:", "health and safety records."],
-        ["Consumer Protection Act 68 of 2008:", "membership terms, franchise disclosure documents and agreements, and records of returns and complaints."],
+        ["Consumer Protection Act 68 of 2008:", "membership terms and records of returns and complaints."],
         ["Electronic Communications and Transactions Act 25 of 2002:", "records of online transactions."],
         ["Medicines and Related Substances Act 101 of 1965:", "records of the CBD supplements and licensed medicines supplied, with their batches and suppliers and, for licensed medicines, patients' authorisations."],
         ["Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972:", "labelling and ingredient records for food, drink and skin care."],
@@ -1032,7 +1026,7 @@ export const PAIA = {
         ["Members:", "membership and age checks, the membership terms each member accepted, orders and invoices, payments, deliveries and collections, Rewards points and tiers, referrals, communication preferences and marketing consents, and messages with us."],
         ["Registered patients:", "for licensed medicines, prescription details, prescribers, and what was supplied and when."],
         ["Products:", "product details and labels, suppliers' certificates, batches and laboratory results, and recalls."],
-        ["Franchisees:", "franchise enquiries, disclosure documents and franchise agreements, and the trading and compliance records of franchisee stores."],
+        ["Stores:", "the trading and compliance records of every Herbal Holland store, and the franchise enquiries sent before our enquiry form closed."],
         ["Stores and stock:", "stock, purchasing, sales and cash-banking records from the platform our stores use."],
         ["Suppliers and partners:", "contracts, orders, invoices and contact details."],
         ["Marketing and media:", "campaigns, early-access sign-ups and their consents, other consent records, press releases and media contacts."],
@@ -1100,12 +1094,12 @@ export const PAIA = {
       key: "personal",
       title: "The personal information we process, and why",
       body: [
-        "We process personal information to run membership and Herbal Holland Rewards; to sell, deliver and hand over orders with our franchisee stores; to check age and, for licensed medicines, authorisation; to take payments and issue invoices; to send marketing only to members who agree to it; to tell people who've asked for first access when our online shop opens; to answer questions and complaints; to recruit and support franchisees; to employ our people; to work with suppliers; to keep our systems, members and stores secure and stop fraud and theft; and to meet our legal obligations, such as tax, medicine and recall records.",
+        "We process personal information to run membership and Herbal Holland Rewards; to sell, deliver and hand over orders through our stores; to check age and, for licensed medicines, authorisation; to take payments and issue invoices; to send marketing only to members who agree to it; to tell people who've asked for first access when our online shop opens; to answer questions and complaints; to employ our people; to work with suppliers; to keep our systems, members and stores secure and stop fraud and theft; and to meet our legal obligations, such as tax, medicine and recall records.",
         ["Members:", "name, mobile number, email address, date of birth or a secure fingerprint of their ID number, home store, orders, payments, delivery addresses, Rewards activity, and communication preferences and consents."],
         ["Registered patients:", "prescription details, prescriber, and what was supplied; never a diagnosis."],
-        ["Franchise applicants and franchisees:", "contact details, where they'd like to open, experience, available capital, what's needed to assess and agree a franchise, and their stores' trading records."],
+        ["People who sent a franchise enquiry before our form closed:", "contact details, where they'd have liked to open, experience and available capital."],
         ["Our people and job applicants:", "identity and contact details, qualifications, and employment, pay, tax and banking records."],
-        ["People who use our systems,", "at head office and in franchisee stores: account details, role, and a record of what they do in the system."],
+        ["People who use our systems,", "at head office and in our stores: account details, role, and a record of what they do in the system."],
         ["Suppliers and service providers:", "company details, contact people, banking details and contracts."],
         ["Early-access sign-ups:", "first name (if given), email address and/or mobile number, province (if given), the campaign tag of the link they came from, and their consent, with its date."],
         ["Website visitors and people who contact us:", "what they send us, and routine security logs."],
@@ -1115,7 +1109,7 @@ export const PAIA = {
       key: "sharing",
       title: "Who we share it with, and where it goes",
       body: [
-        ["Recipients.", "Franchisee stores that serve our members; payment, messaging and delivery providers; the hosting and cloud providers that run our systems; professional advisers such as auditors and lawyers; and authorities such as the South African Revenue Service, the South African Health Products Regulatory Authority and the Information Regulator, when the law requires it. Each gets only what it needs, and operators may process it only on our instructions (POPIA sections 20 and 21). We never sell personal information."],
+        ["Recipients.", "Payment, messaging and delivery providers; the hosting and cloud providers that run our systems; professional advisers such as auditors and lawyers; and authorities such as the South African Revenue Service, the South African Health Products Regulatory Authority and the Information Regulator, when the law requires it. Each gets only what it needs, and operators may process it only on our instructions (POPIA sections 20 and 21). We never sell personal information."],
         ["Across borders.", "Some providers store or process information outside South Africa: enquiries and early-access sign-ups from this website, for example, are stored in Cloudflare's European Union region. We send personal information across borders only as POPIA section 72 allows, such as to countries whose laws protect it adequately, or under binding agreements that do."],
       ],
     },
