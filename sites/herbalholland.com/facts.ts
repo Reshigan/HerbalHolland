@@ -58,7 +58,7 @@ export const FACTS = {
   /** Herbal Holland Rewards, which opens before the online shop: its "Join Rewards" doors link here once set. */
   rewards: { url: "https://shop.herbalholland.com" as string | null },
 
-  /** Herbal Holland's own profiles elsewhere, linked in the footer and listed in the Organization's sameAs. Add Facebook once the owner supplies its URL. */
+  /** Herbal Holland's own profiles elsewhere, linked in the footer and listed in the Organization's sameAs. Each one also gets a block on /press. Add Facebook once the owner supplies its URL. */
   social: [{ label: "Instagram", url: "https://www.instagram.com/herbalhollandza" }] as readonly { label: string; url: string }[],
 
   company: { legalName: "Vantax (Pty) Ltd", regNumber: null, vatNumber: null, address: null, phone: null } as Company,
