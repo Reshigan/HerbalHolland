@@ -77,12 +77,12 @@ main > section ~ section, main > .marquee, .ftr { content-visibility: auto; cont
 .age, .inbox__ico, .empty__ico, .rule__ico, .feat__ico, .tile__ico { display: grid; place-items: center; }
 .inbox__ico, .empty__ico, .rule__ico, .feat__ico, .tile__ico { width: 2.8rem; height: 2.8rem; flex: none; border-radius: 50%; background: var(--brand-100); color: var(--brand-800); }
 .feat__ico { background: color-mix(in oklab, var(--brand-500) 15%, transparent); color: var(--brand-400); }
-.tile, .logo, .note, .inbox, .enq { background: #fff; border-radius: 1.5rem; box-shadow: var(--shadow); }
+.tile, .note, .inbox, .enq { background: #fff; border-radius: 1.5rem; box-shadow: var(--shadow); }
 .feat, .panel, .roles__group { background: var(--ink-900); border: 1px solid var(--line); border-radius: 1.5rem; }
 .tile, .feat, .inbox, .note, .panel { display: grid; gap: .8rem; align-content: start; padding: 1.6rem; }
 .eyebrow, .chapter__n, .readout dt, .frame__k, .fcard__label, .offer__h, .facts dt, .ftr__h, .role__aka, .soon__badge, .crumbs, .landrace dt span { font: 500 .875rem/1.3 var(--display); }
 .fcard__brand, .pin text { font: 600 .72rem/1.3 var(--display); letter-spacing: .2em; text-transform: uppercase; }
-.grid4, .grid3, .inboxes, .logos, .roles { display: grid; gap: 1rem; }
+.grid4, .grid3, .inboxes, .roles { display: grid; gap: 1rem; }
 
 /* ── Type ──────────────────────────────────────────────────────────────── */
 .h1, .h2, .h3 { font-family: var(--display); font-weight: 600; color: var(--ink-50); text-wrap: balance; }
@@ -127,7 +127,7 @@ main > section ~ section, main > .marquee, .ftr { content-visibility: auto; cont
   .sticky-split { grid-template-columns: .8fr 1.2fr; align-items: start; }
   .sticky-split__side { position: sticky; top: calc(var(--hh) + 2.5rem); }
 }
-@media (min-width: 640px) { .grid4, .grid3, .inboxes, .logos { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 640px) { .grid4, .grid3, .inboxes { grid-template-columns: 1fr 1fr; } }
 @media (min-width: 1100px) { .grid3, .inboxes { grid-template-columns: repeat(3, 1fr); } .grid4 { grid-template-columns: repeat(4, 1fr); } }
 .grid4, .grid3, .inboxes { margin-top: clamp(2.25rem, 5vw, 3.75rem); }
 
@@ -673,6 +673,15 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .night__in { max-width: 44rem; }
 .night__join { margin-top: 1.5rem; font-size: .95rem; }
 .fcard { width: min(100%, 26rem); margin-top: 2.25rem; }
+/* After night: the latest Instagram posts, three across (two on a phone). */
+.gram { position: relative; z-index: 1; padding-block: clamp(4rem, 9vw, 7rem); background: var(--ink-950); border-top: 1px solid var(--line); }
+.gram__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(.5rem, 1.2vw, 1rem); margin: 2.5rem 0 0; padding: 0; list-style: none; max-width: 60rem; }
+.gram__grid a { display: block; overflow: hidden; border-radius: 1rem; border: 1px solid var(--line); background: var(--ink-900); }
+.gram__grid img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; transition: transform .8s var(--ease), opacity .4s; }
+.gram__grid a:is(:hover, :focus-visible) img { transform: scale(1.04); opacity: .9; }
+.gram__more { margin-top: 2rem; }
+@media (max-width: 40rem) { .gram__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .gram__grid img { transition: none; } }
 [data-tilt] { --rx: 0deg; --ry: 0deg; --gx: 50%; --gy: 0%; }
 .fcard__in { position: relative; overflow: hidden; aspect-ratio: 1.586; padding: clamp(1.1rem, 2.8vw, 1.6rem); border-radius: 1.1rem; border: 1.5px solid transparent;
   background: linear-gradient(115deg, rgb(255 236 214 / .07), transparent 38%, rgb(0 0 0 / .35)) padding-box, url(__METAL__) center / cover padding-box, linear-gradient(135deg, #f7c79a, #b8652a 30%, #f1a868 52%, #7a3b14 78%, #e9a46b) border-box;
@@ -739,7 +748,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .panel__doors { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; }
 
 /* ── Tiles and features ────────────────────────────────────────────────── */
-.tile p, .inbox p, .note p, .logo__meta p { font-size: .95rem; color: var(--ink-600); }
+.tile p, .inbox p, .note p { font-size: .95rem; color: var(--ink-600); }
 .feat p, .role p { font-size: .95rem; color: var(--ink-300); }
 .tile__top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; color: var(--brand-800); }
 .offer__h { margin-top: clamp(2.5rem, 5vw, 4rem); font-size: .8rem; color: var(--ink-400); }
@@ -846,15 +855,6 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .sheet .facts dd { color: var(--ink-800); }
 .note--warn .eyebrow { color: var(--brand-500); }
 .note .mail { font-size: 1.1rem; }
-@media (min-width: 960px) { .logos { grid-template-columns: 1fr 1fr; } }
-@media (min-width: 1200px) { .logos { grid-template-columns: repeat(3, 1fr); } }
-.logo { display: flex; flex-direction: column; overflow: hidden; }
-.logo__art { display: grid; place-items: center; aspect-ratio: 4 / 3; padding: 1.75rem; background: var(--ink-950); }
-.logo__art--orange { background: var(--brand-500); }
-.logo__art img { width: auto; height: 100%; max-height: 10rem; }
-.logo__meta { flex: 1; display: grid; grid-template-rows: auto 1fr auto; gap: .5rem; justify-items: start; padding: 1.25rem 1.25rem 1.5rem; }
-.logo__t { font: 600 1.1rem var(--display); color: var(--ink-950); }
-.logo .btn, .assets__more { margin-top: .5rem; }
 .notes { margin-top: clamp(2.25rem, 5vw, 3.75rem); }
 @media (min-width: 960px) { .roles { grid-template-columns: 1.5fr 1fr; } }
 .roles { margin-top: clamp(2.25rem, 5vw, 3.75rem); }

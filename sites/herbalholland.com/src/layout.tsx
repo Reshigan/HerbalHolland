@@ -8,8 +8,13 @@ import { FACTS, joinLink } from "../facts";
 import { AgeBadge, Mark, Sprite, Stage, Wordmark, cx, type StageState } from "./art";
 import { Btn, Icon, Index, MailTo, Rich, Soon } from "./ui";
 
+/** An Instagram post on the home page: its picture (in dist/assets), the caption's first line, the post and its day. */
+export type Gram = { src: string; alt: string; href: string; day: string };
+
 export const site = {
   assets: { css: "/assets/site.css", js: "/assets/site.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", icon: "/icon.svg", concept: [] as string[], stores: {} as Record<string, string>, hero: {} as Record<string, string> },
+  /** The latest Instagram posts (instagram() in ../build.ts); empty when the build has no token. */
+  gram: [] as Gram[],
   /** Placeholders the build fills once every page is rendered: the page's critical CSS (inlined) and the head script. */
   critical: "__CRITICAL__",
   boot: "__BOOT__",
