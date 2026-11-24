@@ -32,6 +32,7 @@ import {
   UsersRound,
   X,
   type LucideIcon,
+  AtSign,
 } from "lucide-react";
 import { Fragment } from "react";
 import { CHROME, EMAIL, LEGAL } from "../content";
@@ -72,6 +73,7 @@ const ICONS: Record<string, LucideIcon> = {
   file: FileText,
   menu: Menu,
   close: X,
+  social: AtSign,
 };
 
 export function Icon({ name, className, size = 20 }: { name: string; className?: string; size?: number }) {
