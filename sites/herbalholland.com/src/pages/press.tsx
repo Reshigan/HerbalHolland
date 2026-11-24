@@ -1,10 +1,10 @@
 // herbalholland.com/press: releases (each on its own page at /press/{slug}, NewsArticle structured data, shown from
-// its date, SAST, at build time), the fact sheet from ./facts, the media contact, logo downloads and notes on how to
+// its date, SAST, at build time), the fact sheet from ./facts, the media contact (the logo is sent on request) and notes on how to
 // write about us.
 import { num } from "@/lib/format";
 import { BRAND, EMAIL, PRESS, fill, releasesOn, type Release } from "../../content";
 import { FACTS, listOf, longDate, nextOpening, openStores, openingStores, provinceNames, storeProvinces } from "../../facts";
-import { AgeBadge, cx } from "../art";
+import { AgeBadge } from "../art";
 import { Page, abs, site } from "../layout";
 import { Btn, Head, Icon, MailTo } from "../ui";
 import { PageHero } from "./parts";
@@ -116,43 +116,14 @@ export function PressPage() {
       <FactSheet id="facts-h" />
 
       <section className="sheet sec" aria-labelledby="assets-h">
-        <div className="wrap split split--assets">
-          <div>
-            <Head id="assets-h" eyebrow={assets.eyebrow} title={assets.title} intro={assets.body} />
-            <div className="note note--warn media" data-r="">
-              <p className="eyebrow">{media.eyebrow}</p>
-              <h3 className="h3">{media.title}</h3>
-              <p>{media.body}</p>
-              <p>
-                <MailTo email={EMAIL.press} />
-              </p>
-            </div>
-          </div>
-          <div>
-            <ul className="logos" data-rs="">
-              {assets.files.map((f) => (
-                <li key={f.file} className="logo" data-r="">
-                  <div className={cx("logo__art", `logo__art--${f.tone}`)}>
-                    <img src={`/press/${"preview" in f ? f.preview : f.file}`} alt={fill(assets.alt, { colour: f.title.toLowerCase() })} width="526" height="698" loading="lazy" decoding="async" />
-                  </div>
-                  <div className="logo__meta">
-                    <h3 className="logo__t">{f.title}</h3>
-                    <p>
-                      {f.format} · {f.note}
-                    </p>
-                    <Btn href={`/press/${f.file}`} kind="dark" icon="download" download className="btn--sm">
-                      {assets.download}
-                      <span className="sr-only">
-                        {" "}
-                        {f.title} {f.format}
-                      </span>
-                    </Btn>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <p className="muted assets__more" data-r="">
-              {assets.more} <MailTo email={EMAIL.press} />.
+        <div className="wrap split">
+          <Head id="assets-h" eyebrow={assets.eyebrow} title={assets.title} intro={assets.body} />
+          <div className="note note--warn media" data-r="">
+            <p className="eyebrow">{media.eyebrow}</p>
+            <h3 className="h3">{media.title}</h3>
+            <p>{media.body}</p>
+            <p>
+              <MailTo email={EMAIL.press} />
             </p>
           </div>
         </div>
@@ -181,7 +152,7 @@ export function ReleasePage({ release }: { release: Release }) {
   const r = PRESS.release;
   const path = `/press/${release.slug}`;
   const trail = [...crumbs, { label: release.title, path }];
-  const org = { "@type": "Organization", "@id": `${FACTS.origin}/#organization`, name: BRAND.name, logo: { "@type": "ImageObject", url: `${FACTS.origin}/press/herbal-holland-logo.png` } };
+  const org = { "@type": "Organization", "@id": `${FACTS.origin}/#organization`, name: BRAND.name, logo: { "@type": "ImageObject", url: `${FACTS.origin}/apple-touch-icon.png` } };
   const article = {
     "@type": "NewsArticle",
     "@id": `${abs(path)}#article`,

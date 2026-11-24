@@ -442,8 +442,8 @@ export const ABOUT = {
 export const PRESS = {
   meta: {
     title: "Press",
-    updated: "2026-10-07",
-    description: "Herbal Holland's press room: releases, the fact sheet, logo downloads, notes on how to write about us, and the media contact for interviews and pictures.",
+    updated: "2026-11-24",
+    description: "Herbal Holland's press room: releases, the fact sheet, notes on how to write about us, and the media contact for interviews, our logo and pictures.",
   },
   hero: {
     eyebrow: "Press",
@@ -527,20 +527,12 @@ export const PRESS = {
   media: {
     eyebrow: "Media contact",
     title: "Talk to us",
-    body: "For interviews, store visits, pictures and questions, email our press team.",
+    body: "For interviews, store visits, our logo, pictures and questions, email our press team.",
   },
   assets: {
     eyebrow: "Brand assets",
     title: "Our logo",
-    body: "Use the logo in one colour on a plain background: Sunset orange on dark, warm black on light or orange. Keep clear space of one windmill petal's length on every side, and please don't stretch, recolour, rotate or add effects.",
-    files: [
-      { file: "herbal-holland-logo.svg", title: "Sunset orange", format: "SVG", note: "For dark backgrounds", tone: "dark" },
-      { file: "herbal-holland-logo-dark.svg", title: "Warm black", format: "SVG", note: "For light and orange backgrounds", tone: "orange" },
-      { file: "herbal-holland-logo.png", preview: "herbal-holland-logo.svg", title: "Sunset orange", format: "PNG, 1200 px wide", note: "Transparent background", tone: "dark" },
-    ],
-    download: "Download",
-    alt: "Herbal Holland logo in {colour}",
-    more: "Need pictures of our stores or team? Ask us at",
+    body: "We send our logo to journalists and publishers on request, with the files for the story you're working on. Use it in one colour on a plain background: Sunset orange on dark, warm black on light or orange. Keep clear space of one windmill petal's length on every side, and please don't stretch, recolour, rotate or add effects.",
   },
   style: {
     eyebrow: "How to write about us",
@@ -832,17 +824,17 @@ export const TERMS = {
   meta: {
     title: "Terms of Use",
     description: "The terms for using herbalholland.com: who we are, what the site is for, careers information, our content, and the law that applies.",
-    updated: "2026-10-07",
+    updated: "2026-11-24",
   },
-  version: "1.2",
-  updated: "2026-10-07",
+  version: "1.3",
+  updated: "2026-11-24",
   hero: { eyebrow: "Legal", title: "Terms of Use", lede: "The terms for using herbalholland.com, in plain English." },
   summary: {
     title: "In short",
     points: [
       "This site is for adults 18 and over, and by using it you accept these terms.",
       "It's information only: nothing is sold here, and nothing on it is medical advice.",
-      "Our name, windmill and content are ours. Press may use our logos, unaltered, to refer to us.",
+      "Our name, windmill and content are ours. Press may use the logo we send them, unaltered, to refer to us.",
       "South African law applies.",
     ],
   },
@@ -881,7 +873,7 @@ export const TERMS = {
       title: "Our name, marks and content",
       body: [
         "The Herbal Holland name, the windmill mark and the content of this site (its words, pictures and design) belong to Herbal Holland or are used with permission.",
-        "Journalists and publishers may use the logos on our {press} to refer to Herbal Holland accurately, as long as they're not altered.",
+        "Journalists and publishers may use the logo we send them on request (see our {press}) to refer to Herbal Holland accurately, as long as it isn't altered.",
         "Anything else needs our written permission first: ask us at {email}.",
       ],
     },
@@ -941,10 +933,10 @@ export const PAIA = {
   meta: {
     title: "PAIA manual",
     description: "How to request the records we hold under the Promotion of Access to Information Act (PAIA), the fees and timelines, and how we handle personal information.",
-    updated: "2026-10-07",
+    updated: "2026-11-24",
   },
-  version: "1.2",
-  updated: "2026-10-07",
+  version: "1.3",
+  updated: "2026-11-24",
   hero: {
     eyebrow: "Legal",
     title: "PAIA manual",
@@ -989,7 +981,7 @@ export const PAIA = {
       title: "Records anyone can see",
       body: [
         "These records are available without a PAIA request (section 52):",
-        ["On this website.", "Information about Herbal Holland, careers and our stores; press releases and our logos; and our Privacy Policy, Terms of Use and this manual."],
+        ["On this website.", "Information about Herbal Holland, careers and our stores; and press releases; and our Privacy Policy, Terms of Use and this manual."],
         ["In the online shop, once it opens.", "Product information and labels, store locations and trading hours, our articles, and the membership terms and privacy notice."],
       ],
     },

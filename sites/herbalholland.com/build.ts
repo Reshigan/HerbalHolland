@@ -274,12 +274,12 @@ async function main() {
     writeFileSync(join(DIST, file), small.pages[i].replace("__CRITICAL__", () => crit).replace("__BOOT__", () => boot).replaceAll(CSS_HREF, href));
   });
 
-  // Static files from ./static (the site keeps its own copies): the icon, share image, press logos.
+  // Static files from ./static (the site keeps its own copies): the icon and share image. The logo files aren't
+  // published: the press team sends them on request.
   for (const f of ["icon.svg", "og.png", "apple-touch-icon.png", "favicon.ico"]) {
     if (!existsSync(join(STATIC, f))) throw new Error(`static/${f} is missing${f === "icon.svg" ? "" : ": run the build once with --images"}`);
     copyFileSync(join(STATIC, f), join(DIST, f));
   }
-  for (const f of readdirSync(join(STATIC, "press"))) copyFileSync(join(STATIC, "press", f), join(DIST, "press", f));
 
   // robots.txt (the API isn't a page), sitemap.xml with each page's own lastmod, and the headers Cloudflare applies.
   writeFileSync(join(DIST, "robots.txt"), `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${FACTS.origin}/sitemap.xml\n`);

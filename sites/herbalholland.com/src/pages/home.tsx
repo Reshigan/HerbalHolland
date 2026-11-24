@@ -408,7 +408,7 @@ export function HomePage() {
     "@id": `${FACTS.origin}/#organization`,
     name: BRAND.name,
     url: `${FACTS.origin}/`,
-    logo: `${FACTS.origin}/press/herbal-holland-logo.png`,
+    logo: `${FACTS.origin}/apple-touch-icon.png`,
     slogan: BRAND.line,
     email: EMAIL.hello,
     ...(FACTS.social.length ? { sameAs: FACTS.social.map((x) => x.url) } : {}),
