@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BadgeCheck, BadgePercent, Bell, Fingerprint, LogOut, ShieldCheck } from "lucide-react";
+import { BadgeCheck, BadgePercent, Bell, Fingerprint, LockKeyhole, LogOut, ShieldCheck } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer, getStaff } from "@/server/auth";
 import { INSIGHT_ROLES } from "@/server/insights";
@@ -15,6 +15,7 @@ import { PrefSwitch } from "@/components/shop/launch-forms";
 import { PushToggle } from "@/components/shop/push-toggle";
 import { PasskeyToggle } from "@/components/shop/passkey";
 import { ProfileForm } from "@/components/shop/profile-form";
+import { PasswordForm } from "@/components/shop/password-form";
 import { VerifyAge } from "@/components/shop/verify-age";
 import { Container, Panel } from "@/components/shop/ui";
 import { buttonClass } from "@/components/ui/button";
@@ -89,6 +90,18 @@ export default async function ClubSettings() {
               Sign in with your fingerprint or face instead of waiting for a code. Works in the app and in your browser on this phone.
             </p>
             <PasskeyToggle count={passkeys} />
+          </Panel>
+
+          <Panel className="scroll-mt-28 p-5 sm:p-6" id="password">
+            <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+              <LockKeyhole className="h-5 w-5 text-brand-500" /> Password
+            </h2>
+            <p className="mb-3 mt-1 text-sm leading-relaxed text-ink-400">
+              {customer.passwordHash
+                ? "You can sign in with your mobile number or email and your password. Forgot it? Sign in with a code, then set a new one here."
+                : "Set a password to sign in with your mobile number or email, without waiting for a code."}
+            </p>
+            <PasswordForm hasPassword={!!customer.passwordHash} />
           </Panel>
 
           <Panel className="scroll-mt-28 p-5 sm:p-6" id="deals">

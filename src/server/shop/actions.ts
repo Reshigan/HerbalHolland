@@ -7,6 +7,11 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 import { endSession, getCustomer, startSession } from "@/server/auth";
+import { hashSecret, needsRehash, NO_HASH, verifySecret } from "@/server/crypto";
+import { IP_LOCKED, ipLocked, recordIpFailure, signInKey } from "@/server/lockout";
+import { clear, count, record } from "@/server/throttle";
+import { passwordProblem } from "@/lib/password";
+import { normalisePhone } from "@/lib/sa";
 import { audit } from "@/server/audit";
 import { quote } from "@/server/pricing";
 import { background } from "../background";
@@ -97,7 +102,7 @@ export async function removePromoCode() {
 }
 
 // ── Sign in / join (phone OTP → one short registration step) ────────────────
-type Field = "phone" | "code" | "firstName" | "lastName" | "email" | "idNumber" | "dob" | "homeStoreId" | "accept";
+type Field = "identifier" | "password" | "phone" | "code" | "firstName" | "lastName" | "email" | "idNumber" | "dob" | "homeStoreId" | "accept";
 export type AuthState = {
   step: "phone" | "code" | "register" | "done";
   phone?: string;
@@ -112,6 +117,13 @@ export type AuthState = {
 };
 
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
+
+// Members may also sign in with their mobile number or email plus a password they chose. 8 wrong passwords in 15 minutes
+// lock that member's password sign-in (codes and the fingerprint still work); the connection's 30 apply on top.
+const MEMBER_PW_WINDOW_MS = 15 * 60_000;
+const MEMBER_PW_MAX = 8;
+const MEMBER_PW_WRONG = "That mobile number or email and password don't match";
+const memberPwKey = (customerId: string) => `member-pw:${customerId}`;
 
 export async function authFlow(prev: AuthState, form: FormData): Promise<AuthState> {
   const intent = String(form.get("intent") ?? "");
@@ -139,6 +151,37 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
         return prev.step === "code" ? { ...prev, error: e.message, fields: undefined } : { step: "phone", fields: { [email && /email/i.test(e.message) ? "email" : "phone"]: e.message }, values: { phone: raw, email, by: byEmail ? "email" : "" } };
       throw e;
     }
+  }
+
+  if (intent === "password") {
+    const identifier = String(form.get("identifier") ?? "").trim();
+    const password = String(form.get("password") ?? "");
+    const back = (error: string): AuthState => ({ step: "phone", error, values: { identifier, by: "password" } });
+    if (!identifier || !password) return { step: "phone", fields: { ...(!identifier && { identifier: "Enter your mobile number or email" }), ...(!password && { password: "Enter your password" }) }, values: { identifier, by: "password" } };
+    const ipKey = await signInKey();
+    if (await ipLocked(ipKey)) return back(IP_LOCKED);
+    const phone = isEmail(identifier) ? null : normalisePhone(identifier);
+    const member = isEmail(identifier)
+      ? await db.customer.findUnique({ where: { email: identifier.toLowerCase() } })
+      : phone ? await db.customer.findUnique({ where: { phone } }) : null;
+    // A locked member answers like a wrong password, so the lock doesn't tell anyone the account exists.
+    const locked = !!member && (await count(memberPwKey(member.id), MEMBER_PW_WINDOW_MS)) >= MEMBER_PW_MAX;
+    const ok = (await verifySecret(password, member?.passwordHash ?? NO_HASH)) && !!member?.passwordHash && !locked;
+    if (!ok || !member) {
+      await recordIpFailure(ipKey);
+      if (member) {
+        await record(memberPwKey(member.id), MEMBER_PW_WINDOW_MS);
+        await audit(db, { type: "CUSTOMER", id: member.id, name: member.firstName }, "customer.sign_in_failed", { entity: "Customer", entityId: member.id, data: { by: "password", locked } });
+      }
+      return back(MEMBER_PW_WRONG);
+    }
+    await clear(memberPwKey(member.id));
+    if (needsRehash(member.passwordHash)) await db.customer.updateMany({ where: { id: member.id, passwordHash: member.passwordHash }, data: { passwordHash: await hashSecret(password) } });
+    await startSession("customer", { customerId: member.id }, 24 * 30);
+    await db.customer.update({ where: { id: member.id }, data: { lastSeenAt: new Date() } });
+    await audit(db, { type: "CUSTOMER", id: member.id, name: member.firstName }, "customer.sign_in", { entity: "Customer", entityId: member.id, data: { by: "password" } });
+    if (next) redirect(next);
+    return { step: "done" };
   }
 
   if (intent === "verify") {
@@ -176,13 +219,18 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
     const refused = (): AuthState => (jar.delete(SHOP_COOKIE.phone), { step: "phone", error: COLLISION_REFUSED });
     if (await collisionsUsedUp(`phone:${phone}`)) return refused();
     // Everything comes back with an error, ticks too: React resets the form after the action, and a lost opt-in goes unnoticed.
-    const v = Object.fromEntries(["firstName", "lastName", "email", "idType", "idNumber", "dob", "homeStoreId", "ref", "accept", ...CHANNELS.map((ch) => `consent_${ch}`)].map((k) => [k, String(form.get(k) ?? "").trim()]));
+    const v = Object.fromEntries(["firstName", "lastName", "email", "password", "idType", "idNumber", "dob", "homeStoreId", "ref", "accept", ...CHANNELS.map((ch) => `consent_${ch}`)].map((k) => [k, String(form.get(k) ?? "").trim()]));
     v.interests = form.getAll("interest").map(String).join(" ");
     v.share = form.getAll("share").map(String).join(" ");
     const fields: AuthState["fields"] = {};
     if (!v.firstName || v.firstName.length > 60) fields.firstName = "Tell us your first name";
     if (!v.lastName || v.lastName.length > 60) fields.lastName = "Tell us your surname";
     if (v.email && !isEmail(v.email)) fields.email = "That email address doesn't look right";
+    // Optional: without one the member signs in with codes and the fingerprint. Never sent back to the page.
+    const password = String(form.get("password") ?? "");
+    delete v.password;
+    const pwProblem = password ? passwordProblem(password, { email: v.email, name: `${v.firstName} ${v.lastName}` }) : null;
+    if (pwProblem) fields.password = pwProblem;
     // The join form asks for a date of birth ("dob"); the SA ID is checked before the first online order or at a store.
     const byDob = v.idType === "dob" || v.idType === "passport";
     let dob: Date | undefined;
@@ -221,6 +269,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
         },
         { type: "CUSTOMER", name: v.firstName },
       );
+      if (password) await db.customer.update({ where: { id: c.id }, data: { passwordHash: await hashSecret(password) } });
       jar.delete(SHOP_COOKIE.phone);
       await startSession("customer", { customerId: c.id }, 24 * 30);
       await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "customer.sign_in", { entity: "Customer", entityId: c.id, data: { firstVisit: true } });

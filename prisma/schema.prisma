@@ -589,6 +589,7 @@ model Customer {
   phone              String    @unique
   email              String?   @unique
   phoneVerifiedAt    DateTime? // a code came to the phone itself (SMS); null when the member joined by email code and nobody has proved the number yet
+  passwordHash       String? // optional: members may sign in with mobile or email plus a password; null = codes and fingerprint only
   emailVerifiedAt    DateTime? // a sign-in code came to this email; only then can it carry sign-in codes. Cleared when the email changes
   firstName          String
   lastName           String?

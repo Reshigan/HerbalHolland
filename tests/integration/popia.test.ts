@@ -73,7 +73,7 @@ beforeAll(async () => {
   // A member with a row in every table that can hold their personal information.
   const c = await db.customer.create({
     data: {
-      memberNo: "HH0000099", phone: PHONE, email: EMAIL, firstName: "Thandiwe", lastName: "Erasmus-Kgosi", dob: new Date("1991-04-02"), idHash: "hash-tek-0089", idLast4: "0089",
+      memberNo: "HH0000099", phone: PHONE, email: EMAIL, firstName: "Thandiwe", lastName: "Erasmus-Kgosi", dob: new Date("1991-04-02"), idHash: "hash-tek-0089", passwordHash: "scrypt$hash-tek-pw", idLast4: "0089",
       ageCheck: "ID_NUMBER", ageVerifiedAt: new Date(), referralCode: "THAN7Q2P", referredById: w.walkIn.id, homeStoreId: w.store.id, interests: ["CBD"], points: 50,
       consentSms: true, consentEmail: true, consentAt: new Date(), lastSeenAt: new Date(),
     },
@@ -173,6 +173,7 @@ describe("POPIA s23: the member's export", () => {
     expect(controller).toMatch(/^Herbal Holland \(Pty\) Ltd \(Herbal Holland, the franchisor\)/);
     expect(m).toMatchObject({ memberNo: "HH0000099", firstName: "Thandiwe", lastName: "Erasmus-Kgosi", phone: PHONE, email: EMAIL });
     expect(m).not.toHaveProperty("idHash");
+    expect(m).not.toHaveProperty("passwordHash");
     const counts = Object.fromEntries(
       ["sessions", "consentEvents", "loyalty", "sales", "orders", "patientAuths", "reviews", "alerts", "pushSubs", "passkeys", "offers", "rsvps", "dropWatches", "quests", "messages", "addresses", "wishlist", "reorderReminders", "supportRequests", "returns", "giftVouchers", "photos", "activity"].map((k) => [k, m[k]?.length]),
     );
@@ -211,7 +212,7 @@ describe("POPIA s24: erasure", () => {
 
     const id = member.id;
     expect(await db.customer.findUniqueOrThrow({ where: { id } })).toMatchObject({
-      phone: `anon-${id}`, email: null, firstName: "Anonymised", lastName: null, dob: null, idHash: null, idLast4: null, referralCode: `anon-${id}`, referredById: null, interests: [],
+      phone: `anon-${id}`, email: null, firstName: "Anonymised", lastName: null, dob: null, idHash: null, passwordHash: null, idLast4: null, referralCode: `anon-${id}`, referredById: null, interests: [],
       consentSms: false, consentEmail: false, personalisedOffers: false, points: 0, memberNo: "HH0000099",
     });
     // Deleted: what only served the member.
