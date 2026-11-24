@@ -80,7 +80,13 @@ export function Horizon() {
       <i className="hz__sun" />
       <i className="hz__motes" />
       <svg className="hz__art" viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice" focusable="false">
-        <path className="hz__far" d="M0 320V214c60-4 110-18 150-44 20-12 40-10 55 6 25 20 65 24 115 14l60-40 40-32 440-6 40 8 40 30 40-10 30-22 30 12 60 46c100 24 220 20 340 30v114Z" />
+        <defs>
+          <linearGradient id="hz-haze" x1="0" y1="150" x2="0" y2="300" gradientUnits="userSpaceOnUse">
+            <stop className="hz__haze0" offset="0" />
+            <stop className="hz__haze1" offset="1" />
+          </linearGradient>
+        </defs>
+        <path className="hz__far" fill="url(#hz-haze)" d="M0 320V214c60-4 110-18 150-44 20-12 40-10 55 6 25 20 65 24 115 14l60-40 40-32 440-6 40 8 40 30 40-10 30-22 30 12 60 46c100 24 220 20 340 30v114Z" />
         <g className="hz__mid">
           <path d="M0 320V268c160-10 320-6 480-8 220-2 420 4 620 0 120-2 240 2 340 6v54Z" />
           <path d={HOUSES} />
