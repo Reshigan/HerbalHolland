@@ -93,7 +93,7 @@ export function ContactPage() {
               ))}
             </dl>
             <p className="muted co__note" data-r="">
-              {join ? co.franchisees : co.franchiseesSoon}{" "}
+              {join ? co.ownership : co.ownershipSoon}{" "}
               <a className="link" href="/stores">
                 {co.stores}
               </a>

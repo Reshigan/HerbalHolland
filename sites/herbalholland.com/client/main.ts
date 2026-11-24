@@ -2,7 +2,7 @@
 //   the 18+ gate's focus (the head script shows it, takes its answers and keeps the page behind it inert), the menu
 //   dialog, the FAQ, the
 //   two forms; and the motion: one requestAnimationFrame loop drives scroll velocity (the wind that turns every
-//   windmill's sails and drifts the marquee), the pinned 9,475 km story, the stage (each scene's entry, --t1 … --t4,
+//   windmill's sails), the pinned 9,475 km story, the stage (each scene's entry, --t1 … --t4,
 //   where CSS scroll-driven animations aren't supported; and the windmill's flight from scene to scene, always), and
 //   scroll-linked --p elsewhere, while IntersectionObserver starts one-shot reveals; and the glide (the wheel, and links
 //   to a place on the page, ease the page along). Only transform and opacity move; nothing reads layout while it
@@ -81,13 +81,11 @@ on(d, "visibilitychange", () => (d.hidden ? (cancelAnimationFrame(raf), (raf = 0
 let sy = scrollY;
 let prevY = sy;
 let vel = 0;
-let dir = 1;
 let wind = 0;
 jobs.push((dt) => {
   sy = scrollY;
   const dy = sy - prevY;
   prevY = sy;
-  if (dy) dir = dy > 0 ? 1 : -1;
   vel += (dy / dt - vel) * Math.min(1, dt * 14);
   const a = Math.abs(vel);
   wind += (a - wind) * (a > wind ? Math.min(1, dt * 9) : Math.min(1, dt * 2.6));
@@ -229,7 +227,7 @@ function glide() {
   });
 }
 
-// ── Sails turn with the wind; the marquee drifts with the scroll ──────────────────────────────────────────────
+// ── Sails turn with the wind ──────────────────────────────────────────────────────────────────────────────────────
 function motion() {
   const sails = $$<SVGGElement>("[data-sails]");
   sails.forEach((s) => seen.observe(s));
@@ -258,25 +256,6 @@ function motion() {
       { passive: true },
     );
   }
-
-  const m = $("[data-marquee]");
-  const track = m && $(".marquee__track", m);
-  const set = m && $(".marquee__set", m);
-  if (!m || !track || !set) return;
-  let w = set.getBoundingClientRect().width;
-  measurers.push(() => (w = set.getBoundingClientRect().width));
-  seen.observe(m);
-  let x = 0;
-  let heading = -1;
-  jobs.push((dt) => {
-    if (!visible.has(m)) return false;
-    heading += (-dir - heading) * Math.min(1, dt * 3);
-    x += heading * (46 + Math.min(wind * 0.75, 2600)) * dt;
-    if (w) x = ((x % w) - w) % w;
-    const skew = clamp(vel * 0.0022, -7, 7);
-    track.style.transform = `translate3d(${x.toFixed(2)}px,0,0) skewX(${(-skew).toFixed(2)}deg)`;
-    return true;
-  });
 }
 
 // ── Scroll-linked --p, and each scene's entry (--t1 …) for the stage, where CSS scroll-driven animations aren't supported

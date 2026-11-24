@@ -329,34 +329,6 @@ function Genetics() {
   );
 }
 
-/** Between dusk and night: what we stand for, in five words, drifting with the scroll. */
-function Marquee() {
-  const words = HOME.marquee.words;
-  return (
-    <div className="marquee" aria-label={HOME.marquee.label} data-marquee="" role="region">
-      <ul className="sr-only">
-        {words.map((w) => (
-          <li key={w}>{w}</li>
-        ))}
-      </ul>
-      <div className="marquee__track" aria-hidden="true">
-        {[0, 1].map((k) => (
-          <div key={k} className="marquee__set">
-            {words.map((w) => (
-              <span key={w} className="marquee__item">
-                <span className="marquee__w">{w}</span>
-                <svg className="marquee__sep" viewBox="-36 -36 72 72" focusable="false">
-                  <use href="#sails" x="-36" y="-36" width="72" height="72" className="sails" data-sails="wind" />
-                </svg>
-              </span>
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ── Scene 5: night ───────────────────────────────────────────────────────────
 function Night() {
   const f = HOME.founding;
@@ -464,7 +436,6 @@ export function HomePage() {
       <Journey />
       <Hills />
       <Genetics />
-      <Marquee />
       <Night />
       <Gram />
     </Page>
