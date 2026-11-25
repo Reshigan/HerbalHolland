@@ -402,8 +402,8 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         <FieldRow className="sm:col-span-2" label="Email for invoices (optional)" htmlFor="reg-email" error={state.fields?.email} hint="Tax invoices and receipts only, unless you opt in below.">
           <TextInput id="reg-email" name="email" type="email" autoComplete="email" defaultValue={v.email} aria-invalid={!!state.fields?.email} />
         </FieldRow>
-        <FieldRow className="sm:col-span-2" label="Create a password (optional)" htmlFor="reg-password" error={state.fields?.password} hint="10 characters or more, to sign in with your number or email. Or skip it and sign in with a code or your fingerprint.">
-          <TextInput id="reg-password" name="password" type="password" autoComplete="new-password" minLength={10} maxLength={200} aria-invalid={!!state.fields?.password} />
+        <FieldRow className="sm:col-span-2" label="Create a password" htmlFor="reg-password" error={state.fields?.password} hint="10 characters or more. Sign in with your number or email and this password, or with a code or your fingerprint.">
+          <TextInput id="reg-password" name="password" type="password" autoComplete="new-password" required minLength={10} maxLength={200} aria-invalid={!!state.fields?.password} />
         </FieldRow>
       </div>
 

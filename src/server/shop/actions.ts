@@ -226,10 +226,10 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
     if (!v.firstName || v.firstName.length > 60) fields.firstName = "Tell us your first name";
     if (!v.lastName || v.lastName.length > 60) fields.lastName = "Tell us your surname";
     if (v.email && !isEmail(v.email)) fields.email = "That email address doesn't look right";
-    // Optional: without one the member signs in with codes and the fingerprint. Never sent back to the page.
+    // Required, so every member can sign in with number or email + password, not only codes and the fingerprint. Never sent back to the page.
     const password = String(form.get("password") ?? "");
     delete v.password;
-    const pwProblem = password ? passwordProblem(password, { email: v.email, name: `${v.firstName} ${v.lastName}` }) : null;
+    const pwProblem = password ? passwordProblem(password, { email: v.email, name: `${v.firstName} ${v.lastName}` }) : "Create a password (10 characters or more)";
     if (pwProblem) fields.password = pwProblem;
     // The join form asks for a date of birth ("dob"); the SA ID is checked before the first online order or at a store.
     const byDob = v.idType === "dob" || v.idType === "passport";
