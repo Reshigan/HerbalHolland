@@ -60,6 +60,7 @@ await page.getByRole("button", { name: "Verify" }).click();
 await page.getByText("Welcome: one quick step").waitFor();
 await page.getByLabel("First name").fill("Lindiwe");
 await page.getByLabel("Surname").fill("Dlamini");
+await page.getByLabel("Create a password").fill("Orange-tulip-canal-7");
 await page.getByLabel(/Email for invoices/).fill(`lindiwe.${phone}@example.co.za`);
 await page.getByLabel("Day").selectOption("12");
 await page.getByLabel("Month").selectOption({ label: "June" });

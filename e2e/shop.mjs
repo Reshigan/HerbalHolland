@@ -613,6 +613,7 @@ try {
   const friendEmail = friend.getByLabel(/Email for invoices/);
   await friend.getByLabel("First name").fill("Zanele");
   await friend.getByLabel("Surname").fill("Mthembu");
+  await friend.getByLabel("Create a password").fill("Windmill-river-bend-4");
   await friendEmail.fill(taken);
   const [dy, dm, dd] = dob.split("-");
   await friend.getByLabel("Day").selectOption(String(+dd));
@@ -640,6 +641,8 @@ try {
   ];
   assert(kept.every(Boolean), `email already in use: inline error; name, date of birth, home store, opt-ins, interests and terms tick all kept (${kept.map(Number).join("")})`);
   await friendEmail.fill(`zanele.${phone}@example.co.za`);
+  // The password is never sent back to the page, so it is typed again after an error.
+  await friend.getByLabel("Create a password").fill("Windmill-river-bend-4");
   await timed("Join: create account → card", () => friend.getByRole("button", { name: /Join and continue/ }).click(), () => friend.getByText("Welcome to Herbal Holland Rewards, Zanele!").waitFor());
   const pal = await one(`select id, "referredById", source, "consentSms", "consentEmail", "consentWhatsapp", interests, "homeStoreId", points, "termsVersion", "ageVerifiedAt" from "Customer" where phone = $1`, [`+27${phone.slice(1)}`]);
   assert(pal?.referredById === member.id && pal.source === "REFERRAL", `joined as a referral of ${member.memberNo} (referredById + source REFERRAL)`);
