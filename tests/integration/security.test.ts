@@ -436,7 +436,7 @@ describe("Someone else's ID number or email", () => {
   });
   const join = (phone: string, extra: Record<string, string>) => {
     jar.set(SHOP_COOKIE.phone, signPhone(phone));
-    return authFlow({ step: "register", phone }, form({ intent: "register", firstName: "Eve", lastName: "Mokoena", idType: "id", homeStoreId: w.store.id, accept: "on", ...extra }));
+    return authFlow({ step: "register", phone }, form({ intent: "register", firstName: "Eve", lastName: "Mokoena", idType: "id", homeStoreId: w.store.id, accept: "on", password: "Fynbos-Kettle-82", ...extra }));
   };
 
   it("joining: three collisions a day per phone, then nothing more is checked and the phone check is dropped", async () => {
