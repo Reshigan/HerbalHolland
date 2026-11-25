@@ -45,9 +45,12 @@ async function until(fn, ms = 20_000) {
 }
 
 // The newest showing review whose headline no other showing review on that product shares (the seed reuses headlines,
-// so a twin would stay on the page), on a product that shows reviews (not a licensed medicine) and all of them (≤ 60).
-const review = await one(`SELECT r.id, r.title, p.slug FROM "Review" r JOIN "Product" p ON p.id = r."productId"
-  WHERE r.hidden = 0 AND r.verified = 1 AND r.title IS NOT NULL AND p."regClass" <> 'THC' AND p.status = 'ACTIVE'
+// so a twin would stay on the page), on a product that shows reviews (not a licensed medicine) and all of them (≤ 60),
+// in a range the shop shows (HIDDEN_CATEGORIES in src/lib/range.ts answer 404). The seed is dated from today, so the
+// newest review lands on a different product each day.
+const HIDDEN = ["skin-care", "protein-nutrition", "collagen-supplements"].map((s) => `'${s}'`).join(", ");
+const review = await one(`SELECT r.id, r.title, p.slug FROM "Review" r JOIN "Product" p ON p.id = r."productId" JOIN "Category" c ON c.id = p."categoryId"
+  WHERE c.slug NOT IN (${HIDDEN}) AND r.hidden = 0 AND r.verified = 1 AND r.title IS NOT NULL AND p."regClass" <> 'THC' AND p.status = 'ACTIVE'
   AND NOT EXISTS (SELECT 1 FROM "Review" y WHERE y."productId" = r."productId" AND y.title = r.title AND y.id <> r.id AND y.hidden = 0 AND y.verified = 1)
   AND (SELECT COUNT(*) FROM "Review" x WHERE x."productId" = r."productId" AND x.hidden = 0 AND x.verified = 1) <= 60
   ORDER BY r."createdAt" DESC LIMIT 1`);
