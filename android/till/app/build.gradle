@@ -20,6 +20,7 @@ android {
         // ?apk= tells the till which app version it runs in, so it can offer a newer one (src/components/pos/app-update.tsx).
         manifestPlaceholders = [host: host, launchUrl: "https://" + host + "/pos?apk=" + code]
         resValue "string", "app_name", "HH Till"
+        resValue "string", "update_url", "https://" + host + "/apps/hh-till.json"
         resValue "string", "asset_statements", "[{ \\\"relation\\\": [\\\"delegate_permission/common.handle_all_urls\\\"], \\\"target\\\": { \\\"namespace\\\": \\\"web\\\", \\\"site\\\": \\\"https://" + host + "\\\" } }]"
     }
     signingConfigs {

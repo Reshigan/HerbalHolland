@@ -13,11 +13,14 @@ app full screen, without an address bar. Nothing of the till lives here; updatin
   stops matching. Keep two copies somewhere safe.
 - **Updates, automatically:** the till's content updates with the website. A new APK (only needed when the app
   itself changes) is built, signed and published by `.github/workflows/android-till.yml` on every push to main that
-  touches `android/`, or by hand from the Actions tab. It writes `public/apps/hh-till.apk` and `hh-till.json`; tills
-  on an older APK then show an "Update" bar: one tap downloads it, one installs it. Fully silent installs need device
-  management (Android Enterprise / an MDM) or Google Play. The workflow needs two repository secrets (Settings →
-  Secrets and variables → Actions): `TILL_KEYSTORE_B64` (the key file, base64: `base64 -w0 herbal-holland-till.jks`)
-  and `TILL_KEYSTORE_PASSWORD`.
+  touches `android/`, or by hand from the Actions tab. It writes `public/apps/hh-till.apk` and `hh-till.json`. From
+  APK 2 the app updates itself (`UpdateActivity.java`): each time the till opens it downloads a newer APK in the
+  background and installs it the next time the till is opened, before the till starts, so never during a sale. The
+  till then closes once; open it again. On Android 12+ only the first update asks (once "Allow from this source", once
+  Install); after that updates need no taps. Android 11 asks for one tap each time. Tills still on APK 1 show an
+  "Update" bar (`src/components/pos/app-update.tsx`) to get there. The workflow needs two repository secrets
+  (Settings → Secrets and variables → Actions): `TILL_KEYSTORE_B64` (the key file, base64:
+  `base64 -w0 herbal-holland-till.jks`) and `TILL_KEYSTORE_PASSWORD`.
 - **Build** (JDK 17+, Android SDK with platform 35 and build-tools 35, Gradle 8.14):
 
   ```bash

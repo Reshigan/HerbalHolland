@@ -44,7 +44,7 @@ A fresh database starts in step 1 (the demo seed starts at step 3); the shop, it
 - [ ] Stitch files and artwork owned by Herbal Holland, whoever embroiders and prints them
 
 ## Devices & people
-- [ ] 10-inch Android tablets (11+, Chrome, Google services, no developer options) paired per till, held in landscape; camera reads a member QR on the stand, or a USB/Bluetooth scanner is fitted; printers tested; barcode scanners tested
+- [ ] 10-inch Android tablets (12+, so the till app updates itself with no taps; Chrome, Google services, no developer options) paired per till, held in landscape; camera reads a member QR on the stand, or a USB/Bluetooth scanner is fitted; printers tested; barcode scanners tested
 - [ ] Till hardware per counter ([RUNBOOK → Till hardware](RUNBOOK.md#till-hardware)): BLE/USB receipt printer paired and a test page printed on the right paper width, drawer pulse confirmed on a cash sale, scanner (keyboard-wedge or camera) checked on a member QR and a batch code, customer display window or separate screen paired, a manager has run training mode with each new cashier
 - [ ] Staff accounts with PINs; managers with passwords; area managers assigned to regions
 - [ ] Training: POS (sale, split tenders, offline, refunds), handover with ID checks, stock takes, receiving, recalls
