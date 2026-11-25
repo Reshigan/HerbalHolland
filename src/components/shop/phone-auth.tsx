@@ -97,6 +97,19 @@ export function PhoneAuth({
         </p>
       )}
 
+      {state.step === "phone" && (
+        <div role="tablist" aria-label="How to sign in" className="mb-5 grid grid-cols-2 gap-1 rounded-full border border-ink-800 bg-ink-900 p-1">
+          {[
+            { on: !viaPassword, label: "Mobile code", Icon: Smartphone, pick: false },
+            { on: viaPassword, label: "Password", Icon: LockKeyhole, pick: true },
+          ].map(({ on, label, Icon, pick }) => (
+            <button key={label} type="button" role="tab" aria-selected={on} onClick={() => setByPassword(pick)} className={cn("flex h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold", on ? "bg-brand-500 text-ink-950" : "text-ink-400 hover:text-white")}>
+              <Icon className="h-4 w-4" /> {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {state.step === "phone" && viaPassword && (
         <form action={action} className="space-y-4">
           {hidden}
@@ -161,9 +174,6 @@ export function PhoneAuth({
           <ActionBar pinned={appScreen}>
             <button disabled={pending || !botOk} className={buttonClass("primary", "xl", "w-full")}>
               {pending ? "Sending…" : "Send my code"} <ArrowRight className="h-5 w-5" />
-            </button>
-            <button type="button" onClick={() => setByPassword(true)} className="mx-auto mt-1 flex h-11 items-center gap-2 px-4 text-sm font-medium text-ink-400 underline underline-offset-4 hover:text-white">
-              <LockKeyhole className="h-4 w-4" /> Sign in with a password
             </button>
             {appScreen && !viaEmail && (
               <button type="button" onClick={() => setByEmail(true)} className="mx-auto mt-1 block h-11 px-4 text-sm font-medium text-ink-400 underline underline-offset-4 hover:text-white sm:hidden">
