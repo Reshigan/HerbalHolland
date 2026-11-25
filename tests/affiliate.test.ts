@@ -5,8 +5,9 @@ import { referralCreditProblem, referralPayoutProblem } from "@/lib/vouchers";
 import { referralPayoutLines } from "@/lib/ledger-store";
 
 describe("affiliate share", () => {
-  it("is 5% of net spend in cents, rounded down", () => {
-    expect(affiliateCents(100_000, 5)).toBe(5_000); // R1,000 ex VAT → R50
+  it("is 3% of net spend in cents, rounded down", () => {
+    expect(affiliateCents(100_000, 3)).toBe(3_000); // R1,000 ex VAT → R30
+    expect(affiliateCents(100_000, 5)).toBe(5_000);
     expect(affiliateCents(1_999, 5)).toBe(99);
     expect(affiliateCents(19, 5)).toBe(0);
   });
@@ -46,6 +47,10 @@ describe("referral credit paid out in cash", () => {
     expect(referralPayoutProblem({ ...ok, cents: 9_000 })).toMatch(/only 80.00/);
     expect(referralPayoutProblem({ ...ok, cents: 250_000, balanceCents: 300_000, inDrawerCents: 500_000 })).toMatch(/at most 2000.00/);
     expect(referralPayoutProblem({ ...ok, inDrawerCents: 1_000 })).toMatch(/drawer/);
+  });
+  it("refuses less than HQ's least cash payout", () => {
+    expect(referralPayoutProblem({ ...ok, minCents: 6_000 })).toMatch(/at least 60.00/);
+    expect(referralPayoutProblem({ ...ok, minCents: 5_000 })).toBeNull();
   });
   it("refuses nothing, a void or an expired wallet", () => {
     expect(referralPayoutProblem({ ...ok, cents: 0 })).toMatch(/amount/);

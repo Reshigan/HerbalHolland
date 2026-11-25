@@ -94,10 +94,13 @@ describe("referral rules", () => {
     expect(r).toContain("no cash value");
     expect(r).toContain("fake or duplicate accounts");
     expect(r).not.toContain("share of their spend");
-    const share = text(referralRules(facts(), 50, 5));
-    expect(share).toContain("rand credit worth 5% of what they paid, before VAT");
+    const share = text(referralRules(facts(), 50, 3, 5_000));
+    expect(share).toContain("rand credit worth 3% of what they paid, before VAT");
+    expect(share).toContain("take it as cash at the till in any Herbal Holland store");
+    expect(share).toContain("from R50 up to R2,000 at a time");
+    expect(share).toContain("Your referral credit is the one exception");
     expect(share).toContain("at the till");
-    expect(share).toContain("not on medicines");
+    expect(share).toContain("can't be spent on licensed medicines");
     expect(share).toContain("lasts 3 years");
   });
 });

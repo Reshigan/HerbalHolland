@@ -419,7 +419,7 @@ function CashMovements({ shiftId, x, onDone }: { shiftId: string; x: ZReport; on
 }
 
 // Manager only: a member's referral credit paid out of the drawer in cash. The server checks the balance, the cash in
-// the drawer and the R2,000 cap, books it, audits it and raises a loss alert if it goes to the manager's own card.
+// the drawer, the HQ minimum and the R2,000 cap, books it, audits it and raises a loss alert if it goes to the manager's own card.
 function ReferralPayout({ shiftId, onDone }: { shiftId: string; onDone: (r: ZReport) => void }) {
   const pos = usePos();
   const [memberNo, setMemberNo] = useState("");
@@ -428,8 +428,9 @@ function ReferralPayout({ shiftId, onDone }: { shiftId: string; onDone: (r: ZRep
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const credit = member?.referralCredit?.balanceCents ?? 0;
+  const minCents = pos.boot.settings.loyalty.affiliateCashMinCents ?? 0;
   const cents = parseRand(amount);
-  const ready = !!member && !!cents && cents > 0 && cents <= credit && !busy;
+  const ready = !!member && !!cents && cents >= Math.max(1, minCents) && cents <= credit && !busy;
 
   async function find() {
     if (!memberNo.trim() || busy) return;
@@ -472,7 +473,9 @@ function ReferralPayout({ shiftId, onDone }: { shiftId: string; onDone: (r: ZRep
       <h2 id="ref-payout" className="font-display text-lg font-semibold text-white">
         Referral credit in cash
       </h2>
-      <p className="mt-2 text-[0.8rem] text-ink-400">Pay a member their referral credit from the drawer (up to R2,000 at a time). To spend it on products instead, ring up a sale and tender it as a voucher.</p>
+      <p className="mt-2 text-[0.8rem] text-ink-400">
+        Pay a member their referral credit from the drawer ({minCents > 0 ? `${zar(minCents)} to R2,000` : "up to R2,000"} at a time). Only to the member themselves, on their own Rewards card. To spend it on products instead, ring up a sale and tender it as a voucher.
+      </p>
       {error && <Alert className="mt-3">{error}</Alert>}
       <div className="mt-3 flex gap-2">
         <Field label="Card number or phone" htmlFor="ref-member" className="flex-1">
@@ -487,7 +490,10 @@ function ReferralPayout({ shiftId, onDone }: { shiftId: string; onDone: (r: ZRep
           <div className="font-semibold text-white">
             {member.firstName} {member.lastName ?? ""} · {member.memberNo}
           </div>
-          <div className="text-sm text-ink-400">{credit ? `Referral credit ${zar(credit)}` : "No referral credit to pay out"}</div>
+          <div className="text-sm text-ink-400">
+            {credit ? `Referral credit ${zar(credit)}` : "No referral credit to pay out"}
+            {!!credit && credit < minCents && `. Below the ${zar(minCents)} cash minimum: it can be spent on products`}
+          </div>
           {!!credit && (
             <>
               <Field label="Amount to pay out" htmlFor="ref-amount" className="mt-3">

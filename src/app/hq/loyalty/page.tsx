@@ -7,7 +7,7 @@ import { getSettings } from "@/server/settings";
 import { can } from "@/server/hq/guard";
 import { qs } from "@/server/hq/form";
 import { TIERS, POINT_VALUE_CENTS, fmtPoints, tierBenefits } from "@/lib/loyalty-rules";
-import { pct, zar, zarCompact } from "@/lib/money";
+import { centsToInput, pct, zar, zarCompact } from "@/lib/money";
 import { num } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -278,6 +278,10 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
                       <FieldError name={name} />
                     </Field>
                   ))}
+                  <Field label="Least cash payout (R)" htmlFor="affiliateCashMin" hint="Referral credit taken as cash at a till, per payout">
+                    <Input id="affiliateCashMin" name="affiliateCashMin" defaultValue={centsToInput(l.affiliateCashMinCents)} inputMode="decimal" className="tnum" />
+                    <FieldError name="affiliateCashMin" />
+                  </Field>
                 </fieldset>
                 <p className="mt-3 text-xs text-ink-500">Licensed medicines never earn points while THC is in medical mode (Medicines Act s18A).</p>
                 {admin && (

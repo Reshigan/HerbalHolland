@@ -194,6 +194,7 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
         minRedeem: settings.loyalty.minRedeem,
         maxRedeemPct: settings.loyalty.maxRedeemPct,
         tierSavingsPct: settings.loyalty.tierSavingsPct,
+        affiliateCashMinCents: settings.loyalty.affiliateCashMinCents,
       },
     },
     shift,

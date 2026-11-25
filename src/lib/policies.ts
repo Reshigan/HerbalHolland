@@ -6,7 +6,7 @@
 import { MADE_TO_ORDER_LEAD } from "./merch";
 import { zarWhole } from "./money";
 import { BOOST_DAYS, RUNGS } from "./referral-ladder";
-import { VOUCHER_VALID_YEARS } from "./vouchers";
+import { REFERRAL_PAYOUT_MAX_CENTS, VOUCHER_VALID_YEARS } from "./vouchers";
 
 export const LEGAL_DOCS = {
   terms: { title: "Membership terms", dek: "The agreement you accept when you become a Herbal Holland member, whether online, in the Rewards app or at the till." },
@@ -93,7 +93,7 @@ export function returnsPolicy(f: PolicyFacts): PolicyBlock[] {
 }
 
 /** The referral ladder's rules (/legal/referrals). `bonus`: the referral points each side gets; `pct`: the affiliate share (HQ settings). */
-export function referralRules(f: PolicyFacts, bonus: number, pct = 0): PolicyBlock[] {
+export function referralRules(f: PolicyFacts, bonus: number, pct = 0, cashMinCents = 0): PolicyBlock[] {
   const rungs = RUNGS.map((r) => `${r.at} friends: ${r.kind === "BOOST" ? `the tier above the one you hold, for ${BOOST_DAYS} days (Harvest members keep Harvest for ${BOOST_DAYS} days)` : `${r.reward}, a badge on your Rewards card page. It carries no discount.`}`);
   return [
     { p: `Herbal Holland Rewards is run by ${f.entity} (“Herbal Holland”, “we”). These rules are part of our [membership terms](/legal/terms).` },
@@ -113,8 +113,9 @@ export function referralRules(f: PolicyFacts, bonus: number, pct = 0): PolicyBlo
               `Every time a friend you referred buys, in a store or online, you get rand credit worth ${pct}% of what they paid, before VAT. It goes into your referral credit on your Rewards page.`,
               "Points they pay with, and licensed medicines, don't count towards your share.",
               "If your friend returns something, the share you earned on it comes off your credit.",
-              "Spend your credit at the till in any Herbal Holland store: show your member card. Only you can use it, and not on medicines.",
-              `Your credit lasts ${VOUCHER_VALID_YEARS} years from the last time you earned some. It can't be exchanged for cash or transferred.`,
+              "Spend your credit on products at the till in any Herbal Holland store: show your member card. It can't be spent on licensed medicines.",
+              `Or take it as cash at the till in any Herbal Holland store: show your member card and the store pays you from the till, ${cashMinCents > 0 ? `from ${zarWhole(cashMinCents)} ` : ""}up to ${zarWhole(REFERRAL_PAYOUT_MAX_CENTS)} at a time.`,
+              `Only you can spend your credit or take it as cash, and it can't be transferred. It lasts ${VOUCHER_VALID_YEARS} years from the last time you earned some.`,
             ],
           },
         ]
@@ -140,7 +141,9 @@ export function referralRules(f: PolicyFacts, bonus: number, pct = 0): PolicyBlo
       list: [
         `Membership, and so referrals, are for adults ${f.minAge}+ only.`,
         "Rewards never apply to licensed medicines: whatever tier you hold, they earn no points, get no member savings and can't be paid for with points (Medicines Act s18A).",
-        "Points and rewards have no cash value and can't be exchanged for cash or transferred.",
+        pct > 0
+          ? "Points and other rewards have no cash value and can't be exchanged for cash or transferred. Your referral credit is the one exception: you can take it as cash, as set out above."
+          : "Points and rewards have no cash value and can't be exchanged for cash or transferred.",
         "We may withhold or withdraw referral rewards, and close accounts, where we find abuse: fake or duplicate accounts, referring yourself, or paying people to sign up.",
         `Questions: ${mail(f.email)}.`,
       ],

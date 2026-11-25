@@ -41,6 +41,7 @@ describe("referral cash payout at the till", () => {
 
   it("refuses more than the balance or the drawer, and a member with no wallet", async () => {
     await expect(referralPayout(pos, SHIFT, w.walkIn.id, 18_001)).rejects.toMatchObject({ status: 422 });
+    await expect(referralPayout(pos, SHIFT, w.walkIn.id, 4_999)).rejects.toMatchObject({ status: 422 }); // under the R50 least payout
     await db.cashMovement.create({ data: { shiftId: SHIFT, kind: "DROP", amountCents: 30_000, reason: "Safe", byId: w.manager.id } });
     await expect(referralPayout(pos, SHIFT, w.walkIn.id, 9_000)).rejects.toMatchObject({ status: 422 });
     await expect(referralPayout(pos, SHIFT, w.patient.id, 100)).rejects.toMatchObject({ status: 404 });
@@ -50,7 +51,7 @@ describe("referral cash payout at the till", () => {
   it("raises a high alert when a manager pays out to their own card", async () => {
     await db.user.update({ where: { id: w.manager.id }, data: { memberId: w.walkIn.id } });
     const me = { ...pos, user: { ...pos.user, memberId: w.walkIn.id } } as PosStaff;
-    await referralPayout(me, SHIFT, w.walkIn.id, 1_000);
+    await referralPayout(me, SHIFT, w.walkIn.id, 5_000);
     expect(await db.alert.findFirst({ where: { rule: "REFERRAL_PAYOUT" } })).toMatchObject({ severity: "HIGH", userId: w.manager.id });
   });
 });
