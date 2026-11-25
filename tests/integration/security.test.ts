@@ -558,13 +558,14 @@ describe("Member passwords", () => {
     expect((await signIn("+27825550777", pw)).state).toEqual({ step: "done" });
   });
 
-  it("joining: an optional password follows the policy and is stored hashed", async () => {
+  it("joining: the password is required, follows the policy and is stored hashed", async () => {
     fromIp("198.51.100.81");
     const phone = "+27825550778";
     const join = (password: string) => {
       jar.set(SHOP_COOKIE.phone, signPhone(phone));
       return authFlow({ step: "register", phone }, form({ intent: "register", firstName: "Joop", lastName: "Dlamini", idType: "id", idNumber: saId("870707", "5055"), homeStoreId: w.store.id, accept: "on", password }));
     };
+    expect((await join("")).fields?.password).toBe("Create a password (10 characters or more)");
     expect((await join("short")).fields?.password).toBeTruthy();
     expect(await db.customer.count({ where: { phone } })).toBe(0);
     expect((await join("windmills at dusk")).step).toBe("done");
