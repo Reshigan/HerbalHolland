@@ -48,8 +48,8 @@ pages to `/club`. The full shop stays the installed web app (PWA) in the browser
   ```
 
   Raise `versionCode` for each upload (`-PversionCode=2 -PversionName=1.0.1`).
-- **After the listing is live:** set `PLAY_STORE_URL` (the listing link) in the Worker's vars. Android members who
-  join in the browser are then sent to the Play listing instead of the install page.
+- **Listing link:** `PLAY_STORE_URL` in the Worker's vars. Android browsers that open `/app` or `/app/install`
+  (where every install QR and every closed page leads) are sent to the Play listing instead of the install page.
 
 The till and the back office install on iPads from Safari (Share → Add to Home Screen) and open full screen with
 their own icons.

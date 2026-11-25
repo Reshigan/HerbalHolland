@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Mark } from "@/components/brand/logo";
 import { AppOnlyScreen } from "@/components/shop/app-only";
-import { appOnly } from "@/lib/install";
+import { appOnly, detectPlatform } from "@/lib/install";
 import { safePath } from "@/lib/safe-path";
 import { AppHandshake } from "./handshake";
 
@@ -13,6 +14,10 @@ export const metadata: Metadata = { title: "Get the app", robots: { index: false
 
 export default async function AppPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   if (!appOnly()) redirect("/club");
+  // Android browsers go to the Google Play listing. The Play app itself never lands here without its cookie: it
+  // launches through /api/app, which sets hh_app first.
+  const play = process.env.PLAY_STORE_URL;
+  if (play && !(await cookies()).has("hh_app") && detectPlatform((await headers()).get("user-agent") ?? "").platform === "android") redirect(play);
   const { next } = await searchParams;
   return (
     <div className="min-h-dvh bg-ink-950 text-ink-100">
