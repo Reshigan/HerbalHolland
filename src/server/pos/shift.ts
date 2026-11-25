@@ -83,7 +83,8 @@ export async function referralPayout(pos: PosStaff, shiftId: string, customerId:
   const wallet = await db.giftVoucher.findUnique({ where: { affiliateOfId: customerId } });
   if (!wallet) throw new PosError("This member has no referral credit", 404);
   const cash = await shiftCash(shift.id);
-  const problem = referralPayoutProblem({ cents: amountCents, balanceCents: wallet.balanceCents, inDrawerCents: cash.expectedCents - cash.droppedCents, status: wallet.status, expiresAt: wallet.expiresAt });
+  const minCents = (await getSettings()).loyalty.affiliateCashMinCents;
+  const problem = referralPayoutProblem({ cents: amountCents, balanceCents: wallet.balanceCents, inDrawerCents: cash.expectedCents - cash.droppedCents, status: wallet.status, expiresAt: wallet.expiresAt, minCents });
   if (problem) throw new PosError(problem, 422);
   const taken = await db.giftVoucher.updateMany({ where: { id: wallet.id, status: "ACTIVE", balanceCents: { gte: amountCents } }, data: { balanceCents: { decrement: amountCents } } });
   if (!taken.count) throw new PosError("The member's referral credit just changed. Look them up again", 409);

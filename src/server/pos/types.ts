@@ -124,7 +124,7 @@ export type BootData = {
   drops?: BootDrop[]; // optional: tills cached before drops existed
   settings: {
     compliance: ComplianceSettings;
-    loyalty: { earnPer100: number; minRedeem: number; maxRedeemPct: number; tierSavingsPct: Record<TierKey, number> };
+    loyalty: { earnPer100: number; minRedeem: number; maxRedeemPct: number; tierSavingsPct: Record<TierKey, number>; affiliateCashMinCents?: number }; // optional: tills cached before it existed
   };
   shift: BootShift | null;
   /** The store's next event (for the till's quiet-hours dashboard); tills cached before this field have none. */
