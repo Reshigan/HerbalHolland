@@ -48,7 +48,7 @@ pages to `/club`. The full shop stays the installed web app (PWA) in the browser
   ```
 
   Raise `versionCode` for each upload (`-PversionCode=2 -PversionName=1.0.1`).
-- **Listing link:** `PLAY_STORE_URL` in the Worker's vars. Android browsers that open `/app` or `/app/install`
+- **Listing link:** `PLAY_STORE_URL`, set as a Worker secret (`wrangler secret put`), not in `wrangler.jsonc` vars: a var and a secret with one name fail the deploy. Android browsers that open `/app` or `/app/install`
   (where every install QR and every closed page leads) are sent to the Play listing instead of the install page.
 
 The till and the back office install on iPads from Safari (Share → Add to Home Screen) and open full screen with
