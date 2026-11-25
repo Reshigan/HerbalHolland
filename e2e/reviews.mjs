@@ -91,7 +91,8 @@ try {
   page = await signIn("merch@herbalholland.com");
   assert(await onProductPage(page) > 0, "showing on the product page before");
   await page.goto(`${BASE}/hq/reviews?q=${encodeURIComponent(review.title)}`);
-  const item = page.locator("li").filter({ hasText: review.title }).first();
+  const ofReview = (l) => l.filter({ hasText: review.title }).filter({ has: page.locator(`a[href="/p/${review.slug}#reviews"]`) }).first();
+  const item = ofReview(page.locator("li"));
   await item.waitFor();
   ok("found by search");
   await shot(page, "found");
@@ -119,7 +120,7 @@ try {
 
   step("Show again puts it back");
   await page.goto(`${BASE}/hq/reviews?view=hidden&q=${encodeURIComponent(review.title)}`);
-  const hiddenItem = page.locator("li").filter({ hasText: review.title }).first();
+  const hiddenItem = ofReview(page.locator("li"));
   await hydrated(hiddenItem.getByRole("button", { name: "Show again" }));
   await hiddenItem.getByRole("button", { name: "Show again" }).click();
   assert(await until(async () => Number((await row()).hidden) === 0), "showing in the database");
