@@ -86,6 +86,9 @@ export const DEFAULT_SETTINGS = {
     // carry a review note, and each line counsel must confirm shows its question.
     reviewed: false,
   },
+  // Club subscriptions: days an unpaid period's order stays open before the period lapses and the subscription goes
+  // past due; the version of the subscription terms members accept when they join (bump it when the terms change).
+  subscriptions: { graceDays: 3, termsVersion: "subs-1" },
 };
 type Defaults = typeof DEFAULT_SETTINGS;
 /** The settings as read: `ecommerce.deliveryDays` is optional in a saved value (older rows, the HQ form) and falls back to the defaults. */

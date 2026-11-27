@@ -2049,6 +2049,108 @@ model GiftVoucher {
   @@index([status, expiresAt])
 }
 
+/// Club subscriptions: a plan is a weekly (or four-weekly, monthly) allowance of eligible products for a fixed price.
+/// Each period is billed as its own online order (a `SUB-` variant line) and opens its allowance once paid.
+enum PlanUnit {
+  GRAMS
+  UNITS
+}
+
+enum BillingPeriod {
+  WEEKLY
+  FOUR_WEEKLY
+  MONTHLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  PAST_DUE
+  CANCELLED
+}
+
+enum PeriodStatus {
+  DUE
+  PAID
+  COLLECTED
+  LAPSED
+}
+
+model SubscriptionPlan {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  tagline     String?
+  description String        @default("")
+  imageUrl    String?
+  unit        PlanUnit      @default(GRAMS)
+  allowance   Float // grams (GRAMS) or items (UNITS) per period
+  eligible    Json          @default("[]") // variant ids the member may choose from
+  period      BillingPeriod @default(WEEKLY)
+  priceCents  Int // VAT incl., per period
+  status      ProductStatus @default(DRAFT)
+  sortOrder   Int           @default(0)
+  storeIds    Json          @default("[]") // empty = every store
+  itemWord    String        @default("items") // what a UNITS allowance counts, e.g. "pre-rolls"
+  rollover    Boolean       @default(false) // an unclaimed paid period carries into the next one (once)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  subscriptions Subscription[]
+
+  @@index([status, sortOrder])
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  plan              SubscriptionPlan   @relation(fields: [planId], references: [id])
+  planId            String
+  customerId        String
+  storeId           String
+  nextStoreId       String? // takes over from the next period
+  status            SubscriptionStatus @default(ACTIVE)
+  fulfilment        Fulfilment         @default(COLLECT)
+  addressId         String? // delivery address (fulfilment COURIER)
+  priceCents        Int // the plan's price when the member joined
+  startedAt         DateTime           @default(now())
+  periodStart       DateTime
+  periodEnd         DateTime
+  cancelAtPeriodEnd Boolean            @default(false)
+  pausedAt          DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  periods SubscriptionPeriod[]
+
+  @@index([customerId])
+  @@index([status, periodEnd])
+  @@index([planId, status])
+}
+
+model SubscriptionPeriod {
+  id             String       @id @default(cuid())
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  periodStart    DateTime
+  periodEnd      DateTime
+  status         PeriodStatus @default(DUE)
+  priceCents     Int
+  allowance      Float
+  carryAllowance Float        @default(0) // rolled over from the period before
+  carryCents     Int          @default(0) // what the carried allowance was paid for
+  billingOrderId String?      @unique
+  claimOrderId   String?      @unique
+  paidAt         DateTime?
+  collectedAt    DateTime?
+  remindedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([subscriptionId, periodStart])
+  @@index([status, periodEnd])
+}
+
 /// One affiliate share: a referred friend's purchase (saleId) put `cents` into the referrer's wallet voucher. A refund
 /// takes the share back with a negative row keyed by the refund's sale id. The row is written before the balance moves,
 /// so a run that stops halfway misses a credit and never doubles one.

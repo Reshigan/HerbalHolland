@@ -20,6 +20,7 @@ import { queueSaleInvoice } from "./invoices";
 import { queuePosting } from "./ledger/core";
 import { redeemOffers, releaseOffers } from "./offers";
 import { dropBlocks } from "./drops";
+import { isSubscriptionClaim, onSubscriptionClaimCancelledTx, onSubscriptionPaidTx, SUB_SKU } from "./shop/subscription-orders";
 import { completeVoucherOrder, isVoucherOrder, onOrderCancelledTx, orderDue, redeemVoucherTx, voucherApply, voucherCentsOf, voucherForCheckout, voucherTenderOf } from "./shop/vouchers";
 import {
   createPeachPayment, createYocoCheckout, paidOnlineWith, PaymentError, peachMode, peachPayment, refundPeachPayment, refundYocoCheckout, yocoTestMode, type HostedGateway,
@@ -209,7 +210,7 @@ export async function placeOrder(input: CheckoutInput) {
 }
 
 /** The first line the store can no longer cover from sellable stock less what open orders hold (made-to-order excluded). */
-async function shortLine(t: Tx, storeId: string, lines: { variantId: string; name: string; qty: number }[]) {
+export async function shortLine(t: Tx, storeId: string, lines: { variantId: string; name: string; qty: number }[]) {
   if (!lines.length) return undefined;
   const avail = await availability([storeId], [...new Set(lines.map((l) => l.variantId))], t);
   const wanted = new Map<string, number>();
@@ -218,7 +219,7 @@ async function shortLine(t: Tx, storeId: string, lines: { variantId: string; nam
 }
 
 // The member hears by text (and email, when they gave one): copy in @/lib/sms and email-templates.ts.
-async function notifyPlaced(orderId: string) {
+export async function notifyPlaced(orderId: string) {
   const o = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { customer: true, store: true, lines: { include: { variant: { include: { product: { select: { name: true } } } } } } } });
   await notifyOrder(o, "placed");
 }
@@ -235,6 +236,18 @@ export async function markOrderPaid(orderId: string, reference: string, note = "
     await completeVoucherOrder(o, reference);
     const after = await db.order.findUniqueOrThrow({ where: { id: orderId } });
     return { ...after, moved: after.status === "COMPLETED" && after.paymentRef === reference };
+  }
+  // A club subscription period: paid means done (nothing to pick); the period's allowance opens for the member.
+  if (o.lines.some((l) => l.variant.sku.startsWith(SUB_SKU))) {
+    const paidAt = new Date();
+    const events = [...(o.events as Event[]), { status: "COMPLETED" as const, at: paidAt.toISOString(), note }];
+    const { count } = await tx(async (t) => {
+      const moved = await t.order.updateMany({ where: { id: orderId, status: "PENDING_PAYMENT" }, data: { status: "COMPLETED", paymentStatus: "PAID", paymentRef: reference, completedAt: paidAt, events } });
+      if (moved.count) await queuePosting(t, "online-payment", orderId); // HQ holds it as prepaid until the allowance is collected
+      await onSubscriptionPaidTx(t, orderId, paidAt);
+      return moved;
+    });
+    return { ...(await db.order.findUniqueOrThrow({ where: { id: orderId } })), moved: count > 0 };
   }
   const events = [...(o.events as Event[]), { status: "PLACED" as const, at: new Date().toISOString(), note }];
   // Compare-and-set: when the same confirmation arrives twice at once, only one moves the order (and texts the member).
@@ -463,6 +476,7 @@ export async function advanceOrder(
   const voucherTender = await voucherTenderOf(o.id);
   const due = o.totalCents - o.pointsRedeemed * 100 - (voucherTender?.amountCents ?? 0);
   const gateway = paidOnlineWith(o);
+  const subClaim = isSubscriptionClaim(o);
   let payments: (TenderInput | { method: "ONLINE"; amountCents: number; provider: string; reference?: string })[] = [];
   let counterVouchers: VoucherTender[] = [];
   if (handover || dispatch) {
@@ -499,7 +513,7 @@ export async function advanceOrder(
       const lines = o.lines.map((l) => ({
         variantId: l.variantId, qty: l.qty, unitPriceCents: l.unitPriceCents,
         discountCents: l.qty * l.unitPriceCents - l.totalCents, totalCents: l.totalCents, vatCents: vatOf(l.totalCents),
-        noEarn: excluded.includes(l.variant.product.regClass), memberSavingsCents: l.memberSavingsCents, offerCents: l.offerCents,
+        noEarn: subClaim || excluded.includes(l.variant.product.regClass), memberSavingsCents: l.memberSavingsCents, offerCents: l.offerCents,
       }));
       postedSaleId = randomUUID();
       await postSaleTx(t, {
@@ -539,14 +553,16 @@ export async function advanceOrder(
       }
     }
     if (to === "CANCELLED") {
-      if (o.paymentStatus === "PAID" && o.payMethod === "ONLINE") await queuePosting(t, "online-payment", `${o.id}:cancel`); // refunded through the gateway
+      if (subClaim) await onSubscriptionClaimCancelledTx(t, o.id); // the allowance is the member's again (nothing was charged)
+      else if (o.paymentStatus === "PAID" && o.payMethod === "ONLINE") await queuePosting(t, "online-payment", `${o.id}:cancel`); // refunded through the gateway
       await releaseOffers(t, o.id);
       if (o.pointsRedeemed) await addPoints(t, { customerId: o.customerId, points: o.pointsRedeemed, kind: "REVERSAL", orderId: o.id, note: `Order ${o.code} cancelled` });
       await onOrderCancelledTx(t, o.id, actor); // money back on any voucher used; a voucher being bought is cancelled
     }
     const data: Prisma.OrderUpdateInput = { status: to, events };
     if (handover || dispatch) data.paymentStatus = "PAID";
-    if (to === "CANCELLED" && o.paymentStatus === "PAID") data.paymentStatus = "REFUNDED";
+    if (to === "CANCELLED" && o.paymentStatus === "PAID" && !subClaim) data.paymentStatus = "REFUNDED";
+    if (to === "COMPLETED" && subClaim) await t.subscriptionPeriod.updateMany({ where: { claimOrderId: o.id }, data: { collectedAt: new Date() } });
     if (to === "COMPLETED") (data.completedAt = new Date()), (data.idChecked = !!opts.idChecked);
     if (dispatch) (data.courier = opts.courier ?? (o.fulfilment === "SAME_DAY" ? "Herbal Holland driver" : "Courier")), (data.trackingNo = opts.trackingNo ?? `HH${shortCode(8)}`);
     await audit(t, actor, `order.${to.toLowerCase()}`, { storeId: o.storeId, entity: "Order", entityId: o.id, data: refund ? { refundId: refund.refundId, refundStatus: refund.status, amount: due } : undefined });
@@ -561,7 +577,7 @@ export async function advanceOrder(
   };
   // Delivery orders are "ready" only on the packing bench: the customer hears when they're on the way.
   if (event[to] && !(to === "READY" && o.fulfilment !== "COLLECT"))
-    await notifyOrder(o, event[to]!, { courier: updated.courier, trackingNo: updated.trackingNo, ageRestricted, refunded: to === "CANCELLED" && o.paymentStatus === "PAID" });
+    await notifyOrder(o, event[to]!, { courier: updated.courier, trackingNo: updated.trackingNo, ageRestricted, refunded: to === "CANCELLED" && o.paymentStatus === "PAID" && !subClaim });
   if (postedSaleId && o.customer.email) queueSaleInvoice(postedSaleId, o.customer.email);
   return updated;
 }

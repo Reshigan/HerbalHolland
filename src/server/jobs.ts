@@ -30,6 +30,7 @@ import { sendMembershipDigest } from "./membership-digest";
 import { purgeResolvedTickets } from "./support";
 import { sendDueReminders } from "./shop/reminders";
 import { expireVouchers } from "./shop/vouchers";
+import { runSubscriptions } from "./shop/subscriptions";
 import { refreshWishlistStock } from "./shop/wishlist";
 import { tradeEftExpiry, tradeOverdueHolds, tradeStatements } from "./trade/jobs";
 import { tradeLicenceExpiry } from "./trade/licences";
@@ -57,7 +58,8 @@ async function each<T>(what: string, items: T[], fn: (x: T) => Promise<unknown>)
 export async function expireUnpaidOrders(now = new Date()) {
   const { ecommerce } = await getSettings();
   const due = await db.order.findMany({
-    where: { status: "PENDING_PAYMENT", createdAt: { lt: new Date(now.getTime() - ecommerce.unpaidHoldMinutes * MIN) } },
+    // A subscription period's order waits for its grace days instead (runSubscriptions).
+    where: { status: "PENDING_PAYMENT", createdAt: { lt: new Date(now.getTime() - ecommerce.unpaidHoldMinutes * MIN) }, lines: { none: { variant: { sku: { startsWith: "SUB-" } } } } },
     select: { id: true },
     take: 500,
   });
@@ -147,6 +149,9 @@ export const JOBS: Record<string, Steps> = {
     trade: { eftExpiry: tradeEftExpiry, overdueHolds: tradeOverdueHolds, licences: tradeLicenceExpiry, statements: tradeStatements },
     // Expired sessions, day-old sign-in codes, rate-limit rows and 90-day-old payment webhook ids.
     purged: purgeAuthRecords,
+    // Club subscriptions: periods rolled, each billed as its own order (with one reminder); unpaid past the grace days
+    // lapses and the subscription goes past due; cancellations at period end take effect.
+    subscriptions: runSubscriptions,
     statementInvoices: settleStatementInvoices, // stock orders from a month that's over: settled on its statement
     // The books: the day that ended and month-end work (and whatever a missed night in the week before left), queued
     // and posted after everything above; then bank lines still open matched again.

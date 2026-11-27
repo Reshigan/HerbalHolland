@@ -1,23 +1,25 @@
-// The Rewards features that don't fit the six tabs: wishlist, reorder reminders, gift vouchers and saved addresses.
+// The Rewards features that don't fit the six tabs: wishlist, reorder reminders, gift vouchers, club plans and saved addresses.
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { BellRing, Gift, Heart, MapPin } from "lucide-react";
+import { BellRing, Gift, Heart, MapPin, Repeat } from "lucide-react";
 import { db } from "@/server/db";
 import { wishlistCount } from "@/server/shop/wishlist";
 import { cn } from "@/lib/cn";
 
 export async function ClubMore({ customerId, className }: { customerId: string; className?: string }) {
-  const [wishes, restocked, reminders, vouchers, addresses] = await Promise.all([
+  const [wishes, restocked, reminders, vouchers, addresses, plans] = await Promise.all([
     wishlistCount(customerId),
     db.wishlist.count({ where: { customerId, restockedAt: { gte: new Date(Date.now() - 14 * 86_400_000) } } }),
     db.reorderReminder.count({ where: { customerId, active: true } }),
     db.giftVoucher.count({ where: { purchasedByCustomerId: customerId, status: "ACTIVE" } }),
     db.address.count({ where: { customerId } }),
+    db.subscription.count({ where: { customerId, status: { not: "CANCELLED" } } }),
   ]);
   const items = [
     { href: "/club/wishlist", icon: Heart, label: "Wishlist", count: wishes, flag: restocked ? `${restocked} back in stock` : null },
     { href: "/club/reminders", icon: BellRing, label: "Reorder reminders", count: reminders, flag: null },
     { href: "/club/vouchers", icon: Gift, label: "Gift vouchers", count: vouchers, flag: null },
+    { href: "/club/subscriptions", icon: Repeat, label: "Club plans", count: plans, flag: null },
     { href: "/club/addresses", icon: MapPin, label: "Addresses", count: addresses, flag: null },
   ];
   // The Play Store build is Rewards only, so the shopping features stay out of it.

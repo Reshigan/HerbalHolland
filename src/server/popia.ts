@@ -73,7 +73,7 @@ export async function memberExport(customerId: string) {
     },
   });
   if (!c) return null;
-  const [messages, addresses, wishlist, reminders, tickets, returns, vouchers, referralCredit, photos, doNotContact, activity, firstAccess] = await Promise.all([
+  const [messages, addresses, wishlist, reminders, tickets, returns, vouchers, referralCredit, photos, doNotContact, activity, firstAccess, plans] = await Promise.all([
     db.messageLog.findMany({ where: messagesOf(c), orderBy: { createdAt: "asc" }, select: { channel: true, kind: true, to: true, body: true, status: true, createdAt: true } }),
     db.address.findMany({ where: { customerId }, orderBy: { createdAt: "asc" }, select: { label: true, line: true, suburb: true, city: true, province: true, postalCode: true, notes: true, isDefault: true, createdAt: true } }),
     db.wishlist.findMany({ where: { customerId }, orderBy: { createdAt: "asc" }, select: { variantId: true, createdAt: true } }),
@@ -94,6 +94,14 @@ export async function memberExport(customerId: string) {
     db.suppression.findMany({ where: { value: { in: contactOf(c) } }, select: { value: true, channel: true, source: true, createdAt: true } }),
     db.auditLog.findMany({ where: { actorType: "CUSTOMER", actorId: customerId }, orderBy: { at: "asc" }, select: { at: true, action: true } }),
     db.earlyAccessContact.findMany({ where: firstAccessOf(c), select: { firstName: true, email: true, mobile: true, province: true, source: true, signedUpAt: true } }),
+    db.subscription.findMany({
+      where: { customerId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        plan: { select: { name: true } }, status: true, fulfilment: true, priceCents: true, periodStart: true, periodEnd: true, cancelAtPeriodEnd: true, pausedAt: true, cancelledAt: true, createdAt: true,
+        periods: { orderBy: { periodStart: "asc" }, select: { periodStart: true, periodEnd: true, status: true, priceCents: true, allowance: true, carryAllowance: true, paidAt: true, collectedAt: true } },
+      },
+    }),
   ]);
   const [variants, orderCodes] = await Promise.all([
     inBatches([...wishlist, ...reminders].map((w) => w.variantId), (part) => db.variant.findMany({ where: { id: { in: part } }, select: { id: true, sku: true, name: true, product: { select: { name: true } } } })),
@@ -120,6 +128,7 @@ export async function memberExport(customerId: string) {
     doNotContact,
     activity,
     firstAccess,
+    clubPlans: plans.map(({ plan, ...s }) => ({ plan: plan.name, ...s })),
   };
 }
 
@@ -154,6 +163,8 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     await t.address.deleteMany({ where: { customerId } });
     await t.wishlist.deleteMany({ where: { customerId } });
     await t.reorderReminder.deleteMany({ where: { customerId } });
+    await t.subscriptionPeriod.deleteMany({ where: { subscription: { customerId } } }); // the period orders stay with the sales
+    await t.subscription.deleteMany({ where: { customerId } });
     await t.stockAlert.deleteMany({ where: { customerId } });
     await t.dropWatch.deleteMany({ where: { customerId } });
     await t.pushSubscription.deleteMany({ where: { customerId } });

@@ -64,7 +64,7 @@ export class PaymentError extends Error {
  * payments (SIM-…) have none.
  */
 export function paidOnlineWith(o: { payMethod: string; paymentStatus: string; paymentRef: string | null }): HostedGateway | null {
-  if (o.payMethod !== "ONLINE" || o.paymentStatus !== "PAID" || !o.paymentRef || o.paymentRef.startsWith("SIM-") || o.paymentRef.startsWith("VOUCHER:")) return null;
+  if (o.payMethod !== "ONLINE" || o.paymentStatus !== "PAID" || !o.paymentRef || o.paymentRef.startsWith("SIM-") || o.paymentRef.startsWith("VOUCHER:") || o.paymentRef.startsWith("SUB:")) return null;
   return o.paymentRef.startsWith("pay_") ? "PEACH" : o.paymentRef.startsWith("ch_") ? "YOCO" : hostedGateway();
 }
 

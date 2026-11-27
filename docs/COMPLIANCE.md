@@ -160,3 +160,35 @@ tokenisation, and a reminder never places an order. The member does, from their 
 **Wishlists and saved addresses** hold personal information (what a member wants; where they live) and are shown
 only to that member; the address goes to the fulfilling store on the order itself, as before. Both are deleted when
 HQ erases the member.
+
+## Club plans (subscriptions)
+
+**Members only, adults 18+.** A club plan (for example 3 pre-rolls or 3 g a week) is open only to a signed-in,
+age-verified member, and the allowance is collected or delivered like any other order, so every check that applies to
+an order applies to the claim: the compliance engine evaluates the basket, the store hands it over against the member,
+and stock moves through the normal pick. HQ builds and prices plans at HQ → Club plans; a plan stays a draft until HQ
+switches it on, and only active plans are shown.
+
+**What a plan may hold.** A plan may only list products of classes that are not licence-gated and carry no
+no-incentive rule (by default that excludes THC and CBD supplements). A subscription price is a standing discount on a
+recurring purchase, which Medicines Act s18A forbids on medicines, so the HQ form refuses those products and the
+claim checks again. Plan copy goes through `screenCopy`: no medical claims and no stoner clichés.
+
+**How it is paid.** There is no stored card until Peach Payments approves tokenisation, so nothing is ever charged
+automatically. Each period is its own online order, raised by the daily job (`subscriptions` step) and sent to the
+member as a payment link by SMS; the member pays it at `/checkout/pay`. The allowance for a period opens only once that
+period is paid. If it isn't paid within the grace days (HQ → Settings, default 3), the order is cancelled, the period
+lapses with nothing charged, and the plan shows as overdue until the member pays the next one or resumes.
+
+**Cancelling and pausing (CPA s14).** A member can pause, resume or cancel at any time from `/club/subscriptions`. A
+cancel takes effect at the end of a period already paid for (the member keeps what they paid for), or at once if the
+current period is unpaid. Nothing renews after a cancel. The price is fixed at the price the member joined at. The terms
+are published at `/legal/subscriptions` and versioned with the other policies; accepting them is a condition of joining.
+For counsel: whether a paid but unclaimed period may simply lapse (the plan may roll it over once; CPA s48 fairness),
+the notice we give before changing a plan, and whether CPA s14's 20 business days' notice and cancellation rules apply
+to a weekly plan.
+
+**Records.** Every join, pause, resume, cancel, store change and HQ plan change is audited (`subscription.*`).
+The billing orders post as online sales through the ledger like any other; the claim is an order already
+paid (`paymentRef SUB:<period>`) and posts no second sale. Subscriptions and their periods are in the member export and
+are deleted when HQ erases a member; the orders stay with the sales records.

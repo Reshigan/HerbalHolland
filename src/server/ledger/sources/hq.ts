@@ -94,9 +94,10 @@ const onlinePayment: SourceHandler = async (sourceId, t) => {
   const [orderId, part] = sourceId.split(":");
   const o = await t.order.findUnique({
     where: { id: orderId },
-    select: { id: true, code: true, storeId: true, status: true, payMethod: true, paymentStatus: true, totalCents: true, pointsRedeemed: true, events: true, createdAt: true, lines: { select: { variant: { select: { sku: true } } } } },
+    select: { id: true, code: true, storeId: true, status: true, payMethod: true, paymentStatus: true, totalCents: true, pointsRedeemed: true, events: true, createdAt: true, paymentRef: true, lines: { select: { variant: { select: { sku: true } } } } },
   });
-  if (!o || o.lines.every((l) => isVoucherSku(l.variant.sku))) return [];
+  // A club subscription's collection was paid for by its period's order (posted there): nothing went through the gateway.
+  if (!o || o.paymentRef?.startsWith("SUB:") || o.lines.every((l) => isVoucherSku(l.variant.sku))) return [];
   const paid = await paidOnline(t, o);
   if (!paid) return [];
   const hq = await hqCompany(t);
