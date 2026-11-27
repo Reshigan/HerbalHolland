@@ -34,8 +34,10 @@ const periodsOf = (subscriptionId: string) => db.subscriptionPeriod.findMany({ w
 /** Moves a plan's latest month to run from `from` to `to` days from now, as if time had passed. */
 const shiftMonth = async (subscriptionId: string, from: number, to: number) => {
   const [p] = await db.subscriptionPeriod.findMany({ where: { subscriptionId }, orderBy: { periodStart: "desc" }, take: 1 });
-  await db.subscriptionPeriod.update({ where: { id: p.id }, data: { periodStart: days(from), periodEnd: days(to) } });
-  await db.subscription.update({ where: { id: subscriptionId }, data: { periodStart: days(from), periodEnd: days(to) } });
+  // Same instants on both rows: separate days() calls can land a millisecond apart.
+  const data = { periodStart: days(from), periodEnd: days(to) };
+  await db.subscriptionPeriod.update({ where: { id: p.id }, data });
+  await db.subscription.update({ where: { id: subscriptionId }, data });
 };
 
 beforeAll(async () => {
