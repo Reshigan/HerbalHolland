@@ -98,8 +98,8 @@ export async function memberExport(customerId: string) {
       where: { customerId },
       orderBy: { createdAt: "asc" },
       select: {
-        plan: { select: { name: true } }, status: true, fulfilment: true, priceCents: true, periodStart: true, periodEnd: true, cancelAtPeriodEnd: true, pausedAt: true, cancelledAt: true, createdAt: true,
-        periods: { orderBy: { periodStart: "asc" }, select: { periodStart: true, periodEnd: true, status: true, priceCents: true, allowance: true, carryAllowance: true, paidAt: true, collectedAt: true } },
+        plan: { select: { name: true } }, status: true, fulfilment: true, priceCents: true, periodStart: true, periodEnd: true, cancelAtPeriodEnd: true, cancelledAt: true, createdAt: true,
+        periods: { orderBy: { periodStart: "asc" }, select: { periodStart: true, periodEnd: true, status: true, priceCents: true, allowance: true, paidAt: true, claims: { orderBy: { weekStart: "asc" }, select: { weekStart: true, weekEnd: true, allowance: true, cents: true, collectedAt: true } } } },
       },
     }),
   ]);
@@ -163,6 +163,7 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     await t.address.deleteMany({ where: { customerId } });
     await t.wishlist.deleteMany({ where: { customerId } });
     await t.reorderReminder.deleteMany({ where: { customerId } });
+    await t.subscriptionClaim.deleteMany({ where: { period: { subscription: { customerId } } } }); // the claim orders stay with the sales
     await t.subscriptionPeriod.deleteMany({ where: { subscription: { customerId } } }); // the period orders stay with the sales
     await t.subscription.deleteMany({ where: { customerId } });
     await t.stockAlert.deleteMany({ where: { customerId } });

@@ -47,7 +47,7 @@ export function PlanForm({ action, plan, products, stores, readOnly, submitLabel
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="Allowance and price" description="Each period is paid as its own order; the allowance opens once it's paid." />
+          <CardHeader title="Allowance and price" description="Members pay each month upfront as its own order; the weekly allowance opens once the month is paid." />
           <CardBody className="grid gap-4">
             <div className="grid grid-cols-2 gap-4">
               <Field label="Counted in" htmlFor="unit">
@@ -57,7 +57,7 @@ export function PlanForm({ action, plan, products, stores, readOnly, submitLabel
                 </Select>
                 <FieldError name="unit" />
               </Field>
-              <Field label="Allowance each period" htmlFor="allowance">
+              <Field label="Allowance each week" htmlFor="allowance">
                 <Input id="allowance" name="allowance" inputMode="decimal" defaultValue={plan?.allowance ?? 3} required />
               </Field>
             </div>
@@ -65,20 +65,10 @@ export function PlanForm({ action, plan, products, stores, readOnly, submitLabel
               <Input id="itemWord" name="itemWord" defaultValue={plan?.itemWord ?? "items"} maxLength={30} />
               <FieldError name="itemWord" />
             </Field>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Bills" htmlFor="period">
-                <Select id="period" name="period" defaultValue={plan?.period ?? "WEEKLY"}>
-                  <option value="WEEKLY">Weekly</option>
-                  <option value="FOUR_WEEKLY">Every 4 weeks</option>
-                  <option value="MONTHLY">Monthly</option>
-                </Select>
-                <FieldError name="period" />
-              </Field>
-              <Field label="Price per period (R, VAT incl.)" htmlFor="price">
-                <Input id="price" name="price" inputMode="decimal" defaultValue={plan ? centsToInput(plan.priceCents) : ""} required />
-              </Field>
-            </div>
-            <Checkbox name="rollover" defaultChecked={plan?.rollover ?? false} label="Unclaimed allowance carries over once" description="A paid period that isn't collected adds to the next period. A carried allowance never carries again." />
+            <Field label="Price per month (R, VAT incl.)" htmlFor="price" hint="Paid upfront each month. A month holds four weekly allowances.">
+              <Input id="price" name="price" inputMode="decimal" defaultValue={plan ? centsToInput(plan.priceCents) : ""} required />
+            </Field>
+            <Checkbox name="rollover" defaultChecked={plan?.rollover ?? false} label="Unclaimed allowance carries over once" description="A paid week that isn't claimed adds to the next week. A carried allowance never carries again." />
             <Field label="Status" htmlFor="status" hint="Draft plans are hidden from members. Archiving stops new joins; current members carry on until they cancel.">
               <Select id="status" name="status" defaultValue={plan?.status ?? "DRAFT"}>
                 <option value="DRAFT">Draft</option>

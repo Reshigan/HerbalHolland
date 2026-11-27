@@ -562,7 +562,7 @@ export async function advanceOrder(
     const data: Prisma.OrderUpdateInput = { status: to, events };
     if (handover || dispatch) data.paymentStatus = "PAID";
     if (to === "CANCELLED" && o.paymentStatus === "PAID" && !subClaim) data.paymentStatus = "REFUNDED";
-    if (to === "COMPLETED" && subClaim) await t.subscriptionPeriod.updateMany({ where: { claimOrderId: o.id }, data: { collectedAt: new Date() } });
+    if (to === "COMPLETED" && subClaim) await t.subscriptionClaim.updateMany({ where: { orderId: o.id }, data: { collectedAt: new Date() } });
     if (to === "COMPLETED") (data.completedAt = new Date()), (data.idChecked = !!opts.idChecked);
     if (dispatch) (data.courier = opts.courier ?? (o.fulfilment === "SAME_DAY" ? "Herbal Holland driver" : "Courier")), (data.trackingNo = opts.trackingNo ?? `HH${shortCode(8)}`);
     await audit(t, actor, `order.${to.toLowerCase()}`, { storeId: o.storeId, entity: "Order", entityId: o.id, data: refund ? { refundId: refund.refundId, refundStatus: refund.status, amount: due } : undefined });

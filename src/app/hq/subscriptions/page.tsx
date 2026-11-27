@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Pause, Play, Plus, Repeat, X } from "lucide-react";
+import { Play, Plus, Repeat, X } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { can } from "@/server/hq/guard";
 import { qs } from "@/server/hq/form";
 import { hqTotals } from "@/server/shop/subscriptions";
-import { allowanceLabel, PERIOD_ADVERB } from "@/lib/subscriptions";
+import { allowanceLabel } from "@/lib/subscriptions";
 import { zar, zarWhole } from "@/lib/money";
 import { fmtDate, num } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page";
@@ -26,7 +26,7 @@ export const metadata = { title: "Subscriptions" };
 
 const PAGE_SIZE = 20;
 const PLAN_TONE = { DRAFT: ["Draft", "neutral"], ACTIVE: ["Live", "green"], ARCHIVED: ["Archived", "dark"] } as const;
-const SUB_TONE = { ACTIVE: ["Active", "green"], PAUSED: ["Paused", "amber"], PAST_DUE: ["Payment overdue", "red"], CANCELLED: ["Cancelled", "neutral"] } as const;
+const SUB_TONE = { PENDING: ["Awaiting first payment", "amber"], ACTIVE: ["Active", "green"], PAST_DUE: ["Payment overdue", "red"], CANCELLED: ["Cancelled", "neutral"] } as const;
 
 export default async function SubscriptionsPage({ searchParams }: { searchParams: Promise<{ tab?: string; page?: string; m?: string }> }) {
   const sp = await searchParams;
@@ -44,7 +44,7 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
     db.subscriptionPlan.count(),
     db.subscription.count({ where: subWhere }),
     tab === "plans" ? db.subscriptionPlan.findMany({ orderBy: [{ status: "asc" }, { sortOrder: "asc" }, { name: "asc" }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { _count: { select: { subscriptions: { where: { status: { not: "CANCELLED" } } } } } } }) : [],
-    tab === "members" ? db.subscription.findMany({ where: subWhere, orderBy: [{ status: "asc" }, { periodEnd: "asc" }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { plan: { select: { name: true, unit: true, allowance: true, itemWord: true, period: true } } } }) : [],
+    tab === "members" ? db.subscription.findMany({ where: subWhere, orderBy: [{ status: "asc" }, { periodEnd: "asc" }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { plan: { select: { name: true, unit: true, allowance: true, itemWord: true } } } }) : [],
   ]);
   const [customers, stores] = subs.length
     ? await Promise.all([
@@ -61,7 +61,7 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
       <PageHeader
         overline="Launch programme"
         title="Subscriptions"
-        description="Club plans for adult members: a set allowance each period, paid as its own order, collected at the member's store or delivered. The allowance opens only once the period is paid."
+        description="Club plans for adult members: a set allowance each week, paid monthly upfront as its own order, collected at the member's store or delivered. The month's allowance opens only once it is paid; a cancelled plan ends with the paid month."
         actions={
           edit && (
             <ButtonLink href="/hq/subscriptions/new">
@@ -72,10 +72,10 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
       />
       <Flash message={sp.m} />
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat label="Active members" value={num(totals.active)} sub={`${num(totals.paused)} paused · ${num(totals.pastDue)} overdue`} />
+        <Stat label="Active members" value={num(totals.active)} sub={`${num(totals.pending)} awaiting first payment · ${num(totals.pastDue)} overdue`} />
         <Stat label="Monthly recurring" value={zarWhole(totals.mrrCents)} sub="Active plans, VAT incl." />
         <Stat label="To collect this week" value={num(totals.toCollect)} sub="Paid allowances not yet collected" />
-        <Stat label="Awaiting payment" value={num(totals.unpaid)} sub="Periods raised, not yet paid" />
+        <Stat label="Awaiting payment" value={num(totals.unpaid)} sub="Months raised, not yet paid" />
       </div>
       <TabLinks className="mb-4" current={href(tab)} tabs={[{ label: "Plans", count: planCount, href: href("plans") }, { label: "Members", count: subCount, href: href("members") }]} />
       <Card>
@@ -108,7 +108,7 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
                       {p.rollover && <Pill>Carries over</Pill>}
                     </span>
                   </Td>
-                  <Td className="whitespace-nowrap">{allowanceLabel(p.unit, p.allowance, p.itemWord)} {PERIOD_ADVERB[p.period]}</Td>
+                  <Td className="whitespace-nowrap">{allowanceLabel(p.unit, p.allowance, p.itemWord)} a week</Td>
                   <Td align="right" className="tnum">{zar(p.priceCents)}</Td>
                   <Td align="right" className="hidden sm:table-cell">{num(p._count.subscriptions)}</Td>
                   <Td>
@@ -143,7 +143,7 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
                     <Td>
                       {s.plan.name}
                       <span className="block text-xs text-ink-500">
-                        {allowanceLabel(s.plan.unit, s.plan.allowance, s.plan.itemWord)} · {zar(s.priceCents)} {PERIOD_ADVERB[s.plan.period]}
+                        {allowanceLabel(s.plan.unit, s.plan.allowance, s.plan.itemWord)} a week · {zar(s.priceCents)} per month
                       </span>
                     </Td>
                     <Td className="hidden md:table-cell">
@@ -160,19 +160,14 @@ export default async function SubscriptionsPage({ searchParams }: { searchParams
                     {edit && (
                       <Td align="right">
                         <span className="inline-flex flex-wrap justify-end gap-2">
-                          {(s.status === "ACTIVE" || s.status === "PAST_DUE") && (
-                            <ConfirmAction action={actOnSubscription.bind(null, s.id, "pause")} label="Pause" title="Pause this plan?" confirmLabel="Pause" size="sm" icon={<Pause className="h-4 w-4" />}>
-                              Nothing is billed while it's paused. A period already paid for can still be collected.
-                            </ConfirmAction>
-                          )}
-                          {s.status === "PAUSED" && (
-                            <ConfirmAction action={actOnSubscription.bind(null, s.id, "resume")} label="Resume" title="Resume this plan?" confirmLabel="Resume" size="sm" icon={<Play className="h-4 w-4" />}>
-                              A new period starts now and the member gets a payment link for it.
+                          {((s.status === "ACTIVE" && s.cancelAtPeriodEnd) || s.status === "PAST_DUE") && (
+                            <ConfirmAction action={actOnSubscription.bind(null, s.id, "resume")} label="Keep plan" title="Keep this plan?" confirmLabel="Keep plan" size="sm" icon={<Play className="h-4 w-4" />}>
+                              {s.status === "PAST_DUE" ? "A new month starts when the member pays the link they get." : "The plan renews monthly again instead of ending with this month."}
                             </ConfirmAction>
                           )}
                           {s.status !== "CANCELLED" && !s.cancelAtPeriodEnd && (
                             <ConfirmAction action={actOnSubscription.bind(null, s.id, "cancel")} label="Cancel" title="Cancel this plan?" confirmLabel="Cancel plan" variant="danger" size="sm" icon={<X className="h-4 w-4" />}>
-                              Billing stops. Anything already paid for can still be collected until the period ends.
+                              No more months are billed. A month already paid for runs to its end and its weekly allowance can still be collected; there's no partial refund.
                             </ConfirmAction>
                           )}
                         </span>

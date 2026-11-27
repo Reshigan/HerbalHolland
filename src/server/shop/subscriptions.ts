@@ -1,13 +1,15 @@
-// Club subscriptions. HQ sells plans (an allowance each period, e.g. 3 g or 3 pre-rolls a week, for a fixed price); a
-// member subscribes at a store. Each period is billed as its own online order (one `SUB-` line on the DRAFT "Club
-// subscription" product, paid through /checkout/pay like any order); when it's paid the period's allowance opens
-// (markOrderPaid → onSubscriptionPaidTx). The member then claims it: a normal online order at their store, already paid
-// (paymentRef `SUB:<periodId>`), picked and handed over (or couriered) as usual, so stock, compliance, ID checks and the
-// sale all go through the existing order flow. HQ holds the period payment as prepaid; the store's sale clears it.
-// No card is stored or charged automatically: the member pays each period from the link we send (see docs/COMPLIANCE.md).
+// Club subscriptions. HQ sells plans (a weekly allowance, e.g. 3 g or 3 pre-rolls a week, for a fixed monthly price); a
+// member joins at a store and pays each month upfront. Each month is billed as its own online order (one `SUB-` line on
+// the DRAFT "Club subscription" product, paid through /checkout/pay like any order); the first month starts the day it's
+// paid, and each month runs to the same day next month (markOrderPaid → onSubscriptionPaidTx). A paid month opens four
+// weekly allowances. The member claims each week's: a normal online order at their store, already paid (paymentRef
+// `SUB:<claimId>`), picked and handed over (or couriered) as usual, so stock, compliance, ID checks and the sale all go
+// through the existing order flow. HQ holds the month's payment as prepaid; the store's sales clear it.
+// No card is stored or charged automatically: the member pays each month from the link we send (see docs/COMPLIANCE.md).
+// Cancelling stops the next month; the month already paid for runs to its end, with no refund for the rest of it.
 import { randomUUID } from "node:crypto";
 import { asList } from "@/lib/json-list";
-import { db, tx, type Tx } from "@/server/db";
+import { db, prismaCode, tx, type Tx } from "@/server/db";
 import { audit, SYSTEM, type Actor } from "@/server/audit";
 import { pinCode, shortCode } from "@/server/counters";
 import { notifyCustomer, smsLink } from "@/server/messaging";
@@ -16,19 +18,20 @@ import { vatOf, zarWhole } from "@/lib/money";
 import { fmtDate } from "@/lib/format";
 import { canBuyOnline, fulfilmentForPhase, PHASE_CLOSED } from "@/lib/launch-phase";
 import { incentiveExcluded } from "@/lib/compliance";
-import { allowanceLabel, claimProblem, isPastGrace, monthlyCents, periodEndOf, PERIOD_LABEL, splitCents, type BillingPeriod } from "@/lib/subscriptions";
+import { allowanceLabel, anchorDayOf, claimProblem, cycleEndOf, isPastGrace, openWeek, splitCents, type Cycle } from "@/lib/subscriptions";
 import { evaluateBasket } from "@/server/compliance";
 import { getSettings } from "@/server/settings";
 import { lockCustomer, lockStock } from "@/server/locks";
 import { advanceOrder, notifyPlaced, shortLine } from "@/server/orders";
 import { SUB_REF, SUB_SKU } from "./subscription-orders";
-import type { Fulfilment, OrderStatus, SubscriptionPlan } from "@/generated/prisma/client";
+import type { Fulfilment, OrderStatus, SubscriptionClaim, SubscriptionPeriod, SubscriptionPlan } from "@/generated/prisma/client";
 
 export class SubscriptionError extends Error {}
 export const SUB_PRODUCT_SLUG = "club-subscription";
 const SUB_CATEGORY_SLUG = "club-subscriptions";
+const DAY = 86_400_000;
 type Event = { status: OrderStatus; at: string; note?: string };
-const LIVE = ["ACTIVE", "PAUSED", "PAST_DUE"] as const;
+const LIVE = ["PENDING", "ACTIVE", "PAST_DUE"] as const;
 const actorOf = (c: { id: string; firstName: string }): Actor => ({ type: "CUSTOMER", id: c.id, name: c.firstName });
 
 // ── The virtual product: one variant per plan, priced at the plan's price ────────
@@ -49,9 +52,9 @@ export async function ensurePlanVariant(t: Tx, plan: Pick<SubscriptionPlan, "slu
     (await t.product.findUnique({ where: { slug: SUB_PRODUCT_SLUG } })) ??
     (await t.product.create({
       data: {
-        slug: SUB_PRODUCT_SLUG, name: "Club subscription", tagline: "A member's allowance, paid each period", categoryId: category.id, regClass: "ACCESSORY", status: "DRAFT",
-        description: "A period of a Herbal Holland club plan: the member's allowance for the period, collected in store or delivered.",
-        legalBasis: "Prepayment for goods supplied when the allowance is collected",
+        slug: SUB_PRODUCT_SLUG, name: "Club subscription", tagline: "A member's weekly allowance, paid monthly upfront", categoryId: category.id, regClass: "ACCESSORY", status: "DRAFT",
+        description: "A month of a Herbal Holland club plan: the member's weekly allowances for the month, collected in store or delivered.",
+        legalBasis: "Prepayment for goods supplied when each week's allowance is collected",
       },
     }));
   const v = await t.variant.create({ data: { productId: product.id, sku, name: plan.name, priceCents: plan.priceCents, wholesaleCents: plan.priceCents, costCents: plan.priceCents, sortOrder: plan.sortOrder } });
@@ -83,40 +86,50 @@ export async function planCandidates() {
   });
 }
 
-// ── Billing a period ────────────────────────────────────────────────────────────
+// ── Billing a month ─────────────────────────────────────────────────────────────
 
-/** Raises the period's payable order (once). Returns the order id. */
+/** Raises the month's payable order (once). Returns the order id. */
 async function billPeriod(periodId: string) {
   const p = await db.subscriptionPeriod.findUniqueOrThrow({ where: { id: periodId }, include: { subscription: { include: { plan: true } } } });
   if (p.billingOrderId) return p.billingOrderId;
   const { subscription: s } = p;
+  // Next month's order goes to the store the member moved to for next month.
+  const storeId = p.periodStart >= s.periodEnd ? (s.nextStoreId ?? s.storeId) : s.storeId;
   const now = new Date();
   return tx(async (t) => {
     const variantId = await ensurePlanVariant(t, s.plan);
     const id = randomUUID();
-    // Claim the period first: a second run (or a stop halfway) never raises a second order for it.
+    // Claim the month first: a second run (or a stop halfway) never raises a second order for it.
     const { count } = await t.subscriptionPeriod.updateMany({ where: { id: p.id, billingOrderId: null }, data: { billingOrderId: id } });
     if (!count) return (await t.subscriptionPeriod.findUniqueOrThrow({ where: { id: p.id } })).billingOrderId!;
     await t.order.create({
       data: {
-        id, code: shortCode(6), collectionCode: pinCode(), customerId: s.customerId, storeId: s.storeId, status: "PENDING_PAYMENT", fulfilment: "COLLECT",
-        routingNote: `Club plan ${s.plan.name}: ${fmtDate(p.periodStart)} to ${fmtDate(p.periodEnd)}`,
+        id, code: shortCode(6), collectionCode: pinCode(), customerId: s.customerId, storeId, status: "PENDING_PAYMENT", fulfilment: "COLLECT",
+        routingNote: `Club plan ${s.plan.name}: the month ${fmtDate(p.periodStart)} to ${fmtDate(p.periodEnd)}`,
         subtotalCents: p.priceCents, discountCents: 0, deliveryCents: 0, pointsRedeemed: 0, totalCents: p.priceCents, vatCents: vatOf(p.priceCents),
         payMethod: "ONLINE", paymentStatus: "UNPAID",
         events: [{ status: "PENDING_PAYMENT", at: now.toISOString(), note: `Club plan ${s.plan.name}` }] satisfies Event[],
         lines: { create: [{ variantId, qty: 1, unitPriceCents: p.priceCents, memberSavingsCents: 0, offerCents: 0, totalCents: p.priceCents }] },
       },
     });
-    await audit(t, SYSTEM, "subscription.bill", { storeId: s.storeId, entity: "SubscriptionPeriod", entityId: p.id, data: { orderId: id, price: p.priceCents } });
+    await audit(t, SYSTEM, "subscription.bill", { storeId, entity: "SubscriptionPeriod", entityId: p.id, data: { orderId: id, price: p.priceCents } });
     return id;
   });
 }
+
+async function cancelBilling(orderId: string | null, note: string) {
+  if (!orderId) return;
+  const o = await db.order.findUnique({ where: { id: orderId }, select: { status: true } });
+  if (o?.status === "PENDING_PAYMENT") await advanceOrder(orderId, "CANCELLED", SYSTEM, { note }).catch(() => null); // paid at the same moment: leave it
+}
+
+const isPaid = async (orderId: string | null) => !!orderId && (await db.order.findUnique({ where: { id: orderId }, select: { paymentStatus: true } }))?.paymentStatus === "PAID";
 
 // ── Joining ─────────────────────────────────────────────────────────────────────
 
 export type SubscribeInput = { customerId: string; planId: string; storeId: string; fulfilment: Fulfilment; addressId?: string | null; acceptTerms: boolean };
 
-/** Starts a subscription: the first period begins now and its order is raised. Returns the order to pay. */
+/** Starts a subscription awaiting its first month's payment: the month starts when it's paid. Returns the order to pay. */
 export async function subscribe(a: SubscribeInput) {
   const settings = await getSettings();
   if (!canBuyOnline(settings.launch.phase)) throw new SubscriptionError(PHASE_CLOSED);
@@ -141,17 +154,20 @@ export async function subscribe(a: SubscribeInput) {
   const customer = comp.ctx.record;
   if (!customer) throw new SubscriptionError("Sign in to join");
   const now = new Date();
-  const end = periodEndOf(now, plan.period);
+  const end = cycleEndOf(now); // provisional: the month is set again from the day it's paid
   const periodId = await tx(async (t) => {
     await lockCustomer(t, customer.id);
     if (await t.subscription.findFirst({ where: { customerId: customer.id, planId: plan.id, status: { in: [...LIVE] } }, select: { id: true } }))
       throw new SubscriptionError("You're already on this plan: manage it below");
     const s = await t.subscription.create({
-      data: { planId: plan.id, customerId: customer.id, storeId: store.id, fulfilment: a.fulfilment, addressId: address?.id ?? null, priceCents: plan.priceCents, startedAt: now, periodStart: now, periodEnd: end },
+      data: {
+        planId: plan.id, customerId: customer.id, storeId: store.id, fulfilment: a.fulfilment, addressId: address?.id ?? null, priceCents: plan.priceCents,
+        status: "PENDING", startedAt: now, periodStart: now, periodEnd: end, anchorDay: anchorDayOf(now),
+      },
     });
     const p = await t.subscriptionPeriod.create({ data: { subscriptionId: s.id, periodStart: now, periodEnd: end, priceCents: plan.priceCents, allowance: plan.allowance } });
     await audit(t, actorOf(customer), "subscription.join", {
-      storeId: store.id, entity: "Subscription", entityId: s.id, data: { plan: plan.slug, price: plan.priceCents, period: plan.period, termsVersion: settings.subscriptions.termsVersion },
+      storeId: store.id, entity: "Subscription", entityId: s.id, data: { plan: plan.slug, pricePerMonth: plan.priceCents, termsVersion: settings.subscriptions.termsVersion },
     });
     return p.id;
   });
@@ -160,88 +176,96 @@ export async function subscribe(a: SubscribeInput) {
 
 // ── The daily job ───────────────────────────────────────────────────────────────
 
-/** The start of the period that covers `now`, stepping from `from` (deterministic, so a rerun lands on the same day). */
-function currentStart(from: Date, period: BillingPeriod, now: Date) {
-  let s = from;
-  while (periodEndOf(s, period) <= now) s = periodEndOf(s, period);
-  return s;
-}
-
-/** Rolls one subscription whose period is over: cancels, waits (paused / past due) or opens and bills the next period. */
-export async function rollSubscription(id: string, now = new Date()) {
-  const s = await db.subscription.findUniqueOrThrow({ where: { id }, include: { plan: true, periods: { orderBy: { periodStart: "desc" }, take: 1 } } });
-  if (s.status === "CANCELLED" || s.periodEnd > now) return null;
-  const last = s.periods[0];
-  if (s.cancelAtPeriodEnd) {
-    if (last?.status === "DUE" && last.billingOrderId) await cancelBilling(last.billingOrderId, "Club plan cancelled");
-    await tx(async (t) => {
-      if (last?.status === "DUE") await t.subscriptionPeriod.updateMany({ where: { id: last.id, status: "DUE" }, data: { status: "LAPSED" } });
-      await t.subscription.updateMany({ where: { id: s.id, status: { not: "CANCELLED" } }, data: { status: "CANCELLED", cancelledAt: now } });
-      await audit(t, SYSTEM, "subscription.cancelled", { storeId: s.storeId, entity: "Subscription", entityId: s.id, data: { atPeriodEnd: true } });
-    });
-    return null;
-  }
-  if (s.status !== "ACTIVE") return null; // paused, or past due: nothing new until the member resumes
-  if (last?.status === "DUE") return lapse(last.id, now); // unpaid at the end: it lapses, no new period
-  const start = currentStart(s.periodEnd, s.plan.period, now);
-  const end = periodEndOf(start, s.plan.period);
-  // An unclaimed paid period carries into this one if the plan allows (one level: a carried allowance never carries again).
-  const carry = s.plan.rollover && last?.status === "PAID" && last.periodEnd.getTime() === start.getTime() ? { carryAllowance: last.allowance, carryCents: last.priceCents } : { carryAllowance: 0, carryCents: 0 };
-  const storeId = s.nextStoreId ?? s.storeId;
-  const p = await tx(async (t) => {
-    const period = await t.subscriptionPeriod.upsert({
-      where: { subscriptionId_periodStart: { subscriptionId: s.id, periodStart: start } },
-      create: { subscriptionId: s.id, periodStart: start, periodEnd: end, priceCents: s.priceCents, allowance: s.plan.allowance, ...carry },
-      update: {},
-    });
-    await t.subscription.update({ where: { id: s.id }, data: { periodStart: start, periodEnd: end, storeId, nextStoreId: null } });
-    return period;
+/** Raises next month (once) for an active plan that isn't cancelling, bills it and texts the pay link. Returns the order. */
+export async function renewSubscription(id: string) {
+  const s = await db.subscription.findUniqueOrThrow({ where: { id }, include: { plan: true } });
+  if (s.status !== "ACTIVE" || s.cancelAtPeriodEnd) return null;
+  const start = s.periodEnd;
+  const p = await db.subscriptionPeriod.upsert({
+    where: { subscriptionId_periodStart: { subscriptionId: s.id, periodStart: start } },
+    create: { subscriptionId: s.id, periodStart: start, periodEnd: cycleEndOf(start, s.anchorDay), priceCents: s.priceCents, allowance: s.plan.allowance },
+    update: {},
   });
+  if (p.status !== "DUE") return p.billingOrderId;
   const orderId = await billPeriod(p.id);
-  if (!p.remindedAt) await remind(p.id, orderId, s.customerId, s.plan.name, s.priceCents);
-  return p.id;
+  if (!p.remindedAt) await remind(p.id, orderId, s.customerId, s.plan.name, p.priceCents);
+  return orderId;
 }
 
 async function remind(periodId: string, orderId: string, customerId: string, planName: string, price: number) {
   const { count } = await db.subscriptionPeriod.updateMany({ where: { id: periodId, remindedAt: null }, data: { remindedAt: new Date() } });
   const c = count ? await db.customer.findUnique({ where: { id: customerId }, select: { id: true, phone: true } }) : null;
-  if (c?.phone) await notifyCustomer(c, sms(`Your Herbal Holland club plan ${planName} is ready for this period: ${zarWhole(price)}. Pay here to open your allowance: ${smsLink(`/checkout/pay/${orderId}`)}`));
+  if (c?.phone) await notifyCustomer(c, sms(`Your Herbal Holland club plan ${planName} for next month: ${zarWhole(price)}, paid upfront. Pay here to keep your weekly allowance: ${smsLink(`/checkout/pay/${orderId}`)}`));
 }
 
-async function cancelBilling(orderId: string, note: string) {
-  const o = await db.order.findUnique({ where: { id: orderId }, select: { status: true } });
-  if (o?.status === "PENDING_PAYMENT") await advanceOrder(orderId, "CANCELLED", SYSTEM, { note }).catch(() => null); // paid at the same moment: leave it
+/** A month whose end has come: a cancelling plan ends; otherwise the plan moves on to next month (raised if it wasn't). */
+export async function rollSubscription(id: string, now = new Date()) {
+  const s = await db.subscription.findUniqueOrThrow({ where: { id } });
+  if (s.periodEnd > now) return null;
+  if (s.status === "ACTIVE" && s.cancelAtPeriodEnd) {
+    const later = await db.subscriptionPeriod.findMany({ where: { subscriptionId: s.id, status: "DUE", periodStart: { gte: s.periodEnd } } });
+    for (const p of later) await cancelBilling(p.billingOrderId, "Club plan cancelled");
+    await tx(async (t) => {
+      for (const p of later) if (!(await isPaid(p.billingOrderId))) await t.subscriptionPeriod.deleteMany({ where: { id: p.id, status: "DUE" } });
+      await t.subscription.updateMany({ where: { id: s.id, status: "ACTIVE" }, data: { status: "CANCELLED", cancelledAt: now } });
+      await audit(t, SYSTEM, "subscription.cancelled", { storeId: s.storeId, entity: "Subscription", entityId: s.id, data: { atPeriodEnd: true } });
+    });
+    return null;
+  }
+  if (s.status !== "ACTIVE") return null; // awaiting a first payment, or past due: nothing moves until the member pays
+  let next = await db.subscriptionPeriod.findUnique({ where: { subscriptionId_periodStart: { subscriptionId: s.id, periodStart: s.periodEnd } } });
+  if (!next) {
+    await renewSubscription(s.id);
+    next = await db.subscriptionPeriod.findUniqueOrThrow({ where: { subscriptionId_periodStart: { subscriptionId: s.id, periodStart: s.periodEnd } } });
+  }
+  // Compare-and-set on the old end, so a rerun never moves the plan twice.
+  await db.subscription.updateMany({
+    where: { id: s.id, periodEnd: s.periodEnd },
+    data: { periodStart: next.periodStart, periodEnd: next.periodEnd, storeId: s.nextStoreId ?? s.storeId, nextStoreId: null },
+  });
+  return next.id;
 }
 
-/** An unpaid period past its grace days: the order is cancelled, the period lapses and the subscription is past due. */
+/** An unpaid month past its grace days: the order is cancelled and the month lapses. A plan whose first month was never
+ *  paid ends; an active plan goes past due (no allowance until the member pays a new month). */
 async function lapse(periodId: string, now: Date) {
   const p = await db.subscriptionPeriod.findUniqueOrThrow({ where: { id: periodId }, include: { subscription: true } });
-  if (p.billingOrderId) await cancelBilling(p.billingOrderId, "Club plan: payment not received in time");
-  const paid = p.billingOrderId ? (await db.order.findUnique({ where: { id: p.billingOrderId }, select: { paymentStatus: true } }))?.paymentStatus === "PAID" : false;
-  if (paid) return null;
+  await cancelBilling(p.billingOrderId, "Club plan: payment not received in time");
+  if (await isPaid(p.billingOrderId)) return null;
+  const s = p.subscription;
   await tx(async (t) => {
     await t.subscriptionPeriod.updateMany({ where: { id: p.id, status: "DUE" }, data: { status: "LAPSED" } });
-    await t.subscription.updateMany({ where: { id: p.subscriptionId, status: "ACTIVE" }, data: { status: "PAST_DUE" } });
-    await audit(t, SYSTEM, "subscription.past_due", { storeId: p.subscription.storeId, entity: "Subscription", entityId: p.subscriptionId, data: { periodId: p.id, at: now.toISOString() } });
+    if (s.status === "PENDING") {
+      await t.subscription.updateMany({ where: { id: s.id, status: "PENDING" }, data: { status: "CANCELLED", cancelledAt: now } });
+      await audit(t, SYSTEM, "subscription.cancelled", { storeId: s.storeId, entity: "Subscription", entityId: s.id, data: { reason: "first month unpaid" } });
+    } else {
+      await t.subscription.updateMany({ where: { id: s.id, status: "ACTIVE" }, data: { status: "PAST_DUE" } });
+      await audit(t, SYSTEM, "subscription.past_due", { storeId: s.storeId, entity: "Subscription", entityId: s.id, data: { periodId: p.id, at: now.toISOString() } });
+    }
   });
   return null;
 }
 
-/** JOBS step (daily): bill periods without an order, lapse the unpaid past grace, roll every subscription whose period is over. */
+/** JOBS step (daily): bill months without an order, lapse the unpaid past grace, raise next month a few days before a
+ *  month ends, and move on (or end) every plan whose month is over. Every step is a compare-and-set, so reruns are safe. */
 export async function runSubscriptions(now = new Date()) {
   const { subscriptions } = await getSettings();
-  const out = { billed: 0, lapsed: 0, rolled: 0, failed: 0 };
+  const out = { billed: 0, lapsed: 0, renewed: 0, rolled: 0, failed: 0 };
   const fail = () => void out.failed++;
   for (const p of await db.subscriptionPeriod.findMany({ where: { status: "DUE", billingOrderId: null }, select: { id: true }, take: 500 }))
     await billPeriod(p.id).then(() => out.billed++, fail);
-  const due = await db.subscriptionPeriod.findMany({ where: { status: "DUE", billingOrderId: { not: null } }, select: { id: true, billingOrderId: true }, take: 2000 });
+  const due = await db.subscriptionPeriod.findMany({ where: { status: "DUE", billingOrderId: { not: null } }, select: { id: true, billingOrderId: true, periodStart: true }, take: 2000 });
   const orders = new Map((await db.order.findMany({ where: { id: { in: due.map((p) => p.billingOrderId!) } }, select: { id: true, createdAt: true } })).map((o) => [o.id, o.createdAt]));
   for (const p of due) {
     const billed = orders.get(p.billingOrderId!);
-    if (billed && isPastGrace(billed, subscriptions.graceDays, now)) await lapse(p.id, now).then(() => out.lapsed++, fail);
+    // Grace runs from the later of billing and the month's start: next month is billed early, and its grace starts with it.
+    if (billed && isPastGrace(billed > p.periodStart ? billed : p.periodStart, subscriptions.graceDays, now)) await lapse(p.id, now).then(() => out.lapsed++, fail);
   }
-  for (const s of await db.subscription.findMany({ where: { status: { in: [...LIVE] }, periodEnd: { lte: now } }, select: { id: true }, take: 500 }))
-    await rollSubscription(s.id, now).then((r) => void (r && out.rolled++), fail);
+  const renewBy = new Date(now.getTime() + subscriptions.renewDays * DAY);
+  for (const s of await db.subscription.findMany({ where: { status: "ACTIVE", cancelAtPeriodEnd: false, periodEnd: { lte: renewBy } }, select: { id: true }, take: 500 }))
+    await renewSubscription(s.id).then((r) => void (r && out.renewed++), fail);
+  for (const s of await db.subscription.findMany({ where: { status: "ACTIVE", periodEnd: { lte: now } }, select: { id: true }, take: 500 }))
+    await rollSubscription(s.id, now).then((r) => void out.rolled++, fail);
   return out;
 }
 
@@ -253,21 +277,36 @@ async function ownSubscription(customerId: string, id: string) {
   return s;
 }
 
-/** The member claims this period's allowance: an order at their store, already paid by the period. Returns its code. */
+const cycleOf = (p: SubscriptionPeriod & { claims: Pick<SubscriptionClaim, "weekStart">[] }): Cycle => ({ ...p, claimed: p.claims.map((c) => c.weekStart) });
+
+/** The paid month covering `now`, the one before it (for rollover) and this week's allowance; null fields when unpaid. */
+async function currentWeek(s: { id: string; plan: { rollover: boolean } }, now: Date) {
+  const [p, prev] = await db.subscriptionPeriod.findMany({
+    where: { subscriptionId: s.id, periodStart: { lte: now } },
+    include: { claims: { select: { weekStart: true } } },
+    orderBy: { periodStart: "desc" },
+    take: 2,
+  });
+  const period = p && p.periodEnd > now ? p : null;
+  const week = period?.status === "PAID" ? openWeek(cycleOf(period), now, s.plan.rollover, prev?.status === "PAID" ? cycleOf(prev) : null) : null;
+  return { period, week };
+}
+
+/** The member claims this week's allowance: an order at their store, already paid by the month. Returns its code. */
 export async function claimAllowance(a: { customerId: string; subscriptionId: string; items: { variantId: string; qty: number }[] }) {
   const settings = await getSettings();
   if (!canBuyOnline(settings.launch.phase)) throw new SubscriptionError(PHASE_CLOSED);
   const s = await ownSubscription(a.customerId, a.subscriptionId);
   if (s.status === "CANCELLED") throw new SubscriptionError("This plan has ended");
   const now = new Date();
-  const p = await db.subscriptionPeriod.findFirst({ where: { subscriptionId: s.id, periodStart: { lte: now }, periodEnd: { gt: now } } });
-  if (!p || p.status === "DUE") throw new SubscriptionError("Pay for this period to open your allowance");
-  if (p.status !== "PAID") throw new SubscriptionError(p.status === "COLLECTED" ? "You've claimed this period's allowance" : "This period has lapsed");
+  const { period: p, week } = await currentWeek(s, now);
+  if (!p || p.status === "DUE") throw new SubscriptionError("Pay for this month to open your allowance");
+  if (p.status !== "PAID" || !week) throw new SubscriptionError("This month has lapsed");
+  if (week.claimed) throw new SubscriptionError("You've claimed this week's allowance");
   const options = new Map((await eligibleVariants(s.plan)).map((v) => [v.id, v]));
   const items = a.items.filter((i) => i.qty > 0);
   if (items.some((i) => !options.has(i.variantId))) throw new SubscriptionError("That product isn't on your plan right now");
-  const allowance = p.allowance + p.carryAllowance;
-  const why = claimProblem(s.plan.unit, allowance, items.map((i) => ({ grams: options.get(i.variantId)!.grams, qty: i.qty })));
+  const why = claimProblem(s.plan.unit, week.allowance, items.map((i) => ({ grams: options.get(i.variantId)!.grams, qty: i.qty })));
   if (why) throw new SubscriptionError(why);
   if (!fulfilmentForPhase(settings.launch.phase).includes(s.fulfilment)) throw new SubscriptionError("That way of getting your order isn't open yet");
   const address = s.fulfilment === "COURIER" ? await db.address.findFirst({ where: { id: s.addressId ?? "", customerId: s.customerId } }) : null;
@@ -280,11 +319,12 @@ export async function claimAllowance(a: { customerId: string; subscriptionId: st
   const comp = await evaluateBasket(basket);
   if (!comp.ok) throw new SubscriptionError(comp.blocks[0]);
   const customer = comp.ctx.record!;
-  // What the period paid (plus any carried period) spread over the lines by retail value, so the sale adds up exactly.
-  const value = p.priceCents + p.carryCents;
+  // What the week was paid for (plus any carried week) spread over the lines by retail value, so the sale adds up exactly.
+  const value = week.cents;
   const shares = splitCents(value, lines.map((l) => l.qty * l.v.priceCents));
   const store = await db.store.findUniqueOrThrow({ where: { id: s.storeId }, select: { id: true, name: true } });
   const orderId = randomUUID();
+  const claimId = randomUUID();
   const code = shortCode(6);
   await tx(async (t) => {
     await lockCustomer(t, customer.id);
@@ -293,25 +333,29 @@ export async function claimAllowance(a: { customerId: string; subscriptionId: st
     await lockStock(t, store.id, lines.map((l) => l.variantId));
     const short = await shortLine(t, store.id, lines.map((l) => ({ variantId: l.variantId, name: l.v.product.name, qty: l.qty })));
     if (short) throw new SubscriptionError(`${store.name} has run out of ${short.name}. Choose something else, or change your store for next time.`);
-    // Claim the period first (compare-and-set): two taps can't both claim it.
-    const { count } = await t.subscriptionPeriod.updateMany({ where: { id: p.id, status: "PAID" }, data: { status: "COLLECTED", claimOrderId: orderId } });
-    if (!count) throw new SubscriptionError("You've claimed this period's allowance");
-    // ponytail: D1 has no transactions; a stop between the claim above and this insert leaves the period COLLECTED with
-    // no order. HQ can reopen it (set the period back to PAID); add a sweep if it is ever seen.
+    // Claim the week first (one row per week, unique): two taps can't both claim it.
+    try {
+      await t.subscriptionClaim.create({ data: { id: claimId, periodId: p.id, weekStart: week.start, weekEnd: week.end, allowance: week.allowance, cents: value, orderId } });
+    } catch (e) {
+      if (prismaCode(e) === "P2002") throw new SubscriptionError("You've claimed this week's allowance");
+      throw e;
+    }
+    // ponytail: D1 has no transactions; a stop between the claim above and this insert leaves the week claimed with no
+    // order. HQ can reopen it (delete the claim row); add a sweep if it is ever seen.
     await t.order.create({
       data: {
         id: orderId, code, collectionCode: pinCode(), customerId: customer.id, storeId: store.id, status: "PLACED", fulfilment: s.fulfilment,
-        routingNote: `Club plan ${s.plan.name}: ${allowanceLabel(s.plan.unit, allowance, s.plan.itemWord)}`,
+        routingNote: `Club plan ${s.plan.name}: ${allowanceLabel(s.plan.unit, week.allowance, s.plan.itemWord)} for the week of ${fmtDate(week.start)}`,
         ...(address && { addressLine: address.line, suburb: address.suburb, city: address.city, province: address.province, postalCode: address.postalCode, deliveryNotes: address.notes }),
         subtotalCents: value, discountCents: 0, deliveryCents: 0, pointsRedeemed: 0, totalCents: value, vatCents: vatOf(value),
-        payMethod: "ONLINE", paymentStatus: "PAID", paymentRef: `${SUB_REF}${p.id}`,
+        payMethod: "ONLINE", paymentStatus: "PAID", paymentRef: `${SUB_REF}${claimId}`,
         events: [{ status: "PLACED", at: now.toISOString(), note: `Club plan ${s.plan.name}` }] satisfies Event[],
         lines: {
           create: lines.map((l, i) => ({ variantId: l.variantId, qty: l.qty, unitPriceCents: Math.ceil(shares[i] / l.qty), memberSavingsCents: 0, offerCents: 0, totalCents: shares[i] })),
         },
       },
     });
-    await audit(t, actorOf(customer), "subscription.claim", { storeId: store.id, entity: "SubscriptionPeriod", entityId: p.id, data: { orderId, items: items.length } });
+    await audit(t, actorOf(customer), "subscription.claim", { storeId: store.id, entity: "SubscriptionPeriod", entityId: p.id, data: { orderId, claimId, week: week.index + 1, items: items.length } });
   });
   await notifyPlaced(orderId);
   return { code };
@@ -319,49 +363,66 @@ export async function claimAllowance(a: { customerId: string; subscriptionId: st
 
 type MemberChange = { customerId: string; firstName: string; subscriptionId: string };
 
-export async function pauseSubscription(a: MemberChange, actor: Actor = actorOf({ id: a.customerId, firstName: a.firstName })) {
-  const s = await ownSubscription(a.customerId, a.subscriptionId);
-  if (s.status !== "ACTIVE") throw new SubscriptionError("Only an active plan can be paused");
-  await tx(async (t) => {
-    await t.subscription.updateMany({ where: { id: s.id, status: "ACTIVE" }, data: { status: "PAUSED", pausedAt: new Date() } });
-    await audit(t, actor, "subscription.pause", { storeId: s.storeId, entity: "Subscription", entityId: s.id });
-  });
-}
-
-/** Resumes a paused or past-due plan: if its period is over, a new one starts today and is billed. Returns the order to pay, if any. */
+/** Keeps a plan going: undoes a cancellation before the paid month ends, or restarts a past-due plan with a new month
+ *  that begins when it's paid. Returns the order to pay, if one is due now. */
 export async function resumeSubscription(a: MemberChange, actor: Actor = actorOf({ id: a.customerId, firstName: a.firstName })) {
   const s = await ownSubscription(a.customerId, a.subscriptionId);
-  if (s.status !== "PAUSED" && s.status !== "PAST_DUE" && !(s.status === "ACTIVE" && s.cancelAtPeriodEnd)) throw new SubscriptionError("This plan is already running");
-  if (s.plan.status !== "ACTIVE") throw new SubscriptionError("This plan is no longer offered");
   const now = new Date();
-  await tx(async (t) => {
-    // A period that ended while the plan was stopped isn't billed for: the next one starts today.
-    await t.subscription.updateMany({ where: { id: s.id, status: { not: "CANCELLED" } }, data: { status: "ACTIVE", pausedAt: null, cancelAtPeriodEnd: false, ...(s.periodEnd <= now && { periodEnd: now }) } });
-    await audit(t, actor, "subscription.resume", { storeId: s.storeId, entity: "Subscription", entityId: s.id });
+  if (s.status === "ACTIVE" && s.cancelAtPeriodEnd) {
+    await tx(async (t) => {
+      await t.subscription.updateMany({ where: { id: s.id, status: "ACTIVE" }, data: { cancelAtPeriodEnd: false } });
+      await audit(t, actor, "subscription.resume", { storeId: s.storeId, entity: "Subscription", entityId: s.id });
+    });
+    const { subscriptions } = await getSettings();
+    // Inside the renewal window the job has already passed this plan by: raise next month now.
+    const soon = s.plan.status === "ACTIVE" && s.periodEnd.getTime() - subscriptions.renewDays * DAY <= now.getTime();
+    return { orderId: soon ? await renewSubscription(s.id) : null };
+  }
+  if (s.status !== "PAST_DUE") throw new SubscriptionError("This plan is already running");
+  if (s.plan.status !== "ACTIVE") throw new SubscriptionError("This plan is no longer offered");
+  const waiting = await db.subscriptionPeriod.findFirst({ where: { subscriptionId: s.id, status: "DUE" }, orderBy: { periodStart: "desc" } });
+  if (waiting) return { orderId: await billPeriod(waiting.id) };
+  // A month that lapsed isn't billed for: a new one starts today (and again from the day it's paid).
+  const end = cycleEndOf(now);
+  const p = await tx(async (t) => {
+    const period = await t.subscriptionPeriod.upsert({
+      where: { subscriptionId_periodStart: { subscriptionId: s.id, periodStart: now } },
+      create: { subscriptionId: s.id, periodStart: now, periodEnd: end, priceCents: s.priceCents, allowance: s.plan.allowance },
+      update: {},
+    });
+    await t.subscription.updateMany({
+      where: { id: s.id, status: "PAST_DUE" },
+      data: { periodStart: now, periodEnd: end, anchorDay: anchorDayOf(now), storeId: s.nextStoreId ?? s.storeId, nextStoreId: null },
+    });
+    await audit(t, actor, "subscription.resume", { storeId: s.storeId, entity: "Subscription", entityId: s.id, data: { periodId: period.id } });
+    return period;
   });
-  const periodId = await rollSubscription(s.id, now);
-  if (!periodId) return { orderId: null };
-  const p = await db.subscriptionPeriod.findUnique({ where: { id: periodId }, select: { billingOrderId: true } });
-  return { orderId: p?.billingOrderId ?? null };
+  return { orderId: await billPeriod(p.id) };
 }
 
-/** Cancels at the end of the period already paid for (nothing more is billed); before anything was paid, at once. */
+/** Cancels from the end of the month already paid for: weekly claims carry on until then, nothing more is billed and
+ *  nothing is refunded. A plan with no paid month running (first month unpaid, or past due) ends at once. */
 export async function cancelSubscription(a: MemberChange, actor: Actor = actorOf({ id: a.customerId, firstName: a.firstName })) {
   const s = await ownSubscription(a.customerId, a.subscriptionId);
   if (s.status === "CANCELLED") return;
-  const current = await db.subscriptionPeriod.findFirst({ where: { subscriptionId: s.id }, orderBy: { periodStart: "desc" } });
-  const now = current?.status === "PAID" || current?.status === "COLLECTED" ? false : true;
-  if (now && current?.status === "DUE" && current.billingOrderId) await cancelBilling(current.billingOrderId, "Club plan cancelled");
+  const current = await db.subscriptionPeriod.findUnique({ where: { subscriptionId_periodStart: { subscriptionId: s.id, periodStart: s.periodStart } } });
+  const atEnd = s.status === "ACTIVE" && current?.status === "PAID";
+  const unpaid = await db.subscriptionPeriod.findMany({ where: { subscriptionId: s.id, status: "DUE", ...(atEnd && { periodStart: { gte: s.periodEnd } }) } });
+  for (const p of unpaid) await cancelBilling(p.billingOrderId, "Club plan cancelled");
   await tx(async (t) => {
-    if (now) {
-      if (current?.status === "DUE") await t.subscriptionPeriod.updateMany({ where: { id: current.id, status: "DUE" }, data: { status: "LAPSED" } });
-      await t.subscription.updateMany({ where: { id: s.id, status: { not: "CANCELLED" } }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelAtPeriodEnd: false } });
-    } else await t.subscription.updateMany({ where: { id: s.id, status: { not: "CANCELLED" } }, data: { cancelAtPeriodEnd: true } });
-    await audit(t, actor, "subscription.cancel", { storeId: s.storeId, entity: "Subscription", entityId: s.id, data: { atPeriodEnd: !now } });
+    for (const p of unpaid) {
+      if (await isPaid(p.billingOrderId)) continue; // paid at the same moment: the month stands
+      // A month not yet started goes; the one the member stopped waiting on is kept as lapsed for the history.
+      if (p.periodStart >= s.periodEnd) await t.subscriptionPeriod.deleteMany({ where: { id: p.id, status: "DUE" } });
+      else await t.subscriptionPeriod.updateMany({ where: { id: p.id, status: "DUE" }, data: { status: "LAPSED" } });
+    }
+    if (atEnd) await t.subscription.updateMany({ where: { id: s.id, status: "ACTIVE" }, data: { cancelAtPeriodEnd: true } });
+    else await t.subscription.updateMany({ where: { id: s.id, status: { not: "CANCELLED" } }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelAtPeriodEnd: false } });
+    await audit(t, actor, "subscription.cancel", { storeId: s.storeId, entity: "Subscription", entityId: s.id, data: { atPeriodEnd: atEnd, endsAt: atEnd ? s.periodEnd.toISOString() : null } });
   });
 }
 
-/** Changes the store from the next period (this period's allowance stays where it was paid). */
+/** Changes the store from next month (this month's allowance stays where it was paid). */
 export async function changeStore(a: MemberChange & { storeId: string }) {
   const s = await ownSubscription(a.customerId, a.subscriptionId);
   if (s.status === "CANCELLED") throw new SubscriptionError("This plan has ended");
@@ -376,31 +437,36 @@ export async function changeStore(a: MemberChange & { storeId: string }) {
 
 // ── Reads ───────────────────────────────────────────────────────────────────────
 
-/** A member's plans (live first), each with its current period. */
-export async function memberSubscriptions(customerId: string) {
+/** A member's plans (live first), each with its current month, this week's allowance and the month's unpaid order. */
+export async function memberSubscriptions(customerId: string, now = new Date()) {
   const subs = await db.subscription.findMany({
     where: { customerId },
-    include: { plan: true, periods: { orderBy: { periodStart: "desc" }, take: 1 } },
+    include: { plan: true },
     orderBy: [{ cancelledAt: { sort: "desc", nulls: "first" } }, { createdAt: "desc" }],
     take: 20,
   });
   const storeIds = [...new Set(subs.flatMap((s) => [s.storeId, s.nextStoreId].filter((x): x is string => !!x)))];
   const stores = new Map((await db.store.findMany({ where: { id: { in: storeIds } }, select: { id: true, name: true } })).map((s) => [s.id, s.name]));
-  return subs.map((s) => ({ ...s, period: s.periods[0] ?? null, storeName: stores.get(s.storeId) ?? "", nextStoreName: s.nextStoreId ? (stores.get(s.nextStoreId) ?? "") : null }));
+  return Promise.all(
+    subs.map(async (s) => {
+      const { period, week } = s.status === "CANCELLED" ? { period: null, week: null } : await currentWeek(s, now);
+      // The order waiting to be paid: a first month, a restart, or next month raised ahead of time.
+      const due = s.status === "CANCELLED" ? null : await db.subscriptionPeriod.findFirst({ where: { subscriptionId: s.id, status: "DUE", billingOrderId: { not: null } }, orderBy: { periodStart: "desc" } });
+      return { ...s, period, week, due, storeName: stores.get(s.storeId) ?? "", nextStoreName: s.nextStoreId ? (stores.get(s.nextStoreId) ?? "") : null };
+    }),
+  );
 }
 
-/** HQ totals: live subscribers, monthly recurring revenue (at each subscriber's own price) and allowances due this week. */
+/** HQ totals: subscribers by state, monthly recurring revenue (each active subscriber's own monthly price), members with a
+ *  paid month running (their weekly allowance to collect) and months billed but not yet paid. */
 export async function hqTotals(storeIds: string[] | null, now = new Date()) {
   const where = storeIds ? { storeId: { in: storeIds } } : {};
-  const live = await db.subscription.findMany({ where: { ...where, status: "ACTIVE" }, select: { priceCents: true, plan: { select: { period: true } } }, take: 50_000 });
-  const weekEnd = new Date(now.getTime() + 7 * 86_400_000);
-  const [paused, pastDue, toCollect, unpaid] = await Promise.all([
-    db.subscription.count({ where: { ...where, status: "PAUSED" } }),
+  const live = await db.subscription.findMany({ where: { ...where, status: "ACTIVE" }, select: { priceCents: true }, take: 50_000 });
+  const [pending, pastDue, toCollect, unpaid] = await Promise.all([
+    db.subscription.count({ where: { ...where, status: "PENDING" } }),
     db.subscription.count({ where: { ...where, status: "PAST_DUE" } }),
-    db.subscriptionPeriod.count({ where: { subscription: where, status: "PAID", periodStart: { lt: weekEnd }, periodEnd: { gt: now } } }),
+    db.subscriptionPeriod.count({ where: { subscription: where, status: "PAID", periodStart: { lte: now }, periodEnd: { gt: now } } }),
     db.subscriptionPeriod.count({ where: { subscription: where, status: "DUE" } }),
   ]);
-  return { active: live.length, paused, pastDue, mrrCents: live.reduce((s, x) => s + monthlyCents(x.priceCents, x.plan.period), 0), toCollect, unpaid };
+  return { active: live.length, pending, pastDue, mrrCents: live.reduce((s, x) => s + x.priceCents, 0), toCollect, unpaid };
 }
-
-export { PERIOD_LABEL };
