@@ -163,7 +163,7 @@ HQ erases the member.
 
 ## Club plans (subscriptions)
 
-**Members only, adults 18+.** A club plan (for example 3 pre-rolls or 3 g a week) is open only to a signed-in,
+**Members only, adults 18+.** A club plan (for example 3 pre-rolls or 3 g a week, paid monthly upfront) is open only to a signed-in,
 age-verified member, and the allowance is collected or delivered like any other order, so every check that applies to
 an order applies to the claim: the compliance engine evaluates the basket, the store hands it over against the member,
 and stock moves through the normal pick. HQ builds and prices plans at HQ → Club plans; a plan stays a draft until HQ
@@ -175,20 +175,25 @@ recurring purchase, which Medicines Act s18A forbids on medicines, so the HQ for
 claim checks again. Plan copy goes through `screenCopy`: no medical claims and no stoner clichés.
 
 **How it is paid.** There is no stored card until Peach Payments approves tokenisation, so nothing is ever charged
-automatically. Each period is its own online order, raised by the daily job (`subscriptions` step) and sent to the
-member as a payment link by SMS; the member pays it at `/checkout/pay`. The allowance for a period opens only once that
-period is paid. If it isn't paid within the grace days (HQ → Settings, default 3), the order is cancelled, the period
-lapses with nothing charged, and the plan shows as overdue until the member pays the next one or resumes.
+automatically. Members pay monthly upfront. Each month is its own online order at the plan's
+monthly price; the first is raised when the member joins and the month starts the day it is paid, and each month after
+runs to the same calendar date (days 29 to 31 fall back to the last day of a shorter month). The daily job
+(`subscriptions` step) raises the next month's order a few days before the current month ends and sends it as a payment
+link by SMS; the member pays it at `/checkout/pay`. A paid month holds four weekly allowances, each claimed once (one
+unclaimed week may carry into the next if the plan allows). A month's allowance opens only once it is paid. If it isn't
+paid within the grace days (HQ → Settings, default 3), the order is cancelled with nothing charged and the plan shows as
+overdue with no allowance until the member keeps the plan and pays a new month; an unpaid first month cancels the plan.
 
-**Cancelling and pausing (CPA s14).** A member can pause, resume or cancel at any time from `/club/subscriptions`. A
-cancel takes effect at the end of a period already paid for (the member keeps what they paid for), or at once if the
-current period is unpaid. Nothing renews after a cancel. The price is fixed at the price the member joined at. The terms
+**Cancelling (CPA s14).** A member can cancel at any time from `/club/subscriptions`. The cancel takes effect at the
+end of the month already paid for (the member keeps that month's weekly allowances), or at once if the current month is
+unpaid. Nothing renews after a cancel, and a paid month is not partly refunded except where the law requires it. Until
+the month ends the member can keep the plan instead. There is no pause. The price is fixed at the price the member joined at. The terms
 are published at `/legal/subscriptions` and versioned with the other policies; accepting them is a condition of joining.
 For counsel: whether a paid but unclaimed period may simply lapse (the plan may roll it over once; CPA s48 fairness),
 the notice we give before changing a plan, and whether CPA s14's 20 business days' notice and cancellation rules apply
-to a weekly plan.
+to a plan billed month by month, and whether keeping a paid month without a partial refund is fair.
 
-**Records.** Every join, pause, resume, cancel, store change and HQ plan change is audited (`subscription.*`).
-The billing orders post as online sales through the ledger like any other; the claim is an order already
-paid (`paymentRef SUB:<period>`) and posts no second sale. Subscriptions and their periods are in the member export and
+**Records.** Every join, keep (resume), cancel, store change and HQ plan change is audited (`subscription.*`).
+The billing orders post as online sales through the ledger like any other; each weekly claim is an order already
+paid (`paymentRef SUB:<claim>`) and posts no second sale. Subscriptions, their months and weekly claims are in the member export and
 are deleted when HQ erases a member; the orders stay with the sales records.

@@ -58,7 +58,7 @@ async function each<T>(what: string, items: T[], fn: (x: T) => Promise<unknown>)
 export async function expireUnpaidOrders(now = new Date()) {
   const { ecommerce } = await getSettings();
   const due = await db.order.findMany({
-    // A subscription period's order waits for its grace days instead (runSubscriptions).
+    // A subscription month's order waits for its grace days instead (runSubscriptions).
     where: { status: "PENDING_PAYMENT", createdAt: { lt: new Date(now.getTime() - ecommerce.unpaidHoldMinutes * MIN) }, lines: { none: { variant: { sku: { startsWith: "SUB-" } } } } },
     select: { id: true },
     take: 500,
@@ -149,8 +149,8 @@ export const JOBS: Record<string, Steps> = {
     trade: { eftExpiry: tradeEftExpiry, overdueHolds: tradeOverdueHolds, licences: tradeLicenceExpiry, statements: tradeStatements },
     // Expired sessions, day-old sign-in codes, rate-limit rows and 90-day-old payment webhook ids.
     purged: purgeAuthRecords,
-    // Club subscriptions: periods rolled, each billed as its own order (with one reminder); unpaid past the grace days
-    // lapses and the subscription goes past due; cancellations at period end take effect.
+    // Club subscriptions: each month billed upfront as its own order a few days before the current one ends (with one
+    // reminder); unpaid past the grace days lapses and the plan goes past due; cancellations take effect at month end.
     subscriptions: runSubscriptions,
     statementInvoices: settleStatementInvoices, // stock orders from a month that's over: settled on its statement
     // The books: the day that ended and month-end work (and whatever a missed night in the week before left), queued

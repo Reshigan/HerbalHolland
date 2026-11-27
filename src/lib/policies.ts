@@ -14,7 +14,7 @@ export const LEGAL_DOCS = {
   returns: { title: "Returns & refunds", dek: "What you can send back, how to do it and how your refund works." },
   delivery: { title: "Delivery", dek: "Where we deliver, what it costs, when it arrives and who can receive it." },
   referrals: { title: "Referral rules", dek: "How inviting friends to Herbal Holland Rewards works, what counts and what you can earn." },
-  subscriptions: { title: "Club plan terms", dek: "How club plans work for members: what you pay each period, when your allowance opens, and how to pause or cancel." },
+  subscriptions: { title: "Club plan terms", dek: "How club plans work for members: what you pay each month upfront, when your weekly allowance opens, and how to cancel." },
   "delete-account": { title: "Delete your account", dek: "How to delete your Herbal Holland Rewards account, what we delete and what the law makes us keep." },
 } as const;
 export type LegalSlug = keyof typeof LEGAL_DOCS;
@@ -152,11 +152,11 @@ export function referralRules(f: PolicyFacts, bonus: number, pct = 0, cashMinCen
   ];
 }
 
-/** The club plan terms (/legal/subscriptions): how a subscription bills, opens, pauses, lapses and ends. Mirrors src/server/shop/subscriptions.ts. */
+/** The club plan terms (/legal/subscriptions): how a subscription bills monthly upfront, opens each week, lapses and ends. Mirrors src/server/shop/subscriptions.ts. */
 export function subscriptionTerms(f: PolicyFacts, graceDays: number): PolicyBlock[] {
   return [
     {
-      p: `These terms cover club plans in Herbal Holland Rewards, run by ${f.entity} (“Herbal Holland”, “we”). A club plan gives you a set allowance each period (for example 3 g, or 3 pre-rolls, a week) at a set price. They're part of our [membership terms](/legal/terms) and don't take away any of your rights under the Consumer Protection Act 68 of 2008 (CPA).`,
+      p: `These terms cover club plans in Herbal Holland Rewards, run by ${f.entity} (“Herbal Holland”, “we”). A club plan gives you a set allowance every week (for example 3 g, or 3 pre-rolls) for a set monthly price, paid upfront. They're part of our [membership terms](/legal/terms) and don't take away any of your rights under the Consumer Protection Act 68 of 2008 (CPA).`,
     },
     { h: "Who can join" },
     {
@@ -168,28 +168,28 @@ export function subscriptionTerms(f: PolicyFacts, graceDays: number): PolicyBloc
     { h: "How you pay" },
     {
       list: [
-        "Each period is its own order at the plan's price, VAT included. We don't keep your card: at the start of every period we send you a payment link by SMS, and you can also pay from your club plans page.",
-        `Your allowance for a period opens once that period is paid. If it isn't paid within ${graceDays} day${graceDays === 1 ? "" : "s"}, the plan shows as overdue and that period lapses. Nothing is charged for a lapsed period, and your next period starts on time.`,
+        "You pay each month upfront, as its own order at the plan's monthly price, VAT included. Your first month starts the day you pay it, and each month after that runs to the same date in the next month (or the last day of a shorter month). We don't keep your card: a few days before each new month we send you a payment link by SMS, and you can also pay from your club plans page.",
+        `A month's allowance opens once that month is paid. If a month isn't paid within ${graceDays} day${graceDays === 1 ? "" : "s"} of its start, the plan shows as overdue and there's no allowance until you pay a new month. Nothing is charged for a month you didn't pay. If your first month isn't paid in that time, the plan is cancelled.`,
         { text: "You keep the price you joined at. If we ever change it, we tell you at least 20 business days before, and you can cancel before it applies.", counsel: "Confirm the notice period for a price change on a recurring plan." },
       ],
     },
     { h: "Using your allowance" },
     {
       list: [
-        "Once paid, choose what you'd like from the plan's products, up to your allowance, and collect it at your plan's store (or have it delivered, where offered). The store can also reserve it for you at the till.",
-        "You can reserve your allowance once per period.",
-        { text: "An allowance you don't use by the end of its period is lost and isn't refunded, unless the plan says it carries over, in which case it carries into the next period once.", counsel: "Confirm that forfeiting an unused, paid allowance is fair under CPA s48." },
+        "A paid month holds four weekly allowances. Each week, choose what you'd like from the plan's products, up to that week's allowance, and collect it at your plan's store (or have it delivered, where offered). The store can also reserve it for you at the till.",
+        "You can reserve your allowance once a week.",
+        { text: "A week's allowance you don't reserve by the end of that week is lost and isn't refunded, unless the plan says it carries over, in which case it carries into the next week once.", counsel: "Confirm that forfeiting an unused, paid allowance is fair under CPA s48." },
       ],
     },
-    { important: ["Pay each period's link and reserve your allowance before the period ends: an unpaid period lapses and an unused allowance doesn't carry over unless the plan says so."] },
-    { h: "Pausing, changing and cancelling" },
+    { important: ["Pay each month's link and reserve each week's allowance before the week ends: an unpaid month stops your allowance, and an unused week doesn't carry over unless the plan says so."] },
+    { h: "Changing and cancelling" },
     {
       list: [
-        "Pause any time from your club plans page. Nothing is billed while a plan is paused; a period you've already paid for can still be used. When you resume, a new period starts and you get its payment link.",
-        "Change your store any time; it applies from your next period.",
-        "Cancel any time. Your plan ends at the end of the current period, and anything already paid for that period can still be used. There's no cancellation fee.",
-        { text: "Because you pay one period at a time, cancelling never leaves an amount owing. Your rights to cancel a fixed-term agreement under CPA s14 still apply.", counsel: "Confirm whether CPA s14 applies to a plan billed period by period." },
-        "We may end a plan, or stop offering it, with notice to you. A period you've paid for and not yet used is then refunded.",
+        "Change your store any time; it applies from your next month.",
+        "Cancel any time from your club plans page. Your cancellation takes effect at the end of the month you've paid for: your plan ends at the end of the paid month, nothing more is billed, and that month's weekly allowances can still be used. If the current month isn't paid yet, the plan ends at once. There's no cancellation fee.",
+        "We don't refund part of a month you've paid for when you cancel, except where the law requires it. You can change your mind before the month ends and keep your plan.",
+        { text: "Because you pay one month at a time, cancelling never leaves an amount owing. Your rights to cancel a fixed-term agreement under CPA s14 still apply.", counsel: "Confirm whether CPA s14 applies to a plan billed month by month, and whether keeping a paid month without a partial refund is fair." },
+        "We may end a plan, or stop offering it, with notice to you. Weeks you've paid for and not yet had are then refunded.",
       ],
     },
     { h: "Questions" },

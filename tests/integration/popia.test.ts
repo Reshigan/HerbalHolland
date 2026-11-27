@@ -185,7 +185,7 @@ describe("POPIA s23: the member's export", () => {
       sessions: 1, consentEvents: 1, loyalty: 1, sales: 1, orders: 1, patientAuths: 1, reviews: 1, alerts: 1, pushSubs: 1, passkeys: 1, offers: 2, rsvps: 2, dropWatches: 1, quests: 1,
       messages: 2, addresses: 1, wishlist: 1, reorderReminders: 1, supportRequests: 2, returns: 1, giftVouchers: 2, photos: 3, activity: 1, clubPlans: 1,
     });
-    expect(m.clubPlans[0]).toMatchObject({ plan: "Coffee club", status: "ACTIVE", periods: [{ status: "DUE", allowance: 1 }] });
+    expect(m.clubPlans[0]).toMatchObject({ plan: "Coffee club", status: "PENDING", periods: [{ status: "DUE", allowance: 1 }] });
     expect(m.addresses[0]).toMatchObject({ line: "17 Jacaranda Lane", notes: "Gate code 4417, ask for Thandiwe" });
     expect(m.wishlist[0]).toMatchObject({ sku: "COF-T-250", product: "Test CBD Coffee" });
     expect(m.returns[0]).toMatchObject({ number: "RT-000099", order: "TEKORD", note: "Box crushed. Thandiwe", photos: 1 });
@@ -226,9 +226,9 @@ describe("POPIA s24: erasure", () => {
       db.wishlist.count({ where: { customerId: id } }), db.reorderReminder.count({ where: { customerId: id } }), db.stockAlert.count({ where: { customerId: id } }), db.dropWatch.count({ where: { customerId: id } }),
       db.pushSubscription.count({ where: { customerId: id } }), db.questCompletion.count({ where: { customerId: id } }), db.memberOffer.count({ where: { customerId: id, redeemedAt: null } }),
       db.rsvp.count({ where: { customerId: id, checkedInAt: null } }), db.upload.count({ where: { uploadedById: id } }),
-      db.passkey.count({ where: { customerId: id } }), db.subscription.count({ where: { customerId: id } }), db.subscriptionPeriod.count(),
+      db.passkey.count({ where: { customerId: id } }), db.subscription.count({ where: { customerId: id } }), db.subscriptionPeriod.count(), db.subscriptionClaim.count(),
     ]);
-    expect(left).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(left).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     for (const key of keys) await expect(getObject(key)).rejects.toThrow();
     expect((await db.user.findUniqueOrThrow({ where: { id: w.budtender.id } })).memberId).toBeNull();
 

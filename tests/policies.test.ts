@@ -81,15 +81,18 @@ describe("shop policies", () => {
 });
 
 describe("club plan terms", () => {
-  it("say members 18+, pay by link per period, the grace days, cancel at period end, no medicines, and mark counsel lines", () => {
+  it("say members 18+, pay monthly upfront by link, the grace days, cancel at the end of the paid month, no medicines, and mark counsel lines", () => {
     const t = text(subscriptionTerms(facts(), 3));
     expect(t).toContain("members only, and only for adults 18+");
     expect(t).toContain("payment link by SMS");
     expect(t).toContain("isn't paid within 3 days");
-    expect(t).toContain("ends at the end of the current period");
+    expect(t).toContain("pay each month upfront");
+    expect(t).toContain("ends at the end of the paid month");
+    expect(t).toContain("except where the law requires it");
+    expect(t).not.toMatch(/[Pp]ause/);
     expect(t).toContain("Medicines Act s18A");
     expect(t).toContain("You keep the price you joined at");
-    expect(text(subscriptionTerms(facts(), 1))).toContain("within 1 day,");
+    expect(text(subscriptionTerms(facts(), 1))).toContain("within 1 day of");
     const marked = subscriptionTerms(facts(), 3).flatMap((b) => ("list" in b ? b.list.filter((l) => typeof l !== "string") : []));
     expect(marked.map((m) => (m as { counsel: string }).counsel).join(" ")).toMatch(/s48[\s\S]*s14/);
   });

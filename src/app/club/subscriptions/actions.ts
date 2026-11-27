@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { getCustomer } from "@/server/auth";
-import { cancelSubscription, changeStore, claimAllowance, pauseSubscription, resumeSubscription, subscribe, SubscriptionError } from "@/server/shop/subscriptions";
+import { cancelSubscription, changeStore, claimAllowance, resumeSubscription, subscribe, SubscriptionError } from "@/server/shop/subscriptions";
 import type { Fulfilment } from "@/generated/prisma/client";
 
 const HERE = "/club/subscriptions";
@@ -36,7 +36,7 @@ export async function claimForm(form: FormData) {
     .filter(([k]) => k.startsWith("q_"))
     .map(([k, v]) => ({ variantId: k.slice(2), qty: Math.max(0, Math.floor(Number(v) || 0)) }))
     .filter((i) => i.qty > 0);
-  if (!items.length) back("Choose what you'd like this period");
+  if (!items.length) back("Choose what you'd like this week");
   const { code } = await run((c) => claimAllowance({ customerId: c.id, subscriptionId: str(form, "id"), items }));
   redirect(`/orders/${code}?placed=1`);
 }
@@ -46,8 +46,7 @@ export async function changeForm(form: FormData) {
   const subscriptionId = str(form, "id");
   const orderId = await run(async (c) => {
     const a = { customerId: c.id, firstName: c.firstName, subscriptionId };
-    if (act === "pause") await pauseSubscription(a);
-    else if (act === "cancel") await cancelSubscription(a);
+    if (act === "cancel") await cancelSubscription(a);
     else if (act === "store") await changeStore({ ...a, storeId: str(form, "storeId") });
     else if (act === "resume") return (await resumeSubscription(a)).orderId;
     return null;

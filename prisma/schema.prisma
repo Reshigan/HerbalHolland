@@ -2049,22 +2049,17 @@ model GiftVoucher {
   @@index([status, expiresAt])
 }
 
-/// Club subscriptions: a plan is a weekly (or four-weekly, monthly) allowance of eligible products for a fixed price.
-/// Each period is billed as its own online order (a `SUB-` variant line) and opens its allowance once paid.
+/// Club subscriptions: a plan is a weekly allowance of eligible products for a fixed monthly price, paid upfront.
+/// Each month (a billing cycle, anchored on the day it was first paid) is its own online order (a `SUB-` variant line)
+/// and opens four weekly allowances once paid. Cancelling stops the next month; the paid month runs out.
 enum PlanUnit {
   GRAMS
   UNITS
 }
 
-enum BillingPeriod {
-  WEEKLY
-  FOUR_WEEKLY
-  MONTHLY
-}
-
 enum SubscriptionStatus {
+  PENDING // joined, first month not paid yet
   ACTIVE
-  PAUSED
   PAST_DUE
   CANCELLED
 }
@@ -2072,7 +2067,6 @@ enum SubscriptionStatus {
 enum PeriodStatus {
   DUE
   PAID
-  COLLECTED
   LAPSED
 }
 
@@ -2084,15 +2078,14 @@ model SubscriptionPlan {
   description String        @default("")
   imageUrl    String?
   unit        PlanUnit      @default(GRAMS)
-  allowance   Float // grams (GRAMS) or items (UNITS) per period
+  allowance   Float // grams (GRAMS) or items (UNITS) per week
   eligible    Json          @default("[]") // variant ids the member may choose from
-  period      BillingPeriod @default(WEEKLY)
-  priceCents  Int // VAT incl., per period
+  priceCents  Int // VAT incl., per month
   status      ProductStatus @default(DRAFT)
   sortOrder   Int           @default(0)
   storeIds    Json          @default("[]") // empty = every store
   itemWord    String        @default("items") // what a UNITS allowance counts, e.g. "pre-rolls"
-  rollover    Boolean       @default(false) // an unclaimed paid period carries into the next one (once)
+  rollover    Boolean       @default(false) // an unclaimed paid week carries into the next week (once)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -2108,15 +2101,15 @@ model Subscription {
   customerId        String
   storeId           String
   nextStoreId       String? // takes over from the next period
-  status            SubscriptionStatus @default(ACTIVE)
+  status            SubscriptionStatus @default(PENDING)
   fulfilment        Fulfilment         @default(COLLECT)
   addressId         String? // delivery address (fulfilment COURIER)
   priceCents        Int // the plan's price when the member joined
   startedAt         DateTime           @default(now())
-  periodStart       DateTime
+  periodStart       DateTime // the current billing month
   periodEnd         DateTime
+  anchorDay         Int                @default(1) // day of the month each cycle starts on (clamped to short months)
   cancelAtPeriodEnd Boolean            @default(false)
-  pausedAt          DateTime?
   cancelledAt       DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -2135,20 +2128,35 @@ model SubscriptionPeriod {
   periodStart    DateTime
   periodEnd      DateTime
   status         PeriodStatus @default(DUE)
-  priceCents     Int
-  allowance      Float
-  carryAllowance Float        @default(0) // rolled over from the period before
-  carryCents     Int          @default(0) // what the carried allowance was paid for
+  priceCents     Int // the month's price
+  allowance      Float // per week
   billingOrderId String?      @unique
-  claimOrderId   String?      @unique
   paidAt         DateTime?
-  collectedAt    DateTime?
   remindedAt     DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  claims SubscriptionClaim[]
+
   @@unique([subscriptionId, periodStart])
   @@index([status, periodEnd])
+}
+
+/// One weekly allowance reserved inside a paid month. The unique (periodId, weekStart) row is the one-claim-per-week
+/// guard; the claim order carries paymentRef `SUB:<claimId>`, and cancelling it deletes the row (the week opens again).
+model SubscriptionClaim {
+  id          String             @id @default(cuid())
+  period      SubscriptionPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  periodId    String
+  weekStart   DateTime
+  weekEnd     DateTime
+  allowance   Float // this week's allowance plus any carried week
+  cents       Int // what that allowance was paid for (a share of the month)
+  orderId     String?            @unique
+  collectedAt DateTime?
+  createdAt   DateTime           @default(now())
+
+  @@unique([periodId, weekStart])
 }
 
 /// One affiliate share: a referred friend's purchase (saleId) put `cents` into the referrer's wallet voucher. A refund
