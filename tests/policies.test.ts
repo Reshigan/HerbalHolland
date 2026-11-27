@@ -1,7 +1,7 @@
 // The returns and delivery policies: every line passes the copy screen (no medical claims), says "members", takes its
 // fees, threshold and cut-off from the settings, states the CPA/ECTA rights, and marks the line counsel must confirm.
 import { describe, expect, it } from "vitest";
-import { LEGAL_DOCS, deletionPolicy, deliveryPolicy, referralRules, returnsPolicy, type PolicyBlock, type PolicyFacts } from "@/lib/policies";
+import { LEGAL_DOCS, deletionPolicy, deliveryPolicy, referralRules, returnsPolicy, subscriptionTerms, type PolicyBlock, type PolicyFacts } from "@/lib/policies";
 import { screenCopy } from "@/lib/compliance";
 
 // As the defaults in HQ → Online orders (settings.ecommerce).
@@ -12,11 +12,11 @@ const facts = (over: Partial<PolicyFacts["ecommerce"]> = {}): PolicyFacts => ({
 const lines = (blocks: PolicyBlock[]) =>
   blocks.flatMap((b) => ("h" in b ? [b.h] : "p" in b ? [b.p] : "important" in b ? b.important : b.list.flatMap((l) => (typeof l === "string" ? [l] : [l.text, l.counsel]))));
 const text = (blocks: PolicyBlock[]) => lines(blocks).join("\n");
-const both = (f = facts()) => [...lines(returnsPolicy(f)), ...lines(deliveryPolicy(f)), ...lines(referralRules(f, 50, 5)), ...lines(deletionPolicy(f))];
+const both = (f = facts()) => [...lines(returnsPolicy(f)), ...lines(deliveryPolicy(f)), ...lines(referralRules(f, 50, 5)), ...lines(deletionPolicy(f)), ...lines(subscriptionTerms(f, 3))];
 
 describe("shop policies", () => {
   it("are listed with the legal documents (page, footer and sitemap read this)", () => {
-    expect(Object.keys(LEGAL_DOCS)).toEqual(["terms", "privacy", "returns", "delivery", "referrals", "delete-account"]);
+    expect(Object.keys(LEGAL_DOCS)).toEqual(["terms", "privacy", "returns", "delivery", "referrals", "subscriptions", "delete-account"]);
     expect([LEGAL_DOCS.returns.title, LEGAL_DOCS.delivery.title]).toEqual(["Returns & refunds", "Delivery"]);
   });
 
@@ -77,6 +77,21 @@ describe("shop policies", () => {
     expect(d).toContain("If the second attempt fails too");
     expect(d).toContain("tell us as soon as possible");
     expect(d).toContain("by courier from our warehouse");
+  });
+});
+
+describe("club plan terms", () => {
+  it("say members 18+, pay by link per period, the grace days, cancel at period end, no medicines, and mark counsel lines", () => {
+    const t = text(subscriptionTerms(facts(), 3));
+    expect(t).toContain("members only, and only for adults 18+");
+    expect(t).toContain("payment link by SMS");
+    expect(t).toContain("isn't paid within 3 days");
+    expect(t).toContain("ends at the end of the current period");
+    expect(t).toContain("Medicines Act s18A");
+    expect(t).toContain("You keep the price you joined at");
+    expect(text(subscriptionTerms(facts(), 1))).toContain("within 1 day,");
+    const marked = subscriptionTerms(facts(), 3).flatMap((b) => ("list" in b ? b.list.filter((l) => typeof l !== "string") : []));
+    expect(marked.map((m) => (m as { counsel: string }).counsel).join(" ")).toMatch(/s48[\s\S]*s14/);
   });
 });
 

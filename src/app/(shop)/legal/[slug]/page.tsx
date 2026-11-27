@@ -8,7 +8,7 @@ import { MembershipTerms } from "@/components/shop/legal/membership-terms";
 import { PolicyBody } from "@/components/shop/legal/policy";
 import { Callout, Container } from "@/components/shop/ui";
 import { H2, P } from "@/components/shop/learn/bodies";
-import { LEGAL_DOCS as DOCS, deletionPolicy, deliveryPolicy, referralRules, returnsPolicy, type LegalSlug as Slug } from "@/lib/policies";
+import { LEGAL_DOCS as DOCS, deletionPolicy, deliveryPolicy, referralRules, returnsPolicy, subscriptionTerms, type LegalSlug as Slug } from "@/lib/policies";
 import { metaDescription, pageTitle } from "@/lib/seo";
 import { contactEmailOf, legalNameOf } from "@/lib/contact";
 
@@ -61,6 +61,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
         {slug === "terms" && <MembershipTerms c={c} s={settings} />}
         {slug === "returns" && <PolicyBody blocks={returnsPolicy(facts)} counsel={underReview} />}
         {slug === "delivery" && <PolicyBody blocks={deliveryPolicy(facts)} counsel={underReview} />}
+        {slug === "subscriptions" && <PolicyBody blocks={subscriptionTerms(facts, settings.subscriptions.graceDays)} counsel={underReview} />}
         {slug === "delete-account" && <PolicyBody blocks={deletionPolicy(facts)} counsel={underReview} />}
         {slug === "referrals" && <PolicyBody blocks={referralRules(facts, settings.loyalty.referralBonus, settings.loyalty.affiliatePct)} counsel={underReview} />}
         {slug === "privacy" && (

@@ -96,6 +96,10 @@ beforeAll(async () => {
   await db.pushSubscription.create({ data: { customerId, endpoint: "https://push.example.test/thandiwe-device", p256dh: "key", auth: "secret" } });
   await db.passkey.create({ data: { id: "thandiwe-passkey-0001", customerId, publicKey: "spki", label: "Pixel" } });
   await db.questCompletion.create({ data: { customerId, key: "reading-lab-results" } });
+  const plan = await db.subscriptionPlan.create({ data: { slug: "popia-plan", name: "Coffee club", unit: "UNITS", allowance: 1, itemWord: "bags", eligible: [w.coffeeV.id], priceCents: 22_900, status: "ACTIVE" } });
+  await db.subscription.create({
+    data: { planId: plan.id, customerId, storeId: w.store.id, priceCents: 22_900, periodStart: days(-1), periodEnd: days(6), periods: { create: { periodStart: days(-1), periodEnd: days(6), priceCents: 22_900, allowance: 1 } } },
+  });
   await db.memberOffer.createMany({
     data: [
       { customerId, title: "15% off your coffee", kind: "PERCENT", value: 15, startsAt: days(-1), endsAt: days(6) },
@@ -175,12 +179,13 @@ describe("POPIA s23: the member's export", () => {
     expect(m).not.toHaveProperty("idHash");
     expect(m).not.toHaveProperty("passwordHash");
     const counts = Object.fromEntries(
-      ["sessions", "consentEvents", "loyalty", "sales", "orders", "patientAuths", "reviews", "alerts", "pushSubs", "passkeys", "offers", "rsvps", "dropWatches", "quests", "messages", "addresses", "wishlist", "reorderReminders", "supportRequests", "returns", "giftVouchers", "photos", "activity"].map((k) => [k, m[k]?.length]),
+      ["sessions", "consentEvents", "loyalty", "sales", "orders", "patientAuths", "reviews", "alerts", "pushSubs", "passkeys", "offers", "rsvps", "dropWatches", "quests", "messages", "addresses", "wishlist", "reorderReminders", "supportRequests", "returns", "giftVouchers", "photos", "activity", "clubPlans"].map((k) => [k, m[k]?.length]),
     );
     expect(counts).toEqual({
       sessions: 1, consentEvents: 1, loyalty: 1, sales: 1, orders: 1, patientAuths: 1, reviews: 1, alerts: 1, pushSubs: 1, passkeys: 1, offers: 2, rsvps: 2, dropWatches: 1, quests: 1,
-      messages: 2, addresses: 1, wishlist: 1, reorderReminders: 1, supportRequests: 2, returns: 1, giftVouchers: 2, photos: 3, activity: 1,
+      messages: 2, addresses: 1, wishlist: 1, reorderReminders: 1, supportRequests: 2, returns: 1, giftVouchers: 2, photos: 3, activity: 1, clubPlans: 1,
     });
+    expect(m.clubPlans[0]).toMatchObject({ plan: "Coffee club", status: "ACTIVE", periods: [{ status: "DUE", allowance: 1 }] });
     expect(m.addresses[0]).toMatchObject({ line: "17 Jacaranda Lane", notes: "Gate code 4417, ask for Thandiwe" });
     expect(m.wishlist[0]).toMatchObject({ sku: "COF-T-250", product: "Test CBD Coffee" });
     expect(m.returns[0]).toMatchObject({ number: "RT-000099", order: "TEKORD", note: "Box crushed. Thandiwe", photos: 1 });
@@ -221,9 +226,9 @@ describe("POPIA s24: erasure", () => {
       db.wishlist.count({ where: { customerId: id } }), db.reorderReminder.count({ where: { customerId: id } }), db.stockAlert.count({ where: { customerId: id } }), db.dropWatch.count({ where: { customerId: id } }),
       db.pushSubscription.count({ where: { customerId: id } }), db.questCompletion.count({ where: { customerId: id } }), db.memberOffer.count({ where: { customerId: id, redeemedAt: null } }),
       db.rsvp.count({ where: { customerId: id, checkedInAt: null } }), db.upload.count({ where: { uploadedById: id } }),
-      db.passkey.count({ where: { customerId: id } }),
+      db.passkey.count({ where: { customerId: id } }), db.subscription.count({ where: { customerId: id } }), db.subscriptionPeriod.count(),
     ]);
-    expect(left).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(left).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     for (const key of keys) await expect(getObject(key)).rejects.toThrow();
     expect((await db.user.findUniqueOrThrow({ where: { id: w.budtender.id } })).memberId).toBeNull();
 

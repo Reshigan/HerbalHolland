@@ -155,6 +155,7 @@ export const hqNav: NavGroup[] = [
       { label: "Founding Members", href: "/hq/launch", icon: "Rocket", keywords: "launch founders" },
       { label: "Drops", href: "/hq/drops", icon: "Sparkles", keywords: "limited release" },
       { label: "Events", href: "/hq/events", icon: "CalendarDays", keywords: "rsvp" },
+      { label: "Subscriptions", href: "/hq/subscriptions", icon: "Repeat", keywords: "club plans recurring" },
     ],
   },
 ];

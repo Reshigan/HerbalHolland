@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Activity, ArrowLeftRight, BadgePercent, Banknote, Bell, BookOpen, Boxes, Briefcase, Building2, CalendarCheck, CalendarDays, ChartColumn, Circle, ClipboardCheck, Crown, FileSpreadsheet, FileText, FlaskConical, History, Landmark,
   HandCoins, Handshake, Layers, LayoutDashboard, LifeBuoy, ListTree, Megaphone, Menu, MessageSquare, Nfc, NotebookPen, Package, PackageCheck, Percent, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
-  Star, Stethoscope, Store, Tag, Tags,
+  Repeat, Star, Stethoscope, Store, Tag, Tags,
   Truck, Tv, Undo2, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -16,7 +16,7 @@ import type { NavGroup } from "./nav-config";
 const ICONS: Record<string, LucideIcon> = {
   Activity, ArrowLeftRight, BadgePercent, Banknote, Bell, BookOpen, Boxes, Briefcase, Building2, CalendarCheck, CalendarDays, ChartColumn, ClipboardCheck, Crown, FileSpreadsheet, FileText, FlaskConical, History, Landmark,
   HandCoins, Handshake, Layers, LayoutDashboard, LifeBuoy, ListTree, Megaphone, MessageSquare, Nfc, NotebookPen, Package, PackageCheck, Percent, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
-  Star, Stethoscope, Store, Tag, Tags,
+  Repeat, Star, Stethoscope, Store, Tag, Tags,
   Truck, Tv, Undo2, Users, UsersRound, Wallet, Warehouse,
 };
 
