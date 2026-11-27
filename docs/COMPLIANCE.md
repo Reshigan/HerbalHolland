@@ -144,6 +144,9 @@ Unspent balances stay on the voucher until then (s63(3)); the liability report i
 paid on a sale goes back onto that voucher first (`allocateRefund`), at the till and for online returns alike, and only
 what was paid in money is refunded in money. VAT: none at issue; accounted for on the sale it pays for (VAT Act
 s10(18) treatment of vouchers), which is what the posted sale records, at the till or at handover.
+The one exception is a member's referral credit (the affiliate wallet): its owner can take it as cash at any till,
+from the HQ minimum (`loyalty.affiliateCashMinCents`, R50 by default) up to R2,000 at a time, paid by a till manager
+from the drawer, audited (`referral.cash_payout`) and posted as HQ settling the liability (`referral-payout`).
 
 **Reorder reminders are transactional, not marketing.** A reminder exists only because the member set it, on the
 channel they chose, for one product, with an interval they picked, and they can stop it in one tap. It is a service

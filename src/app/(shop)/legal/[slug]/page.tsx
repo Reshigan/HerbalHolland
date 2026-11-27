@@ -62,7 +62,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
         {slug === "returns" && <PolicyBody blocks={returnsPolicy(facts)} counsel={underReview} />}
         {slug === "delivery" && <PolicyBody blocks={deliveryPolicy(facts)} counsel={underReview} />}
         {slug === "delete-account" && <PolicyBody blocks={deletionPolicy(facts)} counsel={underReview} />}
-        {slug === "referrals" && <PolicyBody blocks={referralRules(facts, settings.loyalty.referralBonus, settings.loyalty.affiliatePct)} counsel={underReview} />}
+        {slug === "referrals" && <PolicyBody blocks={referralRules(facts, settings.loyalty.referralBonus, settings.loyalty.affiliatePct, settings.loyalty.affiliateCashMinCents)} counsel={underReview} />}
         {slug === "privacy" && (
           <>
             <H2>Responsible party</H2>

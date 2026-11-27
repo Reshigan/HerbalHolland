@@ -340,15 +340,16 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             </h2>
             <p className="mt-1 text-sm text-ink-300">
               When a friend (18+) joins with your link and makes their first purchase, you each get {fmtPoints(settings.loyalty.referralBonus)}.
-              {settings.loyalty.affiliatePct > 0 && ` After that you earn ${settings.loyalty.affiliatePct}% of what they spend, as rand credit to spend at the till (not on medicines).`}
+              {settings.loyalty.affiliatePct > 0 &&
+                ` After that you earn ${settings.loyalty.affiliatePct}% of what they spend, as rand credit. Spend it on products in any of our stores (not on medicines), or take it as cash at the till${settings.loyalty.affiliateCashMinCents > 0 ? ` from ${zarWhole(settings.loyalty.affiliateCashMinCents)}` : ""}.`}
               {m.referrals > 0 && ` You've invited ${m.referrals} member${m.referrals === 1 ? "" : "s"} so far.`}
             </p>
             {m.referralCredit && (
               <div className="mt-3 rounded-xl bg-ink-850 px-4 py-3">
-                <p className="text-xs text-ink-450">Referral credit to spend in store</p>
+                <p className="text-xs text-ink-450">Your referral credit</p>
                 <p className="tnum font-display text-2xl font-semibold text-white">{zar(m.referralCredit.balanceCents)}</p>
                 <p className="mt-0.5 text-xs text-ink-450">
-                  {zar(m.referralCredit.earnedCents)} earned from friends so far. Show your member card at the till to use it. Expires {fmtDate(m.referralCredit.expiresAt)} unless you earn more.
+                  {zar(m.referralCredit.earnedCents)} earned from friends so far. Show your member card at the till to spend it or take it as cash. Expires {fmtDate(m.referralCredit.expiresAt)} unless you earn more.
                 </p>
               </div>
             )}

@@ -7,6 +7,8 @@ import { generateOffers } from "@/server/offers";
 import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
 import { str, bool, parseInt10, parseNum } from "@/server/hq/form";
 import { TIERS, type TierKey } from "@/lib/loyalty-rules";
+import { parseRand } from "@/lib/money";
+import { REFERRAL_PAYOUT_MAX_CENTS } from "@/lib/vouchers";
 
 const RULES = {
   earnPer100: [1, 50, "1–50 points per R100"],
@@ -29,7 +31,11 @@ export async function saveLoyalty(_: ActionState, fd: FormData): Promise<ActionS
       if (v == null || v < min || v > max) fields[k] = msg;
       return [k, v ?? min];
     }),
-  ) as Record<keyof typeof RULES, number>;
+  ) as Record<keyof typeof RULES | "affiliateCashMinCents", number>;
+  // The least referral credit a till pays out in cash, typed in rand (0 = no minimum, at most the till's per-payout cap).
+  const cashMin = parseRand(str(fd, "affiliateCashMin"));
+  if (cashMin == null || cashMin < 0 || cashMin > REFERRAL_PAYOUT_MAX_CENTS) fields.affiliateCashMin = `R0–R${REFERRAL_PAYOUT_MAX_CENTS / 100}`;
+  next.affiliateCashMinCents = cashMin ?? 0;
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
   const before = (await getSettings()).loyalty;
   const after = { ...before, ...next };

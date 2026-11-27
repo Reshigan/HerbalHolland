@@ -115,10 +115,11 @@ export function referralCreditProblem(a: { ownerId: string; customerId?: string 
 export const REFERRAL_PAYOUT_MAX_CENTS = 200_000;
 
 /** Why a cash payout of referral credit can't go ahead, or null. */
-export function referralPayoutProblem(a: { cents: number; balanceCents: number; inDrawerCents: number; status: string; expiresAt?: Date | null; now?: Date }): string | null {
+export function referralPayoutProblem(a: { cents: number; balanceCents: number; inDrawerCents: number; status: string; expiresAt?: Date | null; now?: Date; minCents?: number }): string | null {
   if (!Number.isInteger(a.cents) || a.cents <= 0) return "Enter an amount to pay out";
   if (a.status !== "ACTIVE" || (a.expiresAt && a.expiresAt <= (a.now ?? new Date()))) return "This member's referral credit isn't active";
   if (a.cents > a.balanceCents) return `The member has only ${(a.balanceCents / 100).toFixed(2)} referral credit`;
+  if (a.minCents && a.cents < a.minCents) return `Pay out at least ${(a.minCents / 100).toFixed(2)} in cash. Smaller amounts can be spent on products`;
   if (a.cents > REFERRAL_PAYOUT_MAX_CENTS) return `A till pays out at most ${(REFERRAL_PAYOUT_MAX_CENTS / 100).toFixed(2)} at a time`;
   if (a.cents > a.inDrawerCents) return "That's more cash than the drawer should hold";
   return null;
